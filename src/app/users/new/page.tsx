@@ -1,0 +1,625 @@
+'use client'
+
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { usersApi } from '@/lib/api'
+import { generateNewUID } from '@/utils/uid'
+
+const NewUserPage: React.FC = () => {
+  const router = useRouter()
+  const [formData, setFormData] = useState({
+    name: '',
+    birth_date: '',
+    gender: '' as 'male' | 'female' | 'other' | '',
+    age: '',
+    property_address: '',
+    property_name: '',
+    room_number: '',
+    intermediary: '',
+    deposit: '',
+    key_money: '',
+    rent: '',
+    fire_insurance: '',
+    common_fee: '',
+    landlord_rent: '',
+    landlord_common_fee: '',
+    rent_difference: '',
+    move_in_date: '',
+    next_renewal_date: '',
+    renewal_count: '',
+    resident_contact: '',
+    line_available: false,
+    emergency_contact: '',
+    emergency_contact_name: '',
+    relationship: '',
+    monitoring_system: '',
+    support_medical_institution: '',
+    notes: '',
+    proxy_payment_eligible: false,
+    welfare_recipient: false,
+    posthumous_affairs: false
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!formData.name.trim()) {
+      setError('氏名は必須です')
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      const newUID = await generateNewUID()
+
+      const userData = {
+        uid: newUID,
+        name: formData.name.trim(),
+        birth_date: formData.birth_date || undefined,
+        gender: formData.gender || undefined,
+        age: formData.age ? parseInt(formData.age) : undefined,
+        property_address: formData.property_address.trim() || undefined,
+        property_name: formData.property_name.trim() || undefined,
+        room_number: formData.room_number.trim() || undefined,
+        intermediary: formData.intermediary.trim() || undefined,
+        deposit: formData.deposit ? parseFloat(formData.deposit) : undefined,
+        key_money: formData.key_money ? parseFloat(formData.key_money) : undefined,
+        rent: formData.rent ? parseFloat(formData.rent) : undefined,
+        fire_insurance: formData.fire_insurance ? parseFloat(formData.fire_insurance) : undefined,
+        common_fee: formData.common_fee ? parseFloat(formData.common_fee) : undefined,
+        landlord_rent: formData.landlord_rent ? parseFloat(formData.landlord_rent) : undefined,
+        landlord_common_fee: formData.landlord_common_fee ? parseFloat(formData.landlord_common_fee) : undefined,
+        rent_difference: formData.rent_difference ? parseFloat(formData.rent_difference) : undefined,
+        move_in_date: formData.move_in_date || undefined,
+        next_renewal_date: formData.next_renewal_date || undefined,
+        renewal_count: formData.renewal_count ? parseInt(formData.renewal_count) : undefined,
+        resident_contact: formData.resident_contact.trim() || undefined,
+        line_available: formData.line_available,
+        emergency_contact: formData.emergency_contact.trim() || undefined,
+        emergency_contact_name: formData.emergency_contact_name.trim() || undefined,
+        relationship: formData.relationship.trim() || undefined,
+        monitoring_system: formData.monitoring_system.trim() || undefined,
+        support_medical_institution: formData.support_medical_institution.trim() || undefined,
+        notes: formData.notes.trim() || undefined,
+        proxy_payment_eligible: formData.proxy_payment_eligible,
+        welfare_recipient: formData.welfare_recipient,
+        posthumous_affairs: formData.posthumous_affairs
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const newUser = await usersApi.create(userData as any)
+      router.push(`/users/${newUser.id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'エラーが発生しました')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked
+      setFormData(prev => ({
+        ...prev,
+        [name]: checked
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }))
+    }
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="bg-white rounded-lg shadow-md p-6">
+        {/* ===== ここが修正箇所です ===== */}
+       <div className="flex flex-wrap justify-between items-start gap-4 mb-6 pb-6 border-b border-gray-200">
+          {/* タイトルと注意書きを左側にグループ化 */}
+          <div className="flex-grow">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">新規利用者追加</h1>
+            
+            <div className="mt-4 flex items-start p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <svg className="flex-shrink-0 w-5 h-5 text-blue-600 mt-0.5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <div className="ml-2">
+                <p className="text-sm text-blue-800">
+                  <span className="font-semibold"></span> 入力欄でEnterキーを押すとフォームが送信されます。内容は後からいつでも編集可能です。
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* キャンセルボタンを右側に配置 */}
+          <div className="w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="w-full sm:w-auto flex-shrink-0 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              キャンセルして戻る
+            </button>
+          </div>
+        </div>
+        {/* ===== ここまでが修正箇所です ===== */}
+
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="text-red-500 text-sm">{error}</div>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* 基本情報 */}
+          <div className="bg-gray-50 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">基本情報</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  氏名 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  生年月日
+                </label>
+                <input
+                  type="date"
+                  name="birth_date"
+                  value={formData.birth_date}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  性別
+                </label>
+                <select
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">選択してください</option>
+                  <option value="male">男性</option>
+                  <option value="female">女性</option>
+                  <option value="other">その他</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  年齢
+                </label>
+                <input
+                  type="number"
+                  name="age"
+                  value={formData.age}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 物件情報 */}
+          <div className="bg-gray-50 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">物件情報</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  物件住所
+                </label>
+                <input
+                  type="text"
+                  name="property_address"
+                  value={formData.property_address}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  物件名
+                </label>
+                <input
+                  type="text"
+                  name="property_name"
+                  value={formData.property_name}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  部屋番号
+                </label>
+                <input
+                  type="text"
+                  name="room_number"
+                  value={formData.room_number}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  仲介
+                </label>
+                <input
+                  type="text"
+                  name="intermediary"
+                  value={formData.intermediary}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 費用情報 */}
+          <div className="bg-gray-50 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">費用情報</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  敷金（円）
+                </label>
+                <input
+                  type="number"
+                  name="deposit"
+                  value={formData.deposit}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  礼金（円）
+                </label>
+                <input
+                  type="number"
+                  name="key_money"
+                  value={formData.key_money}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  家賃（円）
+                </label>
+                <input
+                  type="number"
+                  name="rent"
+                  value={formData.rent}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  火災保険（円）
+                </label>
+                <input
+                  type="number"
+                  name="fire_insurance"
+                  value={formData.fire_insurance}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  共益費（円）
+                </label>
+                <input
+                  type="number"
+                  name="common_fee"
+                  value={formData.common_fee}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  大家家賃（円）
+                </label>
+                <input
+                  type="number"
+                  name="landlord_rent"
+                  value={formData.landlord_rent}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  大家共益費（円）
+                </label>
+                <input
+                  type="number"
+                  name="landlord_common_fee"
+                  value={formData.landlord_common_fee}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  家賃差額（円）
+                </label>
+                <input
+                  type="number"
+                  name="rent_difference"
+                  value={formData.rent_difference}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 入居情報 */}
+          <div className="bg-gray-50 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">入居情報</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  入居日
+                </label>
+                <input
+                  type="date"
+                  name="move_in_date"
+                  value={formData.move_in_date}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  次回更新年月日
+                </label>
+                <input
+                  type="date"
+                  name="next_renewal_date"
+                  value={formData.next_renewal_date}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  更新回数
+                </label>
+                <input
+                  type="number"
+                  name="renewal_count"
+                  value={formData.renewal_count}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 連絡先情報 */}
+          <div className="bg-gray-50 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">連絡先情報</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  入居者連絡先
+                </label>
+                <input
+                  type="tel"
+                  name="resident_contact"
+                  value={formData.resident_contact}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="line_available"
+                    checked={formData.line_available}
+                    onChange={handleChange}
+                    className="mr-2"
+                  />
+                  <span className="text-sm font-medium text-gray-700">LINE利用可能</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  緊急連絡先
+                </label>
+                <input
+                  type="tel"
+                  name="emergency_contact"
+                  value={formData.emergency_contact}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  緊急連絡先氏名
+                </label>
+                <input
+                  type="text"
+                  name="emergency_contact_name"
+                  value={formData.emergency_contact_name}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  続柄
+                </label>
+                <input
+                  type="text"
+                  name="relationship"
+                  value={formData.relationship}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* サポート情報 */}
+          <div className="bg-gray-50 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">サポート情報</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  見守りシステム
+                </label>
+                <input
+                  type="text"
+                  name="monitoring_system"
+                  value={formData.monitoring_system}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  支援機関/医療機関
+                </label>
+                <input
+                  type="text"
+                  name="support_medical_institution"
+                  value={formData.support_medical_institution}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="proxy_payment_eligible"
+                    checked={formData.proxy_payment_eligible}
+                    onChange={handleChange}
+                    className="mr-2"
+                  />
+                  <span className="text-sm font-medium text-gray-700">代理納付該当</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="welfare_recipient"
+                    checked={formData.welfare_recipient}
+                    onChange={handleChange}
+                    className="mr-2"
+                  />
+                  <span className="text-sm font-medium text-gray-700">生活保護受給者</span>
+                </label>
+              </div>
+
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="posthumous_affairs"
+                    checked={formData.posthumous_affairs}
+                    onChange={handleChange}
+                    className="mr-2"
+                  />
+                  <span className="text-sm font-medium text-gray-700">死後事務委任</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* 備考 */}
+          <div className="bg-gray-50 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">備考</h3>
+            <div>
+              <textarea
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="その他の備考事項があれば記入してください"
+              />
+            </div>
+          </div>
+
+          {/* ボタン */}
+          <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="w-full sm:w-auto px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              キャンセル
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full sm:w-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {loading ? '作成中...' : '作成'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+export default NewUserPage

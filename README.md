@@ -1,36 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 居住支援管理システム
 
-## Getting Started
+社会福祉法人の居住支援サービスにおける利用者情報、相談履歴、支援計画を統合管理するWebアプリケーションです。
 
-First, run the development server:
+## 主な機能
 
+### 1. 利用者情報ハブ機能
+- 利用者名簿の一覧表示（100名以上対応）
+- 利用者基本情報の管理（氏名、住所、連絡先、物件情報等）
+- 統合情報表示（基本情報、相談履歴、支援計画をタブ形式で表示）
+- 新規利用者の追加・削除機能
+
+### 2. 相談受付フォーム機能
+- 契約の有無を問わない新規相談登録
+- 匿名相談対応
+- 詳細な相談内容入力（ADL/IADL、医療情報、収入情報等）
+- 既存利用者への追加相談記録
+
+### 3. 相談履歴管理機能
+- 全相談内容の一覧表示
+- 検索・フィルタリング機能（氏名、日時、属性等）
+- 相談詳細表示
+- 匿名相談から契約後相談まで統一管理
+
+### 4. 支援計画機能
+- 住宅入居者支援計画書の作成・管理
+- 更新履歴の自動保存
+- 相談情報からの利用者登録機能
+- 支援計画の検索・一覧表示
+
+### 5. データ管理と出力機能
+- 利用者名簿のExcel/CSVインポート
+- 各種データのExcel/CSVエクスポート
+- 期間別相談実績レポート生成
+- データ整合性チェック機能
+
+## 技術スタック
+
+- **フロントエンド**: Next.js 14 (App Router), TypeScript, Tailwind CSS
+- **バックエンド/データベース**: Supabase (PostgreSQL)
+- **デプロイ**: Vercel
+- **その他**: XLSX (Excel処理), File-saver (ファイルダウンロード)
+
+## セットアップ
+
+### 1. 依存関係のインストール
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. 環境変数の設定
+`.env.local`ファイルを作成し、Supabaseの接続情報を設定してください：
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. データベースの設定
+Supabaseで新しいプロジェクトを作成し、`supabase/migrations/001_initial_schema.sql`を実行してテーブルを作成してください。
 
-## Learn More
+### 4. 開発サーバーの起動
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+アプリケーションは [http://localhost:3000](http://localhost:3000) でアクセスできます。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## データベース構造
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### テーブル構成
+- `users` - 利用者マスタ
+- `consultations` - 相談テーブル
+- `support_plans` - 支援計画テーブル
+- `staff` - スタッフテーブル
 
-## Deploy on Vercel
+### 主要な機能
+- Row Level Security (RLS) による安全なデータアクセス
+- 自動的な作成・更新日時の記録
+- UUID による主キー設定
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 使用方法
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 利用者登録
+1. サイドバーの「新規利用者追加」ボタンをクリック
+2. 必要情報を入力（氏名は必須）
+3. システムが自動でUIDを採番
+
+### 相談受付
+1. ヘッダーの「新規相談」をクリック
+2. 匿名相談の場合は氏名を空欄に
+3. 詳細な相談内容を入力して保存
+
+### 支援計画作成
+1. 相談履歴から「利用者として登録」を実行
+2. 支援計画フォームで詳細情報を入力
+3. 更新履歴は自動で保存
+
+### データ管理
+1. 「データ管理」ページでインポート・エクスポートを実行
+2. 期間を指定して相談実績レポートを生成
+3. Excel/CSV形式でのデータ出力
+
+## 非機能要件
+
+### セキュリティ
+- Supabase Row Level Security による適切なアクセス制御
+- 個人情報の適切な保護
+- 一般的なWebアプリケーション脆弱性対策
+
+### パフォーマンス
+- 100名以上の利用者に対応
+- 効率的なデータベースインデックス
+- 遅延のないスムーズな操作
+
+### UI/UX
+- 直感的で一貫性のあるデザイン
+- ITに不慣れなユーザーでも操作可能
+- レスポンシブデザイン（PC・タブレット対応）
+
+### 保守性
+- モジュール化されたコード構造
+- TypeScriptによる型安全性
+- 将来の機能追加・改修が容易
+
+## 今後の拡張予定
+
+- 利用者別の支援計画履歴表示
+- より詳細なレポート機能
+- スタッフ権限管理
+- 通知機能
+- モバイルアプリ対応
+
+## ライセンス
+
+このプロジェクトは社会福祉法人向けに開発されました。

@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* プレースホルダーの色を濃くする */
+input::placeholder,
+textarea::placeholder {
+  @apply text-gray-600 opacity-100;
+}
+
+/* チェックボックスやラジオボタンのラベル色を改善 */
+.form-label {
+  @apply text-gray-900 font-medium;
+}
+
+/* フォーカス時の見た目を改善 */
+input:focus,
+textarea:focus,
+select:focus {
+  @apply ring-2 ring-blue-500 border-blue-500;
+}
+
+/* レスポンシブな文字サイズ */
+@media (max-width: 640px) {
+  .responsive-text {
+    @apply text-sm;
+  }
+}
+
+
+
+/* ーーー手動で追加ーーー */
+/* 1. 全てのラベル（項目名）の文字色を濃くする */
+label {
+  @apply text-gray-700 font-medium;
+}
+
+/* 2. ラベルの中にある<span>タグ（選択肢のテキスト）の文字色をさらに濃く、はっきりさせる */
+label span {
+  @apply text-gray-900;
+}
