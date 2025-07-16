@@ -3,65 +3,11 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supportPlansApi } from '@/lib/api'
+// 👇 1. インポートを 'Database' 型に変更
+import { Database } from '@/types/database'
 
-interface SupportPlan {
-  id: string
-  user_id: string
-  creation_date: string
-  staff_name: string
-  name: string
-  furigana: string
-  birth_date: string
-  age: number
-  residence: string
-  phone_mobile: string | null
-  line_available: boolean
-  welfare_recipient: boolean
-  welfare_worker: string | null
-  welfare_contact: string | null
-  care_level_independent: boolean
-  care_level_support1: boolean
-  care_level_support2: boolean
-  care_level_care1: boolean
-  care_level_care2: boolean
-  care_level_care3: boolean
-  care_level_care4: boolean
-  care_level_care5: boolean
-  outpatient_care: boolean
-  outpatient_institution: string | null
-  visiting_medical: boolean
-  visiting_medical_institution: string | null
-  home_oxygen: boolean
-  physical_disability_level: string | null
-  mental_disability_level: string | null
-  therapy_certificate_level: string | null
-  pension_national: boolean
-  pension_employee: boolean
-  pension_disability: boolean
-  pension_survivor: boolean
-  pension_corporate: boolean
-  pension_other: boolean
-  pension_other_details: string | null
-  monitoring_secom: boolean
-  monitoring_secom_details: string | null
-  monitoring_hello_light: boolean
-  monitoring_hello_light_details: string | null
-  support_shopping: boolean
-  support_bank_visit: boolean
-  support_cleaning: boolean
-  support_bulb_change: boolean
-  support_garbage_disposal: boolean
-  goals: string | null
-  needs_financial: string | null
-  needs_physical: string | null
-  needs_mental: string | null
-  needs_lifestyle: string | null
-  needs_environment: string | null
-  evacuation_plan_completed: boolean
-  evacuation_plan_other_details: string | null
-  created_at: string
-  updated_at: string
-}
+// 👇 2. 新しい型定義から型エイリアスを作成
+type SupportPlan = Database['public']['Tables']['support_plans']['Row']
 
 interface SupportPlanDetailProps {
   supportPlanId: string
@@ -69,6 +15,7 @@ interface SupportPlanDetailProps {
 
 const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) => {
   const router = useRouter()
+  // 👇 3. useState の型指定は変更なしでOK
   const [supportPlan, setSupportPlan] = useState<SupportPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -79,6 +26,7 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
         setLoading(true)
         setError(null)
         const data = await supportPlansApi.getById(supportPlanId)
+        // 👇 4. ここでエラーが出ていたが、api.tsを修正済みのため `as` は不要
         setSupportPlan(data)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'エラーが発生しました')
@@ -91,6 +39,7 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
   }, [supportPlanId])
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return ''
     return new Date(dateString).toLocaleDateString('ja-JP')
   }
 
@@ -121,7 +70,8 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
       </div>
     )
   }
-
+  
+  // 👇 5. JSXで使うためのヘルパー関数は変更なしでOK
   const getCareLevel = () => {
     const levels = []
     if (supportPlan.care_level_independent) levels.push('自立')
@@ -155,7 +105,8 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
     if (supportPlan.support_garbage_disposal) services.push('ゴミ捨て')
     return services
   }
-
+  
+  // 👇 6. JSX部分は変更なしでOK
   return (
     <div className="bg-white rounded-lg shadow-md">
       {/* ヘッダー */}

@@ -3,7 +3,40 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { consultationsApi } from '@/lib/api'
-import { Consultation } from '@/types/database'
+// 👇 1. インポートを 'Database' 型に変更
+import { Database } from '@/types/database'
+
+// 👇 2. 新しい型定義から型エイリアスを作成
+type Consultation = Database['public']['Tables']['consultations']['Row']
+type ConsultationUpdate = Partial<Database['public']['Tables']['consultations']['Update']>
+
+// 👇 3. フォームで扱うデータ用の型を定義 (チェックボックスの項目などをまとめる)
+interface FormData {
+  consultation_date: string
+  name: string
+  consultation_route_self: boolean
+  consultation_route_family: boolean
+  consultation_route_care_manager: boolean
+  consultation_route_elderly_center: boolean
+  consultation_route_disability_center: boolean
+  consultation_route_government: boolean
+  consultation_route_government_other: string
+  consultation_route_other: boolean
+  consultation_route_other_text: string
+  attribute_elderly: boolean
+  attribute_disability: boolean
+  attribute_childcare: boolean
+  attribute_single_parent: boolean
+  attribute_dv: boolean
+  attribute_foreigner: boolean
+  attribute_poverty: boolean
+  attribute_low_income: boolean
+  attribute_lgbt: boolean
+  attribute_welfare: boolean
+  // 他にもフォームで編集する項目があればここに追加
+  consultation_content: string
+  consultation_result: string
+}
 
 interface ConsultationEditFormProps {
   consultationId: string
@@ -11,16 +44,35 @@ interface ConsultationEditFormProps {
 
 const ConsultationEditForm: React.FC<ConsultationEditFormProps> = ({ consultationId }) => {
   const router = useRouter()
+  // consultation stateの型は変更なし
   const [consultation, setConsultation] = useState<Consultation | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitLoading, setSubmitLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  const [formData, setFormData] = useState({
+  // 👇 4. formData の state を新しい FormData 型で初期化
+  const [formData, setFormData] = useState<FormData>({
     consultation_date: '',
-    consultation_route: [] as string[],
-    attributes: [] as string[],
     name: '',
+    consultation_route_self: false,
+    consultation_route_family: false,
+    consultation_route_care_manager: false,
+    consultation_route_elderly_center: false,
+    consultation_route_disability_center: false,
+    consultation_route_government: false,
+    consultation_route_government_other: '',
+    consultation_route_other: false,
+    consultation_route_other_text: '',
+    attribute_elderly: false,
+    attribute_disability: false,
+    attribute_childcare: false,
+    attribute_single_parent: false,
+    attribute_dv: false,
+    attribute_foreigner: false,
+    attribute_poverty: false,
+    attribute_low_income: false,
+    attribute_lgbt: false,
+    attribute_welfare: false,
     consultation_content: '',
     consultation_result: ''
   })
@@ -33,11 +85,29 @@ const ConsultationEditForm: React.FC<ConsultationEditFormProps> = ({ consultatio
         const data = await consultationsApi.getById(consultationId)
         if (data) {
           setConsultation(data)
+          // 👇 5. DBからのフラットなデータをフォーム用の形式に変換してセット
           setFormData({
-            consultation_date: data.consultation_date,
-            consultation_route: data.consultation_route || [],
-            attributes: data.attributes || [],
+            consultation_date: data.consultation_date.split('T')[0], // YYYY-MM-DD形式に
             name: data.name || '',
+            consultation_route_self: data.consultation_route_self || false,
+            consultation_route_family: data.consultation_route_family || false,
+            consultation_route_care_manager: data.consultation_route_care_manager || false,
+            consultation_route_elderly_center: data.consultation_route_elderly_center || false,
+            consultation_route_disability_center: data.consultation_route_disability_center || false,
+            consultation_route_government: data.consultation_route_government || false,
+            consultation_route_government_other: data.consultation_route_government_other || '',
+            consultation_route_other: data.consultation_route_other || false,
+            consultation_route_other_text: data.consultation_route_other_text || '',
+            attribute_elderly: data.attribute_elderly || false,
+            attribute_disability: data.attribute_disability || false,
+            attribute_childcare: data.attribute_childcare || false,
+            attribute_single_parent: data.attribute_single_parent || false,
+            attribute_dv: data.attribute_dv || false,
+            attribute_foreigner: data.attribute_foreigner || false,
+            attribute_poverty: data.attribute_poverty || false,
+            attribute_low_income: data.attribute_low_income || false,
+            attribute_lgbt: data.attribute_lgbt || false,
+            attribute_welfare: data.attribute_welfare || false,
             consultation_content: data.consultation_content || '',
             consultation_result: data.consultation_result || ''
           })
@@ -52,12 +122,14 @@ const ConsultationEditForm: React.FC<ConsultationEditFormProps> = ({ consultatio
     fetchConsultation()
   }, [consultationId])
 
-  const handleCheckboxChange = (field: string, value: string) => {
+  // 👇 6. 入力ハンドラを汎用的に修正
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    const isCheckbox = type === 'checkbox' && 'checked' in e.target;
+
     setFormData(prev => ({
       ...prev,
-      [field]: prev[field as keyof typeof prev].includes(value)
-        ? (prev[field as keyof typeof prev] as string[]).filter((item: string) => item !== value)
-        : [...(prev[field as keyof typeof prev] as string[]), value]
+      [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value
     }))
   }
 
@@ -68,14 +140,8 @@ const ConsultationEditForm: React.FC<ConsultationEditFormProps> = ({ consultatio
       setSubmitLoading(true)
       setError(null)
       
-      const updateData = {
-        consultation_date: formData.consultation_date,
-        consultation_route: formData.consultation_route.length > 0 ? formData.consultation_route : undefined,
-        attributes: formData.attributes.length > 0 ? formData.attributes : undefined,
-        name: formData.name.trim() || undefined,
-        consultation_content: formData.consultation_content.trim() || undefined,
-        consultation_result: formData.consultation_result.trim() || undefined
-      }
+      // 👇 7. フォームのデータをDB保存用のフラットな形式に変換
+      const updateData: ConsultationUpdate = { ...formData }
       
       await consultationsApi.update(consultationId, updateData)
       router.push(`/consultations/${consultationId}`)
@@ -131,8 +197,9 @@ const ConsultationEditForm: React.FC<ConsultationEditFormProps> = ({ consultatio
               </label>
               <input
                 type="date"
+                name="consultation_date"
                 value={formData.consultation_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, consultation_date: e.target.value }))}
+                onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
               />
@@ -144,30 +211,28 @@ const ConsultationEditForm: React.FC<ConsultationEditFormProps> = ({ consultatio
               </label>
               <input
                 type="text"
+                name="name"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="匿名の場合は空欄"
               />
             </div>
           </div>
-
+          
+          {/* 👇 8. JSX部分を新しいformDataの構造に合わせて全面的に修正 */}
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-900 mb-2">
               相談ルート
             </label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {['本人', '家族', 'ケアマネ', '支援センター（高齢者）', '支援センター（障害者）', '行政機関', 'その他'].map((route) => (
-                <label key={route} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.consultation_route.includes(route)}
-                    onChange={() => handleCheckboxChange('consultation_route', route)}
-                    className="mr-2"
-                  />
-                  <span className="text-sm text-gray-900">{route}</span>
-                </label>
-              ))}
+              <label className="flex items-center"><input type="checkbox" name="consultation_route_self" checked={formData.consultation_route_self} onChange={handleChange} className="mr-2" /><span>本人</span></label>
+              <label className="flex items-center"><input type="checkbox" name="consultation_route_family" checked={formData.consultation_route_family} onChange={handleChange} className="mr-2" /><span>家族</span></label>
+              <label className="flex items-center"><input type="checkbox" name="consultation_route_care_manager" checked={formData.consultation_route_care_manager} onChange={handleChange} className="mr-2" /><span>ケアマネ</span></label>
+              <label className="flex items-center"><input type="checkbox" name="consultation_route_elderly_center" checked={formData.consultation_route_elderly_center} onChange={handleChange} className="mr-2" /><span>支援センター（高齢者）</span></label>
+              <label className="flex items-center"><input type="checkbox" name="consultation_route_disability_center" checked={formData.consultation_route_disability_center} onChange={handleChange} className="mr-2" /><span>支援センター（障害者）</span></label>
+              <label className="flex items-center"><input type="checkbox" name="consultation_route_government" checked={formData.consultation_route_government} onChange={handleChange} className="mr-2" /><span>行政機関</span></label>
+              <label className="flex items-center"><input type="checkbox" name="consultation_route_other" checked={formData.consultation_route_other} onChange={handleChange} className="mr-2" /><span>その他</span></label>
             </div>
           </div>
 
@@ -176,17 +241,16 @@ const ConsultationEditForm: React.FC<ConsultationEditFormProps> = ({ consultatio
               属性
             </label>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-              {['高齢', '障がい', '子育て', 'ひとり親', 'DV', '外国人', '生活困窮', '低所得者', 'LGBT', '生保'].map((attr) => (
-                <label key={attr} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.attributes.includes(attr)}
-                    onChange={() => handleCheckboxChange('attributes', attr)}
-                    className="mr-2"
-                  />
-                  <span className="text-sm text-gray-900">{attr}</span>
-                </label>
-              ))}
+              <label className="flex items-center"><input type="checkbox" name="attribute_elderly" checked={formData.attribute_elderly} onChange={handleChange} className="mr-2" /><span>高齢</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_disability" checked={formData.attribute_disability} onChange={handleChange} className="mr-2" /><span>障がい</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_childcare" checked={formData.attribute_childcare} onChange={handleChange} className="mr-2" /><span>子育て</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_single_parent" checked={formData.attribute_single_parent} onChange={handleChange} className="mr-2" /><span>ひとり親</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_dv" checked={formData.attribute_dv} onChange={handleChange} className="mr-2" /><span>DV</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_foreigner" checked={formData.attribute_foreigner} onChange={handleChange} className="mr-2" /><span>外国人</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_poverty" checked={formData.attribute_poverty} onChange={handleChange} className="mr-2" /><span>生活困窮</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_low_income" checked={formData.attribute_low_income} onChange={handleChange} className="mr-2" /><span>低所得者</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_lgbt" checked={formData.attribute_lgbt} onChange={handleChange} className="mr-2" /><span>LGBT</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_welfare" checked={formData.attribute_welfare} onChange={handleChange} className="mr-2" /><span>生保</span></label>
             </div>
           </div>
         </div>
@@ -201,8 +265,9 @@ const ConsultationEditForm: React.FC<ConsultationEditFormProps> = ({ consultatio
                 相談内容（困りごと、何が大変でどうしたいか、等）
               </label>
               <textarea
+                name="consultation_content"
                 value={formData.consultation_content}
-                onChange={(e) => setFormData(prev => ({ ...prev, consultation_content: e.target.value }))}
+                onChange={handleChange}
                 rows={6}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -213,8 +278,9 @@ const ConsultationEditForm: React.FC<ConsultationEditFormProps> = ({ consultatio
                 相談結果
               </label>
               <textarea
+                name="consultation_result"
                 value={formData.consultation_result}
-                onChange={(e) => setFormData(prev => ({ ...prev, consultation_result: e.target.value }))}
+                onChange={handleChange}
                 rows={6}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />

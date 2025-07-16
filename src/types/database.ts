@@ -1,227 +1,932 @@
-export interface User {
-  id: string
-  uid: string // 正式UID
-  name: string
-  birth_date?: string
-  gender?: 'male' | 'female' | 'other'
-  age?: number
-  property_address?: string // 物件住所
-  property_name?: string // 物件名
-  room_number?: string // 部屋番号
-  intermediary?: string // 仲介
-  deposit?: number // 敷金
-  key_money?: number // 礼金
-  rent?: number // 家賃
-  fire_insurance?: number // 火災保険
-  common_fee?: number // 共益費
-  landlord_rent?: number // 大家家賃
-  landlord_common_fee?: number // 大家共益費
-  rent_difference?: number // 家賃差額
-  move_in_date?: string // 入居日
-  next_renewal_date?: string // 次回更新年月日
-  renewal_count?: number // 更新回数
-  resident_contact?: string // 入居者連絡先
-  line_available?: boolean // LINE
-  emergency_contact?: string // 緊急連絡先
-  emergency_contact_name?: string // 緊急連絡先氏名
-  relationship?: string // 続柄
-  monitoring_system?: string // 見守りシステム
-  support_medical_institution?: string // 支援機関/医療機関
-  notes?: string // 備考
-  proxy_payment_eligible?: boolean // 代理納付該当
-  welfare_recipient?: boolean // 生活保護受給者
-  posthumous_affairs?: boolean // 死後事務委任
-  created_at: string
-  updated_at: string
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          operationName?: string
+          query?: string
+          variables?: Json
+          extensions?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      consultations: {
+        Row: {
+          address: string | null
+          age: number | null
+          attribute_childcare: boolean | null
+          attribute_disability: boolean | null
+          attribute_disability_intellectual: boolean | null
+          attribute_disability_mental: boolean | null
+          attribute_disability_physical: boolean | null
+          attribute_dv: boolean | null
+          attribute_elderly: boolean | null
+          attribute_foreigner: boolean | null
+          attribute_lgbt: boolean | null
+          attribute_low_income: boolean | null
+          attribute_poverty: boolean | null
+          attribute_single_parent: boolean | null
+          attribute_welfare: boolean | null
+          bathing_full_assist: boolean | null
+          bathing_independent: boolean | null
+          bathing_other: boolean | null
+          bathing_other_text: string | null
+          bathing_partial_assist: boolean | null
+          bed_or_futon: string | null
+          birth_day: number | null
+          birth_month: number | null
+          birth_year: number | null
+          care_manager: string | null
+          care_support_office: string | null
+          consultation_content: string | null
+          consultation_date: string
+          consultation_result: string | null
+          consultation_route_care_manager: boolean | null
+          consultation_route_disability_center: boolean | null
+          consultation_route_elderly_center: boolean | null
+          consultation_route_family: boolean | null
+          consultation_route_government: boolean | null
+          consultation_route_government_other: string | null
+          consultation_route_other: boolean | null
+          consultation_route_other_text: string | null
+          consultation_route_self: boolean | null
+          cooking_possible: boolean | null
+          cooking_support_needed: boolean | null
+          cooking_support_text: string | null
+          created_at: string
+          dementia: string | null
+          dementia_hospital: string | null
+          diaper_usage: boolean | null
+          eating_full_assist: boolean | null
+          eating_independent: boolean | null
+          eating_other: boolean | null
+          eating_other_text: string | null
+          eating_partial_assist: boolean | null
+          emergency_contact_address: string | null
+          emergency_contact_email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone_home: string | null
+          emergency_contact_phone_mobile: string | null
+          emergency_contact_postal_code: string | null
+          emergency_contact_relationship: string | null
+          excretion_full_assist: boolean | null
+          excretion_independent: boolean | null
+          excretion_other: boolean | null
+          excretion_other_text: string | null
+          excretion_partial_assist: boolean | null
+          furigana: string | null
+          garbage_disposal_independent: boolean | null
+          garbage_disposal_support_needed: boolean | null
+          garbage_disposal_support_text: string | null
+          gender: string | null
+          hospital_support_required: boolean | null
+          household_acquaintance: boolean | null
+          household_common_law: boolean | null
+          household_couple: boolean | null
+          household_other: boolean | null
+          household_other_text: string | null
+          household_parent_child: boolean | null
+          household_siblings: boolean | null
+          household_single: boolean | null
+          id: string
+          income_injury_allowance: number | null
+          income_pension: number | null
+          income_salary: number | null
+          medical_history: string | null
+          medical_institution_name: string | null
+          medical_institution_staff: string | null
+          medication_management_needed: boolean | null
+          mental_disability_certificate: boolean | null
+          mental_disability_level: string | null
+          mobility_full_assist: boolean | null
+          mobility_independent: boolean | null
+          mobility_other: boolean | null
+          mobility_other_text: string | null
+          mobility_partial_assist: boolean | null
+          money_management: string | null
+          name: string | null
+          next_appointment_details: string | null
+          next_appointment_scheduled: boolean | null
+          other_notes: string | null
+          phone_home: string | null
+          phone_mobile: string | null
+          physical_condition: string | null
+          physical_disability_certificate: boolean | null
+          physical_disability_level: string | null
+          postal_code: string | null
+          proxy_payment: boolean | null
+          relocation_reason: string | null
+          rent_payment_method: string | null
+          savings: number | null
+          second_floor_possible: boolean | null
+          service_day_service: boolean | null
+          service_home_medical: boolean | null
+          service_other: boolean | null
+          service_other_text: string | null
+          service_provider: string | null
+          service_short_stay: boolean | null
+          service_visiting_care: boolean | null
+          service_visiting_nurse: boolean | null
+          shopping_possible: boolean | null
+          shopping_support_needed: boolean | null
+          shopping_support_text: string | null
+          staff_id: string | null
+          stairs_full_assist: boolean | null
+          stairs_independent: boolean | null
+          stairs_other: boolean | null
+          stairs_other_text: string | null
+          stairs_partial_assist: boolean | null
+          supporter_available: boolean | null
+          supporter_text: string | null
+          therapy_certificate: boolean | null
+          therapy_level: string | null
+          unit_bath_possible: boolean | null
+          updated_at: string
+          user_id: string | null
+          welfare_recipient: boolean | null
+          welfare_staff: string | null
+        }
+        Insert: {
+          address?: string | null
+          age?: number | null
+          attribute_childcare?: boolean | null
+          attribute_disability?: boolean | null
+          attribute_disability_intellectual?: boolean | null
+          attribute_disability_mental?: boolean | null
+          attribute_disability_physical?: boolean | null
+          attribute_dv?: boolean | null
+          attribute_elderly?: boolean | null
+          attribute_foreigner?: boolean | null
+          attribute_lgbt?: boolean | null
+          attribute_low_income?: boolean | null
+          attribute_poverty?: boolean | null
+          attribute_single_parent?: boolean | null
+          attribute_welfare?: boolean | null
+          bathing_full_assist?: boolean | null
+          bathing_independent?: boolean | null
+          bathing_other?: boolean | null
+          bathing_other_text?: string | null
+          bathing_partial_assist?: boolean | null
+          bed_or_futon?: string | null
+          birth_day?: number | null
+          birth_month?: number | null
+          birth_year?: number | null
+          care_manager?: string | null
+          care_support_office?: string | null
+          consultation_content?: string | null
+          consultation_date: string
+          consultation_result?: string | null
+          consultation_route_care_manager?: boolean | null
+          consultation_route_disability_center?: boolean | null
+          consultation_route_elderly_center?: boolean | null
+          consultation_route_family?: boolean | null
+          consultation_route_government?: boolean | null
+          consultation_route_government_other?: string | null
+          consultation_route_other?: boolean | null
+          consultation_route_other_text?: string | null
+          consultation_route_self?: boolean | null
+          cooking_possible?: boolean | null
+          cooking_support_needed?: boolean | null
+          cooking_support_text?: string | null
+          created_at?: string
+          dementia?: string | null
+          dementia_hospital?: string | null
+          diaper_usage?: boolean | null
+          eating_full_assist?: boolean | null
+          eating_independent?: boolean | null
+          eating_other?: boolean | null
+          eating_other_text?: string | null
+          eating_partial_assist?: boolean | null
+          emergency_contact_address?: string | null
+          emergency_contact_email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone_home?: string | null
+          emergency_contact_phone_mobile?: string | null
+          emergency_contact_postal_code?: string | null
+          emergency_contact_relationship?: string | null
+          excretion_full_assist?: boolean | null
+          excretion_independent?: boolean | null
+          excretion_other?: boolean | null
+          excretion_other_text?: string | null
+          excretion_partial_assist?: boolean | null
+          furigana?: string | null
+          garbage_disposal_independent?: boolean | null
+          garbage_disposal_support_needed?: boolean | null
+          garbage_disposal_support_text?: string | null
+          gender?: string | null
+          hospital_support_required?: boolean | null
+          household_acquaintance?: boolean | null
+          household_common_law?: boolean | null
+          household_couple?: boolean | null
+          household_other?: boolean | null
+          household_other_text?: string | null
+          household_parent_child?: boolean | null
+          household_siblings?: boolean | null
+          household_single?: boolean | null
+          id?: string
+          income_injury_allowance?: number | null
+          income_pension?: number | null
+          income_salary?: number | null
+          medical_history?: string | null
+          medical_institution_name?: string | null
+          medical_institution_staff?: string | null
+          medication_management_needed?: boolean | null
+          mental_disability_certificate?: boolean | null
+          mental_disability_level?: string | null
+          mobility_full_assist?: boolean | null
+          mobility_independent?: boolean | null
+          mobility_other?: boolean | null
+          mobility_other_text?: string | null
+          mobility_partial_assist?: boolean | null
+          money_management?: string | null
+          name?: string | null
+          next_appointment_details?: string | null
+          next_appointment_scheduled?: boolean | null
+          other_notes?: string | null
+          phone_home?: string | null
+          phone_mobile?: string | null
+          physical_condition?: string | null
+          physical_disability_certificate?: boolean | null
+          physical_disability_level?: string | null
+          postal_code?: string | null
+          proxy_payment?: boolean | null
+          relocation_reason?: string | null
+          rent_payment_method?: string | null
+          savings?: number | null
+          second_floor_possible?: boolean | null
+          service_day_service?: boolean | null
+          service_home_medical?: boolean | null
+          service_other?: boolean | null
+          service_other_text?: string | null
+          service_provider?: string | null
+          service_short_stay?: boolean | null
+          service_visiting_care?: boolean | null
+          service_visiting_nurse?: boolean | null
+          shopping_possible?: boolean | null
+          shopping_support_needed?: boolean | null
+          shopping_support_text?: string | null
+          staff_id?: string | null
+          stairs_full_assist?: boolean | null
+          stairs_independent?: boolean | null
+          stairs_other?: boolean | null
+          stairs_other_text?: string | null
+          stairs_partial_assist?: boolean | null
+          supporter_available?: boolean | null
+          supporter_text?: string | null
+          therapy_certificate?: boolean | null
+          therapy_level?: string | null
+          unit_bath_possible?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+          welfare_recipient?: boolean | null
+          welfare_staff?: string | null
+        }
+        Update: {
+          address?: string | null
+          age?: number | null
+          attribute_childcare?: boolean | null
+          attribute_disability?: boolean | null
+          attribute_disability_intellectual?: boolean | null
+          attribute_disability_mental?: boolean | null
+          attribute_disability_physical?: boolean | null
+          attribute_dv?: boolean | null
+          attribute_elderly?: boolean | null
+          attribute_foreigner?: boolean | null
+          attribute_lgbt?: boolean | null
+          attribute_low_income?: boolean | null
+          attribute_poverty?: boolean | null
+          attribute_single_parent?: boolean | null
+          attribute_welfare?: boolean | null
+          bathing_full_assist?: boolean | null
+          bathing_independent?: boolean | null
+          bathing_other?: boolean | null
+          bathing_other_text?: string | null
+          bathing_partial_assist?: boolean | null
+          bed_or_futon?: string | null
+          birth_day?: number | null
+          birth_month?: number | null
+          birth_year?: number | null
+          care_manager?: string | null
+          care_support_office?: string | null
+          consultation_content?: string | null
+          consultation_date?: string
+          consultation_result?: string | null
+          consultation_route_care_manager?: boolean | null
+          consultation_route_disability_center?: boolean | null
+          consultation_route_elderly_center?: boolean | null
+          consultation_route_family?: boolean | null
+          consultation_route_government?: boolean | null
+          consultation_route_government_other?: string | null
+          consultation_route_other?: boolean | null
+          consultation_route_other_text?: string | null
+          consultation_route_self?: boolean | null
+          cooking_possible?: boolean | null
+          cooking_support_needed?: boolean | null
+          cooking_support_text?: string | null
+          created_at?: string
+          dementia?: string | null
+          dementia_hospital?: string | null
+          diaper_usage?: boolean | null
+          eating_full_assist?: boolean | null
+          eating_independent?: boolean | null
+          eating_other?: boolean | null
+          eating_other_text?: string | null
+          eating_partial_assist?: boolean | null
+          emergency_contact_address?: string | null
+          emergency_contact_email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone_home?: string | null
+          emergency_contact_phone_mobile?: string | null
+          emergency_contact_postal_code?: string | null
+          emergency_contact_relationship?: string | null
+          excretion_full_assist?: boolean | null
+          excretion_independent?: boolean | null
+          excretion_other?: boolean | null
+          excretion_other_text?: string | null
+          excretion_partial_assist?: boolean | null
+          furigana?: string | null
+          garbage_disposal_independent?: boolean | null
+          garbage_disposal_support_needed?: boolean | null
+          garbage_disposal_support_text?: string | null
+          gender?: string | null
+          hospital_support_required?: boolean | null
+          household_acquaintance?: boolean | null
+          household_common_law?: boolean | null
+          household_couple?: boolean | null
+          household_other?: boolean | null
+          household_other_text?: string | null
+          household_parent_child?: boolean | null
+          household_siblings?: boolean | null
+          household_single?: boolean | null
+          id?: string
+          income_injury_allowance?: number | null
+          income_pension?: number | null
+          income_salary?: number | null
+          medical_history?: string | null
+          medical_institution_name?: string | null
+          medical_institution_staff?: string | null
+          medication_management_needed?: boolean | null
+          mental_disability_certificate?: boolean | null
+          mental_disability_level?: string | null
+          mobility_full_assist?: boolean | null
+          mobility_independent?: boolean | null
+          mobility_other?: boolean | null
+          mobility_other_text?: string | null
+          mobility_partial_assist?: boolean | null
+          money_management?: string | null
+          name?: string | null
+          next_appointment_details?: string | null
+          next_appointment_scheduled?: boolean | null
+          other_notes?: string | null
+          phone_home?: string | null
+          phone_mobile?: string | null
+          physical_condition?: string | null
+          physical_disability_certificate?: boolean | null
+          physical_disability_level?: string | null
+          postal_code?: string | null
+          proxy_payment?: boolean | null
+          relocation_reason?: string | null
+          rent_payment_method?: string | null
+          savings?: number | null
+          second_floor_possible?: boolean | null
+          service_day_service?: boolean | null
+          service_home_medical?: boolean | null
+          service_other?: boolean | null
+          service_other_text?: string | null
+          service_provider?: string | null
+          service_short_stay?: boolean | null
+          service_visiting_care?: boolean | null
+          service_visiting_nurse?: boolean | null
+          shopping_possible?: boolean | null
+          shopping_support_needed?: boolean | null
+          shopping_support_text?: string | null
+          staff_id?: string | null
+          stairs_full_assist?: boolean | null
+          stairs_independent?: boolean | null
+          stairs_other?: boolean | null
+          stairs_other_text?: string | null
+          stairs_partial_assist?: boolean | null
+          supporter_available?: boolean | null
+          supporter_text?: string | null
+          therapy_certificate?: boolean | null
+          therapy_level?: string | null
+          unit_bath_possible?: boolean | null
+          updated_at?: string
+          user_id?: string | null
+          welfare_recipient?: boolean | null
+          welfare_staff?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultations_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      support_plans: {
+        Row: {
+          age: number
+          birth_date: string
+          care_level_care1: boolean | null
+          care_level_care2: boolean | null
+          care_level_care3: boolean | null
+          care_level_care4: boolean | null
+          care_level_care5: boolean | null
+          care_level_independent: boolean | null
+          care_level_support1: boolean | null
+          care_level_support2: boolean | null
+          created_at: string
+          creation_date: string
+          evacuation_plan_completed: boolean | null
+          evacuation_plan_other_details: string | null
+          furigana: string
+          goals: string | null
+          home_oxygen: boolean | null
+          id: string
+          line_available: boolean | null
+          mental_disability_level: string | null
+          monitoring_hello_light: boolean | null
+          monitoring_hello_light_details: string | null
+          monitoring_secom: boolean | null
+          monitoring_secom_details: string | null
+          name: string
+          needs_environment: string | null
+          needs_financial: string | null
+          needs_lifestyle: string | null
+          needs_mental: string | null
+          needs_physical: string | null
+          outpatient_care: boolean | null
+          outpatient_institution: string | null
+          pension_corporate: boolean | null
+          pension_disability: boolean | null
+          pension_employee: boolean | null
+          pension_national: boolean | null
+          pension_other: boolean | null
+          pension_other_details: string | null
+          pension_survivor: boolean | null
+          phone_mobile: string | null
+          physical_disability_level: string | null
+          residence: string
+          staff_name: string
+          support_bank_visit: boolean | null
+          support_bulb_change: boolean | null
+          support_cleaning: boolean | null
+          support_garbage_disposal: boolean | null
+          support_shopping: boolean | null
+          therapy_certificate_level: string | null
+          updated_at: string
+          user_id: string
+          visiting_medical: boolean | null
+          visiting_medical_institution: string | null
+          welfare_contact: string | null
+          welfare_recipient: boolean | null
+          welfare_worker: string | null
+        }
+        Insert: {
+          age: number
+          birth_date: string
+          care_level_care1?: boolean | null
+          care_level_care2?: boolean | null
+          care_level_care3?: boolean | null
+          care_level_care4?: boolean | null
+          care_level_care5?: boolean | null
+          care_level_independent?: boolean | null
+          care_level_support1?: boolean | null
+          care_level_support2?: boolean | null
+          created_at?: string
+          creation_date: string
+          evacuation_plan_completed?: boolean | null
+          evacuation_plan_other_details?: string | null
+          furigana: string
+          goals?: string | null
+          home_oxygen?: boolean | null
+          id?: string
+          line_available?: boolean | null
+          mental_disability_level?: string | null
+          monitoring_hello_light?: boolean | null
+          monitoring_hello_light_details?: string | null
+          monitoring_secom?: boolean | null
+          monitoring_secom_details?: string | null
+          name: string
+          needs_environment?: string | null
+          needs_financial?: string | null
+          needs_lifestyle?: string | null
+          needs_mental?: string | null
+          needs_physical?: string | null
+          outpatient_care?: boolean | null
+          outpatient_institution?: string | null
+          pension_corporate?: boolean | null
+          pension_disability?: boolean | null
+          pension_employee?: boolean | null
+          pension_national?: boolean | null
+          pension_other?: boolean | null
+          pension_other_details?: string | null
+          pension_survivor?: boolean | null
+          phone_mobile?: string | null
+          physical_disability_level?: string | null
+          residence: string
+          staff_name: string
+          support_bank_visit?: boolean | null
+          support_bulb_change?: boolean | null
+          support_cleaning?: boolean | null
+          support_garbage_disposal?: boolean | null
+          support_shopping?: boolean | null
+          therapy_certificate_level?: string | null
+          updated_at?: string
+          user_id: string
+          visiting_medical?: boolean | null
+          visiting_medical_institution?: string | null
+          welfare_contact?: string | null
+          welfare_recipient?: boolean | null
+          welfare_worker?: string | null
+        }
+        Update: {
+          age?: number
+          birth_date?: string
+          care_level_care1?: boolean | null
+          care_level_care2?: boolean | null
+          care_level_care3?: boolean | null
+          care_level_care4?: boolean | null
+          care_level_care5?: boolean | null
+          care_level_independent?: boolean | null
+          care_level_support1?: boolean | null
+          care_level_support2?: boolean | null
+          created_at?: string
+          creation_date?: string
+          evacuation_plan_completed?: boolean | null
+          evacuation_plan_other_details?: string | null
+          furigana?: string
+          goals?: string | null
+          home_oxygen?: boolean | null
+          id?: string
+          line_available?: boolean | null
+          mental_disability_level?: string | null
+          monitoring_hello_light?: boolean | null
+          monitoring_hello_light_details?: string | null
+          monitoring_secom?: boolean | null
+          monitoring_secom_details?: string | null
+          name?: string
+          needs_environment?: string | null
+          needs_financial?: string | null
+          needs_lifestyle?: string | null
+          needs_mental?: string | null
+          needs_physical?: string | null
+          outpatient_care?: boolean | null
+          outpatient_institution?: string | null
+          pension_corporate?: boolean | null
+          pension_disability?: boolean | null
+          pension_employee?: boolean | null
+          pension_national?: boolean | null
+          pension_other?: boolean | null
+          pension_other_details?: string | null
+          pension_survivor?: boolean | null
+          phone_mobile?: string | null
+          physical_disability_level?: string | null
+          residence?: string
+          staff_name?: string
+          support_bank_visit?: boolean | null
+          support_bulb_change?: boolean | null
+          support_cleaning?: boolean | null
+          support_garbage_disposal?: boolean | null
+          support_shopping?: boolean | null
+          therapy_certificate_level?: string | null
+          updated_at?: string
+          user_id?: string
+          visiting_medical?: boolean | null
+          visiting_medical_institution?: string | null
+          welfare_contact?: string | null
+          welfare_recipient?: boolean | null
+          welfare_worker?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_plans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          age: number | null
+          birth_date: string | null
+          common_fee: number | null
+          created_at: string
+          deposit: number | null
+          emergency_contact: string | null
+          emergency_contact_name: string | null
+          fire_insurance: number | null
+          gender: string | null
+          id: string
+          intermediary: string | null
+          key_money: number | null
+          landlord_common_fee: number | null
+          landlord_rent: number | null
+          line_available: boolean | null
+          monitoring_system: string | null
+          move_in_date: string | null
+          name: string
+          next_renewal_date: string | null
+          notes: string | null
+          posthumous_affairs: boolean | null
+          property_address: string | null
+          property_name: string | null
+          proxy_payment_eligible: boolean | null
+          relationship: string | null
+          renewal_count: number | null
+          rent: number | null
+          rent_difference: number | null
+          resident_contact: string | null
+          room_number: string | null
+          support_medical_institution: string | null
+          uid: string
+          updated_at: string
+          welfare_recipient: boolean | null
+        }
+        Insert: {
+          age?: number | null
+          birth_date?: string | null
+          common_fee?: number | null
+          created_at?: string
+          deposit?: number | null
+          emergency_contact?: string | null
+          emergency_contact_name?: string | null
+          fire_insurance?: number | null
+          gender?: string | null
+          id?: string
+          intermediary?: string | null
+          key_money?: number | null
+          landlord_common_fee?: number | null
+          landlord_rent?: number | null
+          line_available?: boolean | null
+          monitoring_system?: string | null
+          move_in_date?: string | null
+          name: string
+          next_renewal_date?: string | null
+          notes?: string | null
+          posthumous_affairs?: boolean | null
+          property_address?: string | null
+          property_name?: string | null
+          proxy_payment_eligible?: boolean | null
+          relationship?: string | null
+          renewal_count?: number | null
+          rent?: number | null
+          rent_difference?: number | null
+          resident_contact?: string | null
+          room_number?: string | null
+          support_medical_institution?: string | null
+          uid: string
+          updated_at?: string
+          welfare_recipient?: boolean | null
+        }
+        Update: {
+          age?: number | null
+          birth_date?: string | null
+          common_fee?: number | null
+          created_at?: string
+          deposit?: number | null
+          emergency_contact?: string | null
+          emergency_contact_name?: string | null
+          fire_insurance?: number | null
+          gender?: string | null
+          id?: string
+          intermediary?: string | null
+          key_money?: number | null
+          landlord_common_fee?: number | null
+          landlord_rent?: number | null
+          line_available?: boolean | null
+          monitoring_system?: string | null
+          move_in_date?: string | null
+          name?: string
+          next_renewal_date?: string | null
+          notes?: string | null
+          posthumous_affairs?: boolean | null
+          property_address?: string | null
+          property_name?: string | null
+          proxy_payment_eligible?: boolean | null
+          relationship?: string | null
+          renewal_count?: number | null
+          rent?: number | null
+          rent_difference?: number | null
+          resident_contact?: string | null
+          room_number?: string | null
+          support_medical_institution?: string | null
+          uid?: string
+          updated_at?: string
+          welfare_recipient?: boolean | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      calculate_age: {
+        Args: { birth_year: number; birth_month: number; birth_day: number }
+        Returns: number
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
 
-export interface Consultation {
-  id: string
-  consultation_date: string
-  consultation_route: string[]
-  attributes: string[]
-  name?: string
-  furigana?: string
-  gender?: 'male' | 'female' | 'other'
-  household_composition?: string[]
-  postal_code?: string
-  address?: string
-  phone_home?: string
-  phone_mobile?: string
-  birth_date?: string
-  age?: number
-  
-  // 身体状況・利用サービス
-  physical_condition?: 'independent' | 'support1' | 'support2' | 'care1' | 'care2' | 'care3' | 'care4' | 'care5'
-  disability_certificates?: {
-    mental_health?: string
-    physical_disability?: string
-    rehabilitation?: string
-  }
-  services_in_use?: string[]
-  service_provider?: string
-  care_support_office?: string
-  care_manager?: string
-  medical_history?: string
-  
-  // 医療・収入
-  medical_institutions?: {
-    name?: string
-    doctor?: string
-  }
-  income?: {
-    salary?: number
-    sickness_benefit?: number
-    pension?: number
-    welfare_recipient?: boolean
-    welfare_worker?: string
-    savings?: number
-  }
-  
-  // ADL/IADL
-  dementia_level?: 'none' | 'mild' | 'moderate' | 'severe' | 'very_severe'
-  hospital_medication?: {
-    hospital_name?: string
-    support_needed?: boolean
-    medication_management?: boolean
-  }
-  mobility?: {
-    level?: 'independent' | 'partial_assist' | 'full_assist' | 'other'
-    details?: string
-    walking_aid?: boolean
-    step_capability?: string[]
-    assistive_devices?: string
-  }
-  eating?: {
-    level?: 'independent' | 'partial_assist' | 'full_assist' | 'other'
-    details?: string
-    shopping_support?: string
-    cooking_support?: string
-  }
-  excretion?: {
-    level?: 'independent' | 'partial_assist' | 'full_assist' | 'other'
-    details?: string
-    diaper_use?: boolean
-    garbage_disposal?: string
-  }
-  stairs?: {
-    level?: 'independent' | 'partial_assist' | 'full_assist' | 'other'
-    details?: string
-    second_floor_possible?: boolean
-    bed_futon?: 'bed' | 'futon'
-  }
-  bathing?: {
-    level?: 'independent' | 'partial_assist' | 'full_assist' | 'other'
-    details?: string
-    unit_bath_possible?: boolean
-    bathtub_depth?: number
-  }
-  money_management?: {
-    level?: 'independent' | 'partial_assist' | 'full_assist' | 'other'
-    details?: string
-    supporter?: string
-    proxy_payment?: boolean
-    rent_payment_method?: 'transfer' | 'collection' | 'automatic'
-  }
-  other_notes?: string
-  
-  // 相談内容等
-  consultation_content?: string
-  relocation_reason?: string
-  emergency_contact?: {
-    name?: string
-    relationship?: string
-    postal_code?: string
-    address?: string
-    phone_home?: string
-    phone_mobile?: string
-    email?: string
-  }
-  consultation_result?: string
-  
-  // 関連付け
-  user_id?: string // 利用者マスタと関連付けられている場合
-  staff_id?: string
-  
-  created_at: string
-  updated_at: string
-}
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-export interface SupportPlan {
-  id: string
-  user_id: string
-  creation_date: string
-  staff_name: string
-  name: string
-  furigana: string
-  birth_date: string
-  age: number
-  residence: string
-  contact_info: {
-    mobile_phone?: string
-    line?: boolean
-  }
-  
-  // 生活保護・介護保険
-  welfare_recipient: boolean
-  welfare_worker?: string
-  welfare_contact?: string
-  care_insurance_level?: string[]
-  
-  // 医療状況
-  medical_care?: {
-    outpatient?: boolean
-    outpatient_facility?: string
-    home_visit?: boolean
-    home_visit_facility?: string
-    home_oxygen?: boolean
-  }
-  
-  // 障がい状況
-  disabilities?: {
-    physical?: string
-    mental?: string
-    rehabilitation?: string
-  }
-  
-  // 年金状況
-  pension_types?: string[]
-  pension_other_details?: string
-  
-  // 生活支援サービス
-  monitoring_services?: {
-    secom?: boolean
-    secom_details?: string
-    hello_light?: boolean
-    hello_light_details?: string
-  }
-  life_support_services?: string[]
-  
-  // 支援計画
-  goals?: string
-  needs_and_responses?: {
-    financial?: { issue?: string; self_response?: boolean }
-    physical?: { issue?: string; self_response?: boolean }
-    mental?: { issue?: string; self_response?: boolean }
-    living?: { issue?: string; self_response?: boolean }
-    environment?: { issue?: string; self_response?: boolean }
-  }
-  
-  // 個別避難計画
-  individual_evacuation_plan?: {
-    completed?: boolean
-    details?: string
-  }
-  
-  created_at: string
-  updated_at: string
-}
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
-export interface Staff {
-  id: string
-  name: string
-  email?: string
-  role?: string
-  created_at: string
-  updated_at: string
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
 }
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {},
+  },
+} as const

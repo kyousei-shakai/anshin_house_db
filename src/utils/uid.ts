@@ -8,18 +8,14 @@ export const generateNewUID = async (): Promise<string> => {
   const currentYear = new Date().getFullYear()
   const yearPrefix = currentYear.toString()
 
-  // 現在の年のUIDを取得
   const existingUsers = await usersApi.getAll()
   const currentYearUIDs = existingUsers
     .map(user => user.uid)
     .filter(uid => uid.startsWith(yearPrefix))
-    .map(uid => parseInt(uid.split('-')[1]))
+    .map(uid => parseInt(uid.split('-')[1], 10))
     .filter(num => !isNaN(num))
 
-  // 最大番号を取得
   const maxNumber = currentYearUIDs.length > 0 ? Math.max(...currentYearUIDs) : 0
-
-  // 新しい番号を生成（4桁でパディング）
   const newNumber = (maxNumber + 1).toString().padStart(4, '0')
 
   return `${yearPrefix}-${newNumber}`

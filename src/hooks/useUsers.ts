@@ -2,9 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { usersApi } from '@/lib/api'
-import { User } from '@/types/database'
+// 👇 1. インポートを 'Database' 型に変更
+import { Database } from '@/types/database'
+
+// 👇 2. 新しい型定義から型エイリアスを作成
+type User = Database['public']['Tables']['users']['Row']
 
 export const useUsers = () => {
+  // 👇 3. useStateの型指定は変更なしでOK
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -39,6 +44,7 @@ export const useUsers = () => {
 }
 
 export const useUser = (id: string | null) => {
+  // 👇 4. こちらのuseStateの型指定も変更なしでOK
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

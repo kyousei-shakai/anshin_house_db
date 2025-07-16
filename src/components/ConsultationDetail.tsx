@@ -4,7 +4,12 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { consultationsApi, usersApi } from '@/lib/api'
 import { generateNewUID } from '@/utils/uid'
-import { Consultation } from '@/types/database'
+// 👇 インポート元を 'database' に変更
+import { Database } from '@/types/database'
+
+// 型エイリアスを定義 (この部分は変更なしでOK)
+type Consultation = Database['public']['Tables']['consultations']['Row']
+type UserInsert = Database['public']['Tables']['users']['Insert']
 
 interface ConsultationDetailProps {
   consultationId: string
@@ -33,7 +38,8 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
     fetchConsultation()
   }, [consultationId])
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return ''
     return new Date(dateString).toLocaleDateString('ja-JP')
   }
 
@@ -43,29 +49,26 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
     try {
       const newUID = await generateNewUID()
       
-      // 新仕様に基づく利用者データの構築
-      const userData = {
+      const userData: UserInsert = {
         uid: newUID,
         name: consultation.name || '匿名利用者',
-        birth_date: consultation.birth_year && consultation.birth_month && consultation.birth_day 
+        birth_date: consultation.birth_year && consultation.birth_month && consultation.birth_day
           ? `${consultation.birth_year}-${String(consultation.birth_month).padStart(2, '0')}-${String(consultation.birth_day).padStart(2, '0')}`
           : undefined,
-        gender: consultation.gender || undefined,
-        age: consultation.age || undefined,
-        property_address: consultation.address || undefined,
-        resident_contact: consultation.phone_mobile || consultation.phone_home || undefined,
+        gender: consultation.gender,
+        age: consultation.age,
+        property_address: consultation.address,
+        resident_contact: consultation.phone_mobile || consultation.phone_home,
         line_available: false,
-        proxy_payment_eligible: consultation.proxy_payment || false,
-        welfare_recipient: consultation.welfare_recipient || false,
-        posthumous_affairs: false
+        proxy_payment_eligible: consultation.proxy_payment,
+        welfare_recipient: consultation.welfare_recipient,
+        posthumous_affairs: false,
       }
       
       const newUser = await usersApi.create(userData)
       
-      // 相談に利用者IDを関連付け
       await consultationsApi.update(consultationId, { user_id: newUser.id })
       
-      // ページをリロードして最新データを表示
       window.location.reload()
     } catch (err) {
       console.error('利用者登録エラー:', err)
@@ -73,7 +76,7 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
     }
   }
 
-  const getGenderLabel = (gender: string | null) => {
+  const getGenderLabel = (gender: string | null | undefined): string => {
     if (!gender) return '未設定'
     switch (gender) {
       case 'male': return '男'
@@ -83,7 +86,7 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
     }
   }
 
-  const getPhysicalConditionLabel = (condition: string | null) => {
+  const getPhysicalConditionLabel = (condition: string | null | undefined): string => {
     if (!condition) return '未設定'
     switch (condition) {
       case 'independent': return '自立'
@@ -193,7 +196,7 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
                   {consultation.birth_year && `${consultation.birth_year}年`}
                   {consultation.birth_month && `${consultation.birth_month}月`}
                   {consultation.birth_day && `${consultation.birth_day}日`}
-                  {consultation.age && ` (満${consultation.age}歳)`}
+                  {consultation.age != null && ` (満${consultation.age}歳)`}
                 </div>
               </div>
             )}
@@ -379,16 +382,16 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">収入</label>
                 <div className="space-y-1 text-gray-800">
-                  {consultation.income_salary && <div>給与: {consultation.income_salary.toLocaleString()}円</div>}
-                  {consultation.income_injury_allowance && <div>傷病手当: {consultation.income_injury_allowance.toLocaleString()}円</div>}
-                  {consultation.income_pension && <div>年金振込額: {consultation.income_pension.toLocaleString()}円</div>}
+                  {consultation.income_salary && <div>給与: {Number(consultation.income_salary).toLocaleString()}円</div>}
+                  {consultation.income_injury_allowance && <div>傷病手当: {Number(consultation.income_injury_allowance).toLocaleString()}円</div>}
+                  {consultation.income_pension && <div>年金振込額: {Number(consultation.income_pension).toLocaleString()}円</div>}
                   {consultation.welfare_recipient && (
                     <div>
                       生活保護受給
                       {consultation.welfare_staff && ` (担当: ${consultation.welfare_staff})`}
                     </div>
                   )}
-                  {consultation.savings && <div>預金: {consultation.savings.toLocaleString()}円</div>}
+                  {consultation.savings && <div>預金: {Number(consultation.savings).toLocaleString()}円</div>}
                 </div>
               </div>
             </div>

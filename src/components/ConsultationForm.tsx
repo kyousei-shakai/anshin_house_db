@@ -8,7 +8,7 @@ const ConsultationForm: React.FC = () => {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const [formData, setFormData] = useState({
     // 1. 基本情報
     consultation_date: new Date().toISOString().split('T')[0],
@@ -21,7 +21,7 @@ const ConsultationForm: React.FC = () => {
     consultation_route_government_other: '',
     consultation_route_other: false,
     consultation_route_other_text: '',
-    
+
     attribute_elderly: false,
     attribute_disability: false,
     attribute_disability_mental: false,
@@ -35,11 +35,11 @@ const ConsultationForm: React.FC = () => {
     attribute_low_income: false,
     attribute_lgbt: false,
     attribute_welfare: false,
-    
+
     name: '',
     furigana: '',
     gender: '' as 'male' | 'female' | 'other' | '',
-    
+
     household_single: false,
     household_couple: false,
     household_common_law: false,
@@ -48,7 +48,7 @@ const ConsultationForm: React.FC = () => {
     household_acquaintance: false,
     household_other: false,
     household_other_text: '',
-    
+
     postal_code: '',
     address: '',
     phone_home: '',
@@ -56,17 +56,17 @@ const ConsultationForm: React.FC = () => {
     birth_year: undefined as number | undefined,
     birth_month: undefined as number | undefined,
     birth_day: undefined as number | undefined,
-    
+
     // 2. 身体状況・利用サービス
     physical_condition: '' as 'independent' | 'support1' | 'support2' | 'care1' | 'care2' | 'care3' | 'care4' | 'care5' | '',
-    
+
     mental_disability_certificate: false,
     mental_disability_level: '',
     physical_disability_certificate: false,
     physical_disability_level: '',
     therapy_certificate: false,
     therapy_level: '',
-    
+
     service_day_service: false,
     service_visiting_nurse: false,
     service_visiting_care: false,
@@ -74,88 +74,88 @@ const ConsultationForm: React.FC = () => {
     service_short_stay: false,
     service_other: false,
     service_other_text: '',
-    
+
     service_provider: '',
     care_support_office: '',
     care_manager: '',
     medical_history: '',
-    
+
     // 3. 医療・収入
     medical_institution_name: '',
     medical_institution_staff: '',
-    
+
     income_salary: undefined as number | undefined,
     income_injury_allowance: undefined as number | undefined,
     income_pension: undefined as number | undefined,
     welfare_recipient: false,
     welfare_staff: '',
     savings: undefined as number | undefined,
-    
+
     // 4. ADL/IADL
     dementia: '',
     dementia_hospital: '',
     hospital_support_required: false,
     medication_management_needed: false,
-    
+
     mobility_independent: false,
     mobility_partial_assist: false,
     mobility_full_assist: false,
     mobility_other: false,
     mobility_other_text: '',
-    
+
     eating_independent: false,
     eating_partial_assist: false,
     eating_full_assist: false,
     eating_other: false,
     eating_other_text: '',
-    
+
     shopping_possible: false,
     shopping_support_needed: false,
     shopping_support_text: '',
     cooking_possible: false,
     cooking_support_needed: false,
     cooking_support_text: '',
-    
+
     excretion_independent: false,
     excretion_partial_assist: false,
     excretion_full_assist: false,
     excretion_other: false,
     excretion_other_text: '',
-    
+
     diaper_usage: false,
     garbage_disposal_independent: false,
     garbage_disposal_support_needed: false,
     garbage_disposal_support_text: '',
-    
+
     stairs_independent: false,
     stairs_partial_assist: false,
     stairs_full_assist: false,
     stairs_other: false,
     stairs_other_text: '',
-    
+
     second_floor_possible: false,
     bed_or_futon: '' as 'bed' | 'futon' | '',
-    
+
     bathing_independent: false,
     bathing_partial_assist: false,
     bathing_full_assist: false,
     bathing_other: false,
     bathing_other_text: '',
-    
+
     unit_bath_possible: false,
-    
+
     money_management: '',
     supporter_available: false,
     supporter_text: '',
     proxy_payment: false,
     rent_payment_method: '' as 'transfer' | 'collection' | 'automatic' | '',
-    
+
     other_notes: '',
-    
+
     // 5. 相談内容等
     consultation_content: '',
     relocation_reason: '',
-    
+
     emergency_contact_name: '',
     emergency_contact_relationship: '',
     emergency_contact_postal_code: '',
@@ -163,7 +163,7 @@ const ConsultationForm: React.FC = () => {
     emergency_contact_phone_home: '',
     emergency_contact_phone_mobile: '',
     emergency_contact_email: '',
-    
+
     consultation_result: '',
     next_appointment_scheduled: false,
     next_appointment_details: ''
@@ -171,11 +171,11 @@ const ConsultationForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     try {
       setLoading(true)
       setError(null)
-      
+
       const consultationData = {
         ...formData,
         birth_year: formData.birth_year || null,
@@ -234,7 +234,7 @@ const ConsultationForm: React.FC = () => {
         service_other_text: formData.service_other_text.trim() || null,
         bed_or_futon: formData.bed_or_futon || null
       }
-      
+
       await consultationsApi.create(consultationData)
       router.push('/consultations')
     } catch (err) {
@@ -273,7 +273,7 @@ const ConsultationForm: React.FC = () => {
       {/* 1. 基本情報 */}
       <div className="bg-gray-50 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">1. 基本情報</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -340,7 +340,7 @@ const ConsultationForm: React.FC = () => {
               <span className="text-gray-800">支援センター（障害者）</span>
             </label>
           </div>
-          
+
           <div className="mt-2 space-y-2">
             <div>
               <label className="flex items-center">
@@ -348,8 +348,8 @@ const ConsultationForm: React.FC = () => {
                   type="radio"
                   name="consultation_route_extra"
                   checked={formData.consultation_route_government}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     consultation_route_government: e.target.checked,
                     consultation_route_other: false
                   }))}
@@ -373,8 +373,8 @@ const ConsultationForm: React.FC = () => {
                   type="radio"
                   name="consultation_route_extra"
                   checked={formData.consultation_route_other}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
                     consultation_route_other: e.target.checked,
                     consultation_route_government: false
                   }))}
@@ -542,7 +542,7 @@ const ConsultationForm: React.FC = () => {
               <span className="ml-2 text-gray-600">様</span>
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               フリガナ
@@ -554,7 +554,7 @@ const ConsultationForm: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               性別
@@ -692,7 +692,7 @@ const ConsultationForm: React.FC = () => {
               placeholder="123-4567"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               都道府県・市区町村・番地等
@@ -704,7 +704,7 @@ const ConsultationForm: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               自宅電話番号
@@ -716,7 +716,7 @@ const ConsultationForm: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               携帯電話番号
@@ -778,7 +778,7 @@ const ConsultationForm: React.FC = () => {
       {/* 2. 身体状況・利用サービス */}
       <div className="bg-gray-50 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">2. 身体状況・利用サービス</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -801,7 +801,11 @@ const ConsultationForm: React.FC = () => {
                     name="physical_condition"
                     value={option.value}
                     checked={formData.physical_condition === option.value}
-                    onChange={(e) => setFormData(prev => ({ ...prev, physical_condition: e.target.value as any }))}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      // e.target.valueを、formData.physical_conditionが持つ型だと明示する
+                      physical_condition: e.target.value as typeof formData.physical_condition
+                    }))}
                     className="mr-2"
                   />
                   <span className="text-gray-700">{option.label}</span>
@@ -958,7 +962,7 @@ const ConsultationForm: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               居宅介護支援事業所
@@ -970,7 +974,7 @@ const ConsultationForm: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               担当
@@ -1001,7 +1005,7 @@ const ConsultationForm: React.FC = () => {
       {/* 3. 医療・収入 */}
       <div className="bg-gray-50 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">3. 医療・収入</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1014,7 +1018,7 @@ const ConsultationForm: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               かかりつけ医療機関 - 担当
@@ -1064,7 +1068,7 @@ const ConsultationForm: React.FC = () => {
               />
             </div>
           </div>
-          
+
           <div className="mt-2 flex items-center space-x-4">
             <label className="flex items-center">
               <input
@@ -1085,7 +1089,7 @@ const ConsultationForm: React.FC = () => {
               />
             )}
           </div>
-          
+
           <div className="mt-2">
             <label className="block text-sm text-gray-600 mb-1">預金</label>
             <input
@@ -1102,7 +1106,7 @@ const ConsultationForm: React.FC = () => {
       {/* 4. ADL/IADL */}
       <div className="bg-gray-50 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">4. ADL/IADL</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1115,7 +1119,7 @@ const ConsultationForm: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               病院名
@@ -1157,7 +1161,7 @@ const ConsultationForm: React.FC = () => {
               </label>
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               内服管理の必要性
@@ -1205,7 +1209,7 @@ const ConsultationForm: React.FC = () => {
       {/* 5. 相談内容等 */}
       <div className="bg-gray-50 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">5. 相談内容等</h2>
-        
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1218,7 +1222,7 @@ const ConsultationForm: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               転居理由
@@ -1246,7 +1250,7 @@ const ConsultationForm: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 当事者との関係
@@ -1258,7 +1262,7 @@ const ConsultationForm: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 郵便番号
@@ -1270,7 +1274,7 @@ const ConsultationForm: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 住所
@@ -1282,7 +1286,7 @@ const ConsultationForm: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 自宅電話
@@ -1294,7 +1298,7 @@ const ConsultationForm: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 携帯電話
@@ -1306,7 +1310,7 @@ const ConsultationForm: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Mail
