@@ -338,8 +338,8 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">生活保護受給</label>
             <div className="flex space-x-4">
-              <label className="flex items-center"><input type="radio" name="welfare_recipient" checked={formData.welfare_recipient === true} onChange={() => setFormData(prev => ({ ...prev, welfare_recipient: true }))} className="mr-1" /><span>有</span></label>
-              <label className="flex items-center"><input type="radio" name="welfare_recipient" checked={formData.welfare_recipient === false} onChange={() => setFormData(prev => ({ ...prev, welfare_recipient: false }))} className="mr-1" /><span>無</span></label>
+              <label className="flex items-center"><input type="radio" name="welfare_recipient" checked={formData.welfare_recipient === true} onChange={() => setFormData(prev => ({ ...prev, welfare_recipient: true }))} className="mr-1" /><span className="text-gray-700">有</span></label>
+              <label className="flex items-center"><input type="radio" name="welfare_recipient" checked={formData.welfare_recipient === false} onChange={() => setFormData(prev => ({ ...prev, welfare_recipient: false }))} className="mr-1" /><span className="text-gray-700">無</span></label>
             </div>
           </div>
           {formData.welfare_recipient && (
@@ -378,14 +378,14 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
             <label className="block text-sm font-medium text-gray-700 mb-2">通院・訪問診療</label>
             <div className="space-y-2">
               <div className="flex items-center space-x-4">
-                <label className="flex items-center"><input type="checkbox" name="outpatient_care" checked={formData.outpatient_care} onChange={handleChange} className="mr-2" /><span>通院</span></label>
-                {formData.outpatient_care && (<input type="text" name="outpatient_institution" value={formData.outpatient_institution} onChange={handleChange} placeholder="医療機関名（通院）" className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm" />)}
+                <label className="flex items-center"><input type="checkbox" name="outpatient_care" checked={formData.outpatient_care} onChange={handleChange} className="mr-2" /><span className="text-gray-700">通院</span></label>
+                {formData.outpatient_care && (<input type="text" name="outpatient_institution" value={formData.outpatient_institution} onChange={handleChange} placeholder="医療機関名（通院）" className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm text-gray-700" />)}
               </div>
               <div className="flex items-center space-x-4">
-                <label className="flex items-center"><input type="checkbox" name="visiting_medical" checked={formData.visiting_medical} onChange={handleChange} className="mr-2" /><span>訪問診療</span></label>
-                {formData.visiting_medical && (<input type="text" name="visiting_medical_institution" value={formData.visiting_medical_institution} onChange={handleChange} placeholder="医療機関名（訪問診療）" className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm" />)}
+                <label className="flex items-center"><input type="checkbox" name="visiting_medical" checked={formData.visiting_medical} onChange={handleChange} className="mr-2" /><span className="text-gray-700">訪問診療</span></label>
+                {formData.visiting_medical && (<input type="text" name="visiting_medical_institution" value={formData.visiting_medical_institution} onChange={handleChange} placeholder="医療機関名（訪問診療）" className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm text-gray-700" />)}
               </div>
-              <label className="flex items-center"><input type="checkbox" name="home_oxygen" checked={formData.home_oxygen} onChange={handleChange} className="mr-2" /><span>在宅酸素</span></label>
+              <label className="flex items-center"><input type="checkbox" name="home_oxygen" checked={formData.home_oxygen} onChange={handleChange} className="mr-2" /><span className="text-gray-700">在宅酸素</span></label>
             </div>
           </div>
         </div>
@@ -444,11 +444,11 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
             <label className="block text-sm font-medium text-gray-700 mb-2">見守りサービス</label>
             <div className="space-y-2">
               <div className="flex items-center space-x-4">
-                <label className="flex items-center"><input type="checkbox" name="monitoring_secom" checked={formData.monitoring_secom} onChange={handleChange} className="mr-2" /><span>セコム</span></label>
+                <label className="flex items-center"><input type="checkbox" name="monitoring_secom" checked={formData.monitoring_secom} onChange={handleChange} className="mr-2" /><span className="text-gray-700">セコム</span></label>
                 {formData.monitoring_secom && (<input type="text" name="monitoring_secom_details" value={formData.monitoring_secom_details} onChange={handleChange} placeholder="具体的なサービス名（セコム）" className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm" />)}
               </div>
               <div className="flex items-center space-x-4">
-                <label className="flex items-center"><input type="checkbox" name="monitoring_hello_light" checked={formData.monitoring_hello_light} onChange={handleChange} className="mr-2" /><span>ハローライト</span></label>
+                <label className="flex items-center"><input type="checkbox" name="monitoring_hello_light" checked={formData.monitoring_hello_light} onChange={handleChange} className="mr-2" /><span className="text-gray-700">ハローライト</span></label>
                 {formData.monitoring_hello_light && (<input type="text" name="monitoring_hello_light_details" value={formData.monitoring_hello_light_details} onChange={handleChange} placeholder="詳細（ハローライト）" className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm" />)}
               </div>
             </div>
@@ -500,8 +500,8 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">別紙の対応</label>
             <div className="flex space-x-4">
-              <label className="flex items-center"><input type="radio" name="evacuation_plan_completed" checked={formData.evacuation_plan_completed === true} onChange={() => setFormData(prev => ({ ...prev, evacuation_plan_completed: true }))} className="mr-1" /><span>済</span></label>
-              <label className="flex items-center"><input type="radio" name="evacuation_plan_completed" checked={formData.evacuation_plan_completed === false} onChange={() => setFormData(prev => ({ ...prev, evacuation_plan_completed: false }))} className="mr-1" /><span>未了</span></label>
+              <label className="flex items-center"><input type="radio" name="evacuation_plan_completed" checked={formData.evacuation_plan_completed === true} onChange={() => setFormData(prev => ({ ...prev, evacuation_plan_completed: true }))} className="mr-1" /><span className="text-gray-700">済</span></label>
+              <label className="flex items-center"><input type="radio" name="evacuation_plan_completed" checked={formData.evacuation_plan_completed === false} onChange={() => setFormData(prev => ({ ...prev, evacuation_plan_completed: false }))} className="mr-1" /><span className="text-gray-700">未了</span></label>
             </div>
           </div>
           <div>
