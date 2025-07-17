@@ -1,14 +1,18 @@
+// src/app/consultations/[id]/edit/page.tsx
+
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
-import ConsultationEditForm from '@/components/ConsultationEditForm'
+import ConsultationForm from '@/components/ConsultationForm'
 
+// Next.js 15の仕様に合わせた正しい型定義
 interface ConsultationEditPageProps {
   params: Promise<{
     id: string
   }>
 }
 
+// Next.js 15の仕様に合わせ、async/awaitを正しく使用する
 export default async function ConsultationEditPage({ params }: ConsultationEditPageProps) {
   const { id } = await params
 
@@ -59,7 +63,16 @@ export default async function ConsultationEditPage({ params }: ConsultationEditP
           </nav>
         </div>
 
-        <ConsultationEditForm consultationId={id} />
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">相談内容の編集</h1>
+            <p className="text-gray-600">
+              既存の相談内容を修正します。
+            </p>
+          </div>
+
+          <ConsultationForm editMode={true} consultationId={id} />
+        </div>
       </div>
     </Layout>
   )

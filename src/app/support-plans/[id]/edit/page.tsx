@@ -1,14 +1,18 @@
+// src/app/support-plans/[id]/edit/page.tsx
+
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
 import SupportPlanForm from '@/components/SupportPlanForm'
 
+// Next.js 15の仕様に合わせた正しい型定義
 interface SupportPlanEditPageProps {
   params: Promise<{
     id: string
   }>
 }
 
+// Next.js 15の仕様に合わせ、async/awaitを正しく使用する
 export default async function SupportPlanEditPage({ params }: SupportPlanEditPageProps) {
   const { id } = await params
 
