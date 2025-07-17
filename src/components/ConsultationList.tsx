@@ -1,18 +1,18 @@
+// src/components/ConsultationList.tsx
+
 'use client'
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { consultationsApi, usersApi } from '@/lib/api'
 import { generateNewUID } from '@/utils/uid'
-// 👇 1. インポートを 'Database' 型に変更
 import { Database } from '@/types/database'
 
-// 👇 2. 新しい型定義から型エイリアスを作成
+// 型エイリアス
 type Consultation = Database['public']['Tables']['consultations']['Row']
 type UserInsert = Database['public']['Tables']['users']['Insert']
 
 const ConsultationList: React.FC = () => {
-  // consultation stateの型は変更なし
   const [consultations, setConsultations] = useState<Consultation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -33,17 +33,14 @@ const ConsultationList: React.FC = () => {
         setLoading(false)
       }
     }
-
     fetchConsultations()
   }, [])
 
   const formatDate = (dateString: string) => {
-    // 日付が null や undefined の場合も考慮
     if (!dateString) return ''
     return new Date(dateString).toLocaleDateString('ja-JP')
   }
 
-  // 👇 3. フィルタリングロジックを新しいフラットなデータ構造に合わせて修正
   const filteredConsultations = consultations.filter(consultation => {
     const matchesSearch = !searchTerm ||
       consultation.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -69,8 +66,12 @@ const ConsultationList: React.FC = () => {
     return matchesSearch && matchesDate && matchesAttribute
   })
 
-  // 👇 4. handleRegisterAsUser を新しいフラットなデータ構造に合わせて修正
   const handleRegisterAsUser = async (consultation: Consultation) => {
+    // 登録確認ダイアログ
+    if (!confirm(`「${consultation.name || '匿名'}」さんを利用者として登録しますか？`)) {
+        return;
+    }
+
     try {
       const newUID = await generateNewUID()
 
@@ -92,8 +93,11 @@ const ConsultationList: React.FC = () => {
 
       const newUser = await usersApi.create(userData)
       await consultationsApi.update(consultation.id, { user_id: newUser.id })
-      const updatedConsultations = await consultationsApi.getAll()
-      setConsultations(updatedConsultations)
+      
+      // stateを直接更新して即時反映
+      setConsultations(prev => 
+        prev.map(c => c.id === consultation.id ? { ...c, user_id: newUser.id } : c)
+      );
 
       alert('利用者として登録しました')
     } catch (err) {
@@ -131,20 +135,20 @@ const ConsultationList: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              検索
+              キーワード検索
             </label>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="氏名、相談内容、ID で検索..."
+              placeholder="氏名、相談内容などで検索"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              相談日
+              相談日で絞り込み
             </label>
             <input
               type="date"
@@ -154,11 +158,11 @@ const ConsultationList: React.FC = () => {
             />
           </div>
 
+          {/* 属性フィルタは一旦コメントアウト
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               属性
             </label>
-            {/* 👇 5. 属性フィルタのselectのvalueをDBのカラム名に合わせる */}
             <select
               value={attributeFilter}
               onChange={(e) => setAttributeFilter(e.target.value)}
@@ -177,6 +181,7 @@ const ConsultationList: React.FC = () => {
               <option value="welfare">生保</option>
             </select>
           </div>
+          */}
         </div>
 
         <div className="mt-4 flex items-center justify-between">
@@ -198,145 +203,77 @@ const ConsultationList: React.FC = () => {
 
       {/* 相談履歴一覧 */}
       {filteredConsultations.length === 0 ? (
-        <div className="bg-gray-50 rounded-lg p-8 text-center">
-          <div className="text-gray-500 text-lg mb-2">
+        <div className="bg-white border rounded-lg p-8 text-center">
+          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" />
+          </svg>
+          <h3 className="mt-2 text-sm font-semibold text-gray-900">
             {searchTerm || dateFilter || attributeFilter ?
               '該当する相談履歴が見つかりません' :
               '相談履歴はありません'}
-          </div>
-          <p className="text-gray-400">
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
             {searchTerm || dateFilter || attributeFilter ?
-              '検索条件を変更して再度お試しください。' :
+              '検索条件を変更してください。' :
               '新しい相談を登録してください。'}
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
           {filteredConsultations.map((consultation) => {
-            // 👇 6. 表示用に boolean の配列から文字列の配列を生成
-            const consultationRoutes = [
-              consultation.consultation_route_self && '本人',
-              consultation.consultation_route_family && '家族',
-              consultation.consultation_route_care_manager && 'ケアマネ',
-              consultation.consultation_route_elderly_center && '支援センター（高齢者）',
-              consultation.consultation_route_disability_center && '支援センター（障害者）',
-              consultation.consultation_route_government && '行政機関',
-              consultation.consultation_route_other && 'その他',
-            ].filter(Boolean) as string[]
-
-            const attributes = [
-              consultation.attribute_elderly && '高齢',
-              consultation.attribute_disability && '障がい',
-              consultation.attribute_childcare && '子育て',
-              consultation.attribute_single_parent && 'ひとり親',
-              consultation.attribute_dv && 'DV',
-              consultation.attribute_foreigner && '外国人',
-              consultation.attribute_poverty && '生活困窮',
-              consultation.attribute_low_income && '低所得者',
-              consultation.attribute_lgbt && 'LGBT',
-              consultation.attribute_welfare && '生保',
-            ].filter(Boolean) as string[]
-
             return (
-              <div key={consultation.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <span className="text-lg font-semibold text-gray-900">
-                        {formatDate(consultation.consultation_date)}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        ID: {consultation.id.slice(0, 8)}...
-                      </span>
+              <div key={consultation.id} className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
+                  {/* 左側：主要情報 */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-x-3">
+                      <p className="text-sm font-semibold leading-6 text-gray-900">
+                        {consultation.name || '匿名'}
+                      </p>
                       {consultation.user_id && (
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                        <span className="rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
                           利用者登録済み
                         </span>
                       )}
                     </div>
-
-                    <div className="flex items-center space-x-4 mb-2">
-                      <div className="text-sm">
-                        <span className="font-medium text-gray-700">相談者:</span>
-                        <span className="text-gray-600 ml-1">
-                          {consultation.name || '匿名'}
-                        </span>
-                      </div>
-                      {consultation.age && (
-                        <div className="text-sm">
-                          <span className="font-medium text-gray-700">年齢:</span>
-                          <span className="text-gray-600 ml-1">{consultation.age}歳</span>
-                        </div>
-                      )}
+                    <div className="mt-1 flex items-center gap-x-2 text-xs leading-5 text-gray-500">
+                      <p>相談日: {formatDate(consultation.consultation_date)}</p>
+                      <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current"><circle cx={1} cy={1} r={1} /></svg>
+                      {consultation.age && <p>年齢: {consultation.age}歳</p>}
                     </div>
-                    
-                    {/* 👇 7. JSX部分を新しいデータ構造に合わせて修正 */}
-                    {consultationRoutes.length > 0 && (
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-sm text-gray-600">相談ルート:</span>
-                        <div className="flex flex-wrap gap-1">
-                          {consultationRoutes.map((route, index) => (
-                            <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                              {route}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {attributes.length > 0 && (
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="text-sm text-gray-600">属性:</span>
-                        <div className="flex flex-wrap gap-1">
-                          {attributes.map((attr, index) => (
-                            <span key={index} className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                              {attr}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
+                    {/* 相談内容のプレビュー */}
+                    {consultation.consultation_content && (
+                        <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+                            {consultation.consultation_content}
+                        </p>
                     )}
                   </div>
 
-                  <div className="flex space-x-2">
+                  {/* 右側：アクションボタン */}
+                  <div className="mt-4 sm:mt-0 sm:ml-4 flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <Link
                       href={`/consultations/${consultation.id}`}
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-x-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
                     >
-                      詳細を見る
+                      <svg className="-ml-0.5 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                        <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.18l.88-1.84a1.65 1.65 0 011.695-1.075l1.62.29a1.65 1.65 0 011.444 1.443l.29 1.621a1.65 1.65 0 01-1.075 1.695l-1.84.879a1.65 1.65 0 01-1.18 0l-1.839-.88a1.65 1.65 0 01-1.075-1.695l.29-1.621a1.65 1.65 0 011.444-1.443l1.62.29a1.65 1.65 0 011.695 1.075l.88 1.84a1.65 1.65 0 010 1.18l-.88 1.84a1.65 1.65 0 01-1.695 1.075l-1.62-.29a1.65 1.65 0 01-1.444-1.443l-.29-1.621a1.65 1.65 0 011.075-1.695l1.839-.88zM10 15a5 5 0 100-10 5 5 0 000 10z" clipRule="evenodd" />
+                      </svg>
+                      詳細
                     </Link>
                     {!consultation.user_id && (
                       <button
                         onClick={() => handleRegisterAsUser(consultation)}
-                        className="text-green-600 hover:text-green-800 text-sm font-medium"
+                        type="button"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-x-2 rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                       >
+                         <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path d="M11 5a3 3 0 11-6 0 3 3 0 016 0zM2.047 14.5a.75.75 0 001.06 1.061l4.94-4.939a.75.75 0 00-1.06-1.06l-4.94 4.938zM17.953 14.5a.75.75 0 01-1.06 1.061l-4.94-4.939a.75.75 0 111.06-1.06l4.94 4.938z" />
+                         </svg>
                         利用者登録
                       </button>
                     )}
                   </div>
-                </div>
-
-                {consultation.next_appointment_scheduled === true && consultation.next_appointment_details && (
-                  <div className="bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg p-4">
-                    <div className="flex items-center">
-                      <svg className="h-5 w-5 text-yellow-500 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clipRule="evenodd" />
-                      </svg>
-                      <h4 className="text-sm font-semibold text-yellow-900">
-                        次回予定
-                      </h4>
-                    </div>
-                    <p className="text-yellow-800 text-sm leading-relaxed mt-2 pl-7">
-                      {consultation.next_appointment_details}
-                    </p>
-                  </div>
-                )}
-
-                <div className="mt-4 text-xs text-gray-500">
-                  作成日: {formatDate(consultation.created_at)}
-                  {consultation.updated_at !== consultation.created_at && (
-                    <span> | 更新日: {formatDate(consultation.updated_at)}</span>
-                  )}
                 </div>
               </div>
             )
