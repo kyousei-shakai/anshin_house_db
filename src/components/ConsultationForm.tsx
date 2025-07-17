@@ -8,7 +8,6 @@ import { consultationsApi } from '@/lib/api'
 import { Database } from '@/types/database'
 
 // 型エイリアス
-// type Consultation = Database['public']['Tables']['consultations']['Row']
 type ConsultationInsert = Database['public']['Tables']['consultations']['Insert']
 type ConsultationUpdate = Partial<Database['public']['Tables']['consultations']['Update']>
 
@@ -447,20 +446,143 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
       setLoading(true);
       setError(null);
 
-      // 数値項目をnumber型に、空文字をnullに変換
-      const dataToSubmit = {
-        ...formData,
+      // ★★★ ビルドエラー修正箇所 ★★★
+      // 送信するデータオブジェクトを、Supabaseの型に厳密に合わせて構築する
+      const dataToSubmit: ConsultationUpdate = {
+        consultation_date: formData.consultation_date, // 必須項目なのでそのまま
+        consultation_route_self: formData.consultation_route_self,
+        consultation_route_family: formData.consultation_route_family,
+        consultation_route_care_manager: formData.consultation_route_care_manager,
+        consultation_route_elderly_center: formData.consultation_route_elderly_center,
+        consultation_route_disability_center: formData.consultation_route_disability_center,
+        consultation_route_government: formData.consultation_route_government,
+        consultation_route_government_other: formData.consultation_route_government_other || null,
+        consultation_route_other: formData.consultation_route_other,
+        consultation_route_other_text: formData.consultation_route_other_text || null,
+        attribute_elderly: formData.attribute_elderly,
+        attribute_disability: formData.attribute_disability,
+        attribute_disability_mental: formData.attribute_disability_mental,
+        attribute_disability_physical: formData.attribute_disability_physical,
+        attribute_disability_intellectual: formData.attribute_disability_intellectual,
+        attribute_childcare: formData.attribute_childcare,
+        attribute_single_parent: formData.attribute_single_parent,
+        attribute_dv: formData.attribute_dv,
+        attribute_foreigner: formData.attribute_foreigner,
+        attribute_poverty: formData.attribute_poverty,
+        attribute_low_income: formData.attribute_low_income,
+        attribute_lgbt: formData.attribute_lgbt,
+        attribute_welfare: formData.attribute_welfare,
+        name: formData.name || null,
+        furigana: formData.furigana || null,
+        gender: formData.gender || null,
+        household_single: formData.household_single,
+        household_couple: formData.household_couple,
+        household_common_law: formData.household_common_law,
+        household_parent_child: formData.household_parent_child,
+        household_siblings: formData.household_siblings,
+        household_acquaintance: formData.household_acquaintance,
+        household_other: formData.household_other,
+        household_other_text: formData.household_other_text || null,
+        postal_code: formData.postal_code || null,
+        address: formData.address || null,
+        phone_home: formData.phone_home || null,
+        phone_mobile: formData.phone_mobile || null,
         birth_year: formData.birth_year ? Number(formData.birth_year) : null,
         birth_month: formData.birth_month ? Number(formData.birth_month) : null,
         birth_day: formData.birth_day ? Number(formData.birth_day) : null,
+        physical_condition: formData.physical_condition || null,
+        mental_disability_certificate: formData.mental_disability_certificate,
+        mental_disability_level: formData.mental_disability_level || null,
+        physical_disability_certificate: formData.physical_disability_certificate,
+        physical_disability_level: formData.physical_disability_level || null,
+        therapy_certificate: formData.therapy_certificate,
+        therapy_level: formData.therapy_level || null,
+        service_day_service: formData.service_day_service,
+        service_visiting_nurse: formData.service_visiting_nurse,
+        service_visiting_care: formData.service_visiting_care,
+        service_home_medical: formData.service_home_medical,
+        service_short_stay: formData.service_short_stay,
+        service_other: formData.service_other,
+        service_other_text: formData.service_other_text || null,
+        service_provider: formData.service_provider || null,
+        care_support_office: formData.care_support_office || null,
+        care_manager: formData.care_manager || null,
+        medical_history: formData.medical_history || null,
+        medical_institution_name: formData.medical_institution_name || null,
+        medical_institution_staff: formData.medical_institution_staff || null,
         income_salary: formData.income_salary ? Number(formData.income_salary) : null,
         income_injury_allowance: formData.income_injury_allowance ? Number(formData.income_injury_allowance) : null,
         income_pension: formData.income_pension ? Number(formData.income_pension) : null,
+        welfare_recipient: formData.welfare_recipient,
+        welfare_staff: formData.welfare_staff || null,
         savings: formData.savings ? Number(formData.savings) : null,
+        dementia: formData.dementia || null,
+        dementia_hospital: formData.dementia_hospital || null,
+        hospital_support_required: formData.hospital_support_required,
+        medication_management_needed: formData.medication_management_needed,
+        mobility_independent: formData.mobility_independent,
+        mobility_partial_assist: formData.mobility_partial_assist,
+        mobility_full_assist: formData.mobility_full_assist,
+        mobility_other: formData.mobility_other,
+        mobility_other_text: formData.mobility_other_text || null,
+        eating_independent: formData.eating_independent,
+        eating_partial_assist: formData.eating_partial_assist,
+        eating_full_assist: formData.eating_full_assist,
+        eating_other: formData.eating_other,
+        eating_other_text: formData.eating_other_text || null,
+        shopping_possible: formData.shopping_possible,
+        shopping_support_needed: formData.shopping_support_needed,
+        shopping_support_text: formData.shopping_support_text || null,
+        cooking_possible: formData.cooking_possible,
+        cooking_support_needed: formData.cooking_support_needed,
+        cooking_support_text: formData.cooking_support_text || null,
+        excretion_independent: formData.excretion_independent,
+        excretion_partial_assist: formData.excretion_partial_assist,
+        excretion_full_assist: formData.excretion_full_assist,
+        excretion_other: formData.excretion_other,
+        excretion_other_text: formData.excretion_other_text || null,
+        diaper_usage: formData.diaper_usage,
+        garbage_disposal_independent: formData.garbage_disposal_independent,
+        garbage_disposal_support_needed: formData.garbage_disposal_support_needed,
+        garbage_disposal_support_text: formData.garbage_disposal_support_text || null,
+        stairs_independent: formData.stairs_independent,
+        stairs_partial_assist: formData.stairs_partial_assist,
+        stairs_full_assist: formData.stairs_full_assist,
+        stairs_other: formData.stairs_other,
+        stairs_other_text: formData.stairs_other_text || null,
+        second_floor_possible: formData.second_floor_possible,
+        bed_or_futon: formData.bed_or_futon || null,
+        bathing_independent: formData.bathing_independent,
+        bathing_partial_assist: formData.bathing_partial_assist,
+        bathing_full_assist: formData.bathing_full_assist,
+        bathing_other: formData.bathing_other,
+        bathing_other_text: formData.bathing_other_text || null,
+        unit_bath_possible: formData.unit_bath_possible,
+        money_management: formData.money_management || null,
+        supporter_available: formData.supporter_available,
+        supporter_text: formData.supporter_text || null,
+        proxy_payment: formData.proxy_payment,
+        rent_payment_method: formData.rent_payment_method || null,
+        other_notes: formData.other_notes || null,
+        consultation_content: formData.consultation_content || null,
+        relocation_reason: formData.relocation_reason || null,
+        emergency_contact_name: formData.emergency_contact_name || null,
+        emergency_contact_relationship: formData.emergency_contact_relationship || null,
+        emergency_contact_postal_code: formData.emergency_contact_postal_code || null,
+        emergency_contact_address: formData.emergency_contact_address || null,
+        emergency_contact_phone_home: formData.emergency_contact_phone_home || null,
+        emergency_contact_phone_mobile: formData.emergency_contact_phone_mobile || null,
+        emergency_contact_email: formData.emergency_contact_email || null,
+        consultation_result: formData.consultation_result || null,
+        next_appointment_scheduled: formData.next_appointment_scheduled,
+        next_appointment_details: formData.next_appointment_details || null,
       };
 
+      // デバッグ用にコンソールに出力
+      console.log("Submitting data:", dataToSubmit);
+
       if (editMode && consultationId) {
-        await consultationsApi.update(consultationId, dataToSubmit as ConsultationUpdate);
+        await consultationsApi.update(consultationId, dataToSubmit);
         router.push(`/consultations/${consultationId}`);
       } else {
         await consultationsApi.create(dataToSubmit as ConsultationInsert);
@@ -468,7 +590,8 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
       }
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました');
+      console.error('Submit Error Details:', err);
+      setError(err instanceof Error ? err.message : '予期せぬエラーが発生しました。コンソールを確認してください。');
     } finally {
       setLoading(false);
     }
