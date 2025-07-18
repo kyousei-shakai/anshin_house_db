@@ -15,7 +15,7 @@ type StaffInsert = Database['public']['Tables']['staff']['Insert']
 // Users API
 export const usersApi = {
   getAll: async (): Promise<User[]> => {
-    const { data, error } = await supabase.from('users').select('*').order('name')
+    const { data, error } = await supabase.from('users').select('*').order('uid')
     if (error) throw error
     return data || []
   },
