@@ -1,8 +1,9 @@
+// src/lib/api.ts
+
 import { supabase } from './supabase'
-// 👇 インポート元を 'database' に変更
 import { Database } from '@/types/database'
 
-// 👇 新しい型定義から型エイリアスを作成 (この部分は変更なしでOK)
+// 型エイリアス
 type User = Database['public']['Tables']['users']['Row']
 type UserInsert = Database['public']['Tables']['users']['Insert']
 type Consultation = Database['public']['Tables']['consultations']['Row']
@@ -54,11 +55,16 @@ export const usersApi = {
     if (error) throw error
     return data
   },
-
+  
+  // ★★★ ここから追加 ★★★
   delete: async (id: string): Promise<void> => {
     const { error } = await supabase.from('users').delete().eq('id', id)
-    if (error) throw error
+    if (error) {
+      console.error('usersApi.delete: Supabaseエラー', error);
+      throw error
+    }
   }
+  // ★★★ ここまで追加 ★★★
 }
 
 // Consultations API

@@ -1,8 +1,12 @@
+// src/components/UserDetailTabs.tsx
+
 'use client'
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation' // useRouterをインポート
 import { useUser } from '@/hooks/useUsers'
+import { usersApi } from '@/lib/api' // usersApiをインポート
 import UserBasicInfo from './UserBasicInfo'
 import UserConsultationHistory from './UserConsultationHistory'
 import UserSupportPlans from './UserSupportPlans'
@@ -14,6 +18,30 @@ interface UserDetailTabsProps {
 const UserDetailTabs: React.FC<UserDetailTabsProps> = ({ userId }) => {
   const { user, loading, error } = useUser(userId)
   const [activeTab, setActiveTab] = useState<'basic' | 'consultations' | 'support-plans'>('basic')
+  const [isDeleting, setIsDeleting] = useState(false) // 削除処理中の状態を追加
+  const router = useRouter() // ルーターを初期化
+
+  const handleDelete = async () => {
+    if (!user) return;
+
+    const isConfirmed = window.confirm(`本当に「${user.name}」さんを削除しますか？\nこの操作は元に戻せません。`)
+    if (!isConfirmed) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      await usersApi.delete(userId)
+      alert('利用者を削除しました。')
+      router.push('/')
+      router.refresh()
+    } catch (err) {
+      console.error('利用者削除エラー:', err)
+      alert('利用者の削除に失敗しました。')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -75,6 +103,16 @@ const UserDetailTabs: React.FC<UserDetailTabsProps> = ({ userId }) => {
             >
               新規相談
             </Link>
+            {/* ★★★ ここからが唯一の変更点 ★★★ */}
+            <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                type="button"
+                className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 text-center text-sm md:text-base disabled:opacity-50"
+            >
+                {isDeleting ? '削除中...' : '利用者削除'}
+            </button>
+            {/* ★★★ ここまでが唯一の変更点 ★★★ */}
           </div>
         </div>
       </div>
