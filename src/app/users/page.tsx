@@ -1,9 +1,12 @@
+// src/app/users/page.tsx
+
 'use client'
 
 import React, { useState } from 'react'
 import Link from 'next/link'
 import Layout from '@/components/Layout'
 import { useUsers } from '@/hooks/useUsers'
+import { calculateAge } from '@/utils/date' // ★★★ インポートを追加 ★★★
 
 const UsersPage: React.FC = () => {
   const { users, loading, error } = useUsers()
@@ -87,7 +90,7 @@ const UsersPage: React.FC = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="氏名、UID、住所で検索..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,7 +107,7 @@ const UsersPage: React.FC = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'name' | 'created_at' | 'uid')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="name">氏名順</option>
                 <option value="created_at">登録日順</option>
@@ -126,69 +129,74 @@ const UsersPage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredAndSortedUsers.map((user) => (
-              <Link
-                key={user.id}
-                href={`/users/${user.id}`}
-                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 text-lg">{user.name}</h3>
-                    <p className="text-sm text-gray-500">UID: {user.uid}</p>
+            {filteredAndSortedUsers.map((user) => {
+              // ★★★ 動的に年齢を計算 ★★★
+              const age = calculateAge(user.birth_date);
+              return (
+                <Link
+                  key={user.id}
+                  href={`/users/${user.id}`}
+                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 text-lg">{user.name}</h3>
+                      <p className="text-sm text-gray-500">UID: {user.uid}</p>
+                    </div>
+                    <div className="ml-3">
+                      <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
                   </div>
-                  <div className="ml-3">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </div>
-                
-                <div className="space-y-2 text-sm">
-                  {user.birth_date && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">生年月日:</span>
-                      <span className="text-gray-700">{formatDate(user.birth_date)}</span>
-                    </div>
-                  )}
                   
-                  {user.age && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">年齢:</span>
-                      <span className="text-gray-700">{user.age}歳</span>
-                    </div>
-                  )}
-                  
-                  {user.property_address && (
-                    <div>
-                      <span className="text-gray-500">住所:</span>
-                      <p className="text-gray-700 text-xs mt-1 line-clamp-2">{user.property_address}</p>
-                    </div>
-                  )}
-                  
-                  {user.resident_contact && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">連絡先:</span>
-                      <span className="text-gray-700">{user.resident_contact}</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
-                  <span className="text-xs text-gray-500">
-                    登録日: {formatDate(user.created_at)}
-                  </span>
-                  <div className="flex space-x-1">
-                    {user.welfare_recipient && (
-                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">生保</span>
+                  <div className="space-y-2 text-sm">
+                    {user.birth_date && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">生年月日:</span>
+                        <span className="text-gray-700">{formatDate(user.birth_date)}</span>
+                      </div>
                     )}
-                    {user.line_available && (
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">LINE</span>
+                    
+                    {/* ★★★ user.age を計算した age に置き換え ★★★ */}
+                    {age !== null && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">年齢:</span>
+                        <span className="text-gray-700">{age}歳</span>
+                      </div>
+                    )}
+                    
+                    {user.property_address && (
+                      <div>
+                        <span className="text-gray-500">住所:</span>
+                        <p className="text-gray-700 text-xs mt-1 line-clamp-2">{user.property_address}</p>
+                      </div>
+                    )}
+                    
+                    {user.resident_contact && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">連絡先:</span>
+                        <span className="text-gray-700">{user.resident_contact}</span>
+                      </div>
                     )}
                   </div>
-                </div>
-              </Link>
-            ))}
+                  
+                  <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
+                    <span className="text-xs text-gray-500">
+                      登録日: {formatDate(user.created_at)}
+                    </span>
+                    <div className="flex space-x-1">
+                      {user.welfare_recipient && (
+                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">生保</span>
+                      )}
+                      {user.line_available && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">LINE</span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>

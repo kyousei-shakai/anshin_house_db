@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { Database } from '@/types/database'
+import { calculateAge } from '@/utils/date' // ★★★ インポートを追加 ★★★
 
 // 型エイリアス
 type User = Database['public']['Tables']['users']['Row']
@@ -38,21 +39,20 @@ const UserBasicInfo: React.FC<UserBasicInfoProps> = ({ user }) => {
     }
   }
   
-  // 各項目の表示用コンポーネント
   const InfoItem: React.FC<{ label: string; children: React.ReactNode; className?: string }> = ({ label, children, className }) => (
     <div className={className}>
-      {/* ★★★ 文字サイズ変更 ★★★ (text-base -> text-sm) */}
       <p className="text-sm font-medium text-gray-500">{label}</p>
-      {/* ★★★ 文字サイズと余白を変更 ★★★ (mt-1.5 text-lg -> mt-1 text-base) */}
       <p className="mt-1 text-base font-semibold text-gray-900">{children || '-'}</p>
     </div>
   );
+
+  // ★★★ 動的に年齢を計算 ★★★
+  const age = calculateAge(user.birth_date);
 
   return (
     <div className="space-y-6">
       {/* 基本情報セクション */}
       <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-        {/* ★★★ 文字サイズ変更 ★★★ (text-xl -> text-lg) */}
         <h2 className="text-lg font-semibold leading-7 text-gray-900">基本情報</h2>
         <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-5">
           <InfoItem label="UID" className="col-span-2 md:col-span-1"><span className="font-mono">{user.uid}</span></InfoItem>
@@ -63,14 +63,14 @@ const UserBasicInfo: React.FC<UserBasicInfoProps> = ({ user }) => {
              user.gender === 'female' ? '女性' : 
              user.gender === 'other' ? 'その他' : '-'}
           </InfoItem>
-          <InfoItem label="年齢">{user.age != null ? `${user.age}歳` : '-'}</InfoItem>
+          {/* ★★★ user.age を計算した age に置き換え ★★★ */}
+          <InfoItem label="年齢">{age != null ? `${age}歳` : '-'}</InfoItem>
         </div>
       </div>
 
       {/* 物件情報セクション */}
       <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
         <div className="flex items-center justify-between">
-            {/* ★★★ 文字サイズ変更 ★★★ (text-xl -> text-lg) */}
             <h2 className="text-lg font-semibold leading-7 text-gray-900">物件情報</h2>
             <button
                 onClick={handleCopyAddress}
@@ -88,7 +88,6 @@ const UserBasicInfo: React.FC<UserBasicInfoProps> = ({ user }) => {
 
       {/* 費用情報セクション */}
       <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-        {/* ★★★ 文字サイズ変更 ★★★ (text-xl -> text-lg) */}
         <h2 className="text-lg font-semibold leading-7 text-gray-900">費用情報</h2>
         <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-5">
           <InfoItem label="敷金">{user.deposit != null ? user.deposit.toLocaleString() : '-'}</InfoItem>
@@ -104,7 +103,6 @@ const UserBasicInfo: React.FC<UserBasicInfoProps> = ({ user }) => {
 
       {/* 入居情報セクション */}
       <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-        {/* ★★★ 文字サイズ変更 ★★★ (text-xl -> text-lg) */}
         <h2 className="text-lg font-semibold leading-7 text-gray-900">入居情報</h2>
         <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-5">
           <InfoItem label="入居日">{formatDate(user.move_in_date)}</InfoItem>
@@ -115,7 +113,6 @@ const UserBasicInfo: React.FC<UserBasicInfoProps> = ({ user }) => {
 
       {/* 連絡先情報セクション */}
       <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-        {/* ★★★ 文字サイズ変更 ★★★ (text-xl -> text-lg) */}
         <h2 className="text-lg font-semibold leading-7 text-gray-900">連絡先情報</h2>
         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
           <InfoItem label="入居者連絡先">{user.resident_contact}</InfoItem>
@@ -128,7 +125,6 @@ const UserBasicInfo: React.FC<UserBasicInfoProps> = ({ user }) => {
 
       {/* サポート情報セクション */}
       <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-        {/* ★★★ 文字サイズ変更 ★★★ (text-xl -> text-lg) */}
         <h2 className="text-lg font-semibold leading-7 text-gray-900">サポート情報</h2>
         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
           <InfoItem label="見守りシステム">{user.monitoring_system}</InfoItem>
@@ -142,16 +138,13 @@ const UserBasicInfo: React.FC<UserBasicInfoProps> = ({ user }) => {
       {/* 備考セクション */}
       {user.notes && (
         <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-          {/* ★★★ 文字サイズ変更 ★★★ (text-xl -> text-lg) */}
           <h2 className="text-lg font-semibold leading-7 text-gray-900">備考</h2>
-          {/* ★★★ 文字サイズ変更 ★★★ (text-lg -> text-base) */}
           <div className="mt-2 text-base text-gray-900 whitespace-pre-wrap">{user.notes}</div>
         </div>
       )}
 
       {/* システム情報セクション */}
       <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-        {/* ★★★ 文字サイズ変更 ★★★ (text-xl -> text-lg) */}
         <h2 className="text-lg font-semibold leading-7 text-gray-900">システム情報</h2>
         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
           <InfoItem label="登録日時">{formatDate(user.created_at)}</InfoItem>
