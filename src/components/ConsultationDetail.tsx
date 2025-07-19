@@ -1,13 +1,15 @@
+// src/components/ConsultationDetail.tsx
+
 'use client'
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link' // Linkコンポーネントをインポート
 import { consultationsApi, usersApi } from '@/lib/api'
 import { generateNewUID } from '@/utils/uid'
-// 👇 インポート元を 'database' に変更
 import { Database } from '@/types/database'
 
-// 型エイリアスを定義 (この部分は変更なしでOK)
+// 型エイリアス
 type Consultation = Database['public']['Tables']['consultations']['Row']
 type UserInsert = Database['public']['Tables']['users']['Insert']
 
@@ -20,6 +22,7 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
   const [consultation, setConsultation] = useState<Consultation | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false) // 削除処理中の状態を追加
 
   useEffect(() => {
     const fetchConsultation = async () => {
@@ -37,6 +40,28 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
 
     fetchConsultation()
   }, [consultationId])
+
+  const handleDelete = async () => {
+    if (!consultation) return;
+
+    const isConfirmed = window.confirm(`本当にこの相談履歴を削除しますか？\n（相談日: ${formatDate(consultation.consultation_date)}, 相談者: ${consultation.name || '匿名'}）\nこの操作は元に戻せません。`)
+    if (!isConfirmed) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      await consultationsApi.delete(consultationId)
+      alert('相談履歴を削除しました。')
+      router.push('/consultations') // 相談履歴一覧ページにリダイレクト
+      router.refresh()
+    } catch (err) {
+      console.error('相談履歴の削除エラー:', err)
+      alert('相談履歴の削除に失敗しました。')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return ''
@@ -69,7 +94,8 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
       
       await consultationsApi.update(consultationId, { user_id: newUser.id })
       
-      window.location.reload()
+      alert('利用者として登録しました。ページを更新します。');
+      window.location.reload();
     } catch (err) {
       console.error('利用者登録エラー:', err)
       alert('利用者登録に失敗しました')
@@ -133,7 +159,7 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
     <div className="bg-white rounded-lg shadow-md">
       {/* ヘッダー */}
       <div className="px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
               相談詳細 - {formatDate(consultation.consultation_date)}
@@ -142,21 +168,38 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               ID: {consultation.id}
             </p>
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => router.push(`/consultations/${consultation.id}/edit`)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          <div className="flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <Link
+              href={`/consultations/${consultation.id}/edit`}
+              className="inline-flex items-center justify-center gap-x-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
             >
+              <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+              </svg>
               編集
-            </button>
+            </Link>
             {!consultation.user_id && (
               <button 
                 onClick={handleRegisterAsUser}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="inline-flex items-center justify-center gap-x-2 rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
               >
+                <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path d="M11 5a3 3 0 11-6 0 3 3 0 016 0zM2.047 14.5a.75.75 0 001.06 1.061l4.94-4.939a.75.75 0 00-1.06-1.06l-4.94 4.938zM17.953 14.5a.75.75 0 01-1.06 1.061l-4.94-4.939a.75.75 0 111.06-1.06l4.94 4.938z" />
+                </svg>
                 利用者として登録
               </button>
             )}
+            <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                type="button"
+                className="inline-flex items-center justify-center gap-x-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50"
+            >
+                <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.58.22-2.365.468a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.576l.84-10.518.149.022a.75.75 0 10.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
+                </svg>
+                {isDeleting ? '削除中...' : '削除'}
+            </button>
           </div>
         </div>
       </div>
@@ -294,9 +337,9 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
             )}
             
             {consultation.medical_history && (
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">既往症及び病歴</label>
-                <div className="text-gray-800">{consultation.medical_history}</div>
+                <div className="text-gray-800 whitespace-pre-wrap">{consultation.medical_history}</div>
               </div>
             )}
           </div>
