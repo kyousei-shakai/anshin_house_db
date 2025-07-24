@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supportPlansApi } from '@/lib/api'
-// 👇 1. インポートを 'Database' 型に変更
 import { Database } from '@/types/database'
+import { calculateAge } from '@/utils/date'
 
-// 👇 2. 新しい型定義から型エイリアスを作成
+// 型エイリアス
 type SupportPlan = Database['public']['Tables']['support_plans']['Row']
 
 interface SupportPlanDetailProps {
@@ -15,7 +15,6 @@ interface SupportPlanDetailProps {
 
 const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) => {
   const router = useRouter()
-  // 👇 3. useState の型指定は変更なしでOK
   const [supportPlan, setSupportPlan] = useState<SupportPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -26,7 +25,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
         setLoading(true)
         setError(null)
         const data = await supportPlansApi.getById(supportPlanId)
-        // 👇 4. ここでエラーが出ていたが、api.tsを修正済みのため `as` は不要
         setSupportPlan(data)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'エラーが発生しました')
@@ -37,6 +35,19 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
 
     fetchSupportPlan()
   }, [supportPlanId])
+
+  const calculatedAge = useMemo(() => {
+    if (supportPlan?.birth_date) {
+      try {
+        return calculateAge(supportPlan.birth_date)
+      } 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      catch (e) {
+        return null
+      }
+    }
+    return null
+  }, [supportPlan])
 
   const formatDate = (dateString: string) => {
     if (!dateString) return ''
@@ -71,7 +82,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
     )
   }
   
-  // 👇 5. JSXで使うためのヘルパー関数は変更なしでOK
   const getCareLevel = () => {
     const levels = []
     if (supportPlan.care_level_independent) levels.push('自立')
@@ -106,10 +116,8 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
     return services
   }
   
-  // 👇 6. JSX部分は変更なしでOK
   return (
     <div className="bg-white rounded-lg shadow-md">
-      {/* ヘッダー */}
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
@@ -132,34 +140,29 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
       </div>
 
       <div className="p-6 space-y-8">
-        {/* 1. 基本情報 */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">1. 基本情報</h2>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">氏名</label>
               <div className="text-gray-800">{supportPlan.name}</div>
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">フリガナ</label>
               <div className="text-gray-800">{supportPlan.furigana}</div>
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">生年月日</label>
               <div className="text-gray-800">
-                {formatDate(supportPlan.birth_date)} (年齢: {supportPlan.age}歳)
+                {formatDate(supportPlan.birth_date)}
+                {calculatedAge !== null && ` (年齢: ${calculatedAge}歳)`}
               </div>
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">居住場所</label>
               <div className="text-gray-800">{supportPlan.residence}</div>
             </div>
           </div>
-
           <div className="mt-4">
             <h3 className="text-md font-medium text-gray-800 mb-2">連絡先</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -169,7 +172,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
                   <div className="text-gray-800">{supportPlan.phone_mobile}</div>
                 </div>
               )}
-              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">LINE</label>
                 <div className="text-gray-800">{supportPlan.line_available ? '利用可能' : '利用不可'}</div>
@@ -178,16 +180,13 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
           </div>
         </div>
 
-        {/* 2. 生活保護・介護保険 */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">2. 生活保護・介護保険</h2>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">生活保護受給</label>
               <div className="text-gray-800">{supportPlan.welfare_recipient ? '有' : '無'}</div>
             </div>
-            
             {supportPlan.welfare_recipient && (
               <>
                 {supportPlan.welfare_worker && (
@@ -196,7 +195,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
                     <div className="text-gray-800">{supportPlan.welfare_worker}</div>
                   </div>
                 )}
-                
                 {supportPlan.welfare_contact && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">CW連絡先</label>
@@ -206,7 +204,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
               </>
             )}
           </div>
-          
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">介護保険認定区分</label>
             <div className="flex flex-wrap gap-2">
@@ -219,10 +216,8 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
           </div>
         </div>
 
-        {/* 3. 医療状況 */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">3. 医療状況</h2>
-          
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">通院・訪問診療</label>
@@ -235,7 +230,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
                     )}
                   </div>
                 )}
-                
                 {supportPlan.visiting_medical && (
                   <div className="flex items-center space-x-2">
                     <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">訪問診療</span>
@@ -244,7 +238,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
                     )}
                   </div>
                 )}
-                
                 {supportPlan.home_oxygen && (
                   <div className="flex items-center space-x-2">
                     <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">在宅酸素</span>
@@ -255,11 +248,9 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
           </div>
         </div>
 
-        {/* 4. 障がい状況 */}
         {(supportPlan.physical_disability_level || supportPlan.mental_disability_level || supportPlan.therapy_certificate_level) && (
           <div className="bg-gray-50 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">4. 障がい状況</h2>
-            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {supportPlan.physical_disability_level && (
                 <div>
@@ -267,14 +258,12 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
                   <div className="text-gray-800">{supportPlan.physical_disability_level}</div>
                 </div>
               )}
-              
               {supportPlan.mental_disability_level && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">精神障がい（等級）</label>
                   <div className="text-gray-800">{supportPlan.mental_disability_level}</div>
                 </div>
               )}
-              
               {supportPlan.therapy_certificate_level && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">療育手帳（等級/区分）</label>
@@ -285,10 +274,8 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
           </div>
         )}
 
-        {/* 5. 年金状況 */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">5. 年金状況</h2>
-          
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">年金の種類</label>
             <div className="flex flex-wrap gap-2">
@@ -298,7 +285,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
                 </span>
               ))}
             </div>
-            
             {supportPlan.pension_other && supportPlan.pension_other_details && (
               <div className="mt-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">その他の年金 詳細</label>
@@ -308,10 +294,8 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
           </div>
         </div>
 
-        {/* 6. 生活支援サービス */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">6. 生活支援サービス</h2>
-          
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">見守りサービス</label>
@@ -324,7 +308,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
                     )}
                   </div>
                 )}
-                
                 {supportPlan.monitoring_hello_light && (
                   <div className="flex items-center space-x-2">
                     <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">ハローライト</span>
@@ -335,7 +318,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
                 )}
               </div>
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">生活支援サービス</label>
               <div className="flex flex-wrap gap-2">
@@ -349,10 +331,8 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
           </div>
         </div>
 
-        {/* 7. 支援計画 */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">7. 支援計画</h2>
-          
           <div className="space-y-4">
             {supportPlan.goals && (
               <div>
@@ -364,7 +344,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
                 </div>
               </div>
             )}
-            
             <div>
               <h3 className="text-md font-medium text-gray-800 mb-3">ニーズ（課題）と対応</h3>
               <div className="space-y-4">
@@ -378,7 +357,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
                     </div>
                   </div>
                 )}
-                
                 {supportPlan.needs_physical && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">身体状況</label>
@@ -389,7 +367,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
                     </div>
                   </div>
                 )}
-                
                 {supportPlan.needs_mental && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">精神状況</label>
@@ -400,7 +377,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
                     </div>
                   </div>
                 )}
-                
                 {supportPlan.needs_lifestyle && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">生活状況</label>
@@ -411,7 +387,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
                     </div>
                   </div>
                 )}
-                
                 {supportPlan.needs_environment && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">生活環境</label>
@@ -427,16 +402,13 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
           </div>
         </div>
 
-        {/* 8. 個別避難計画 */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">8. 個別避難計画</h2>
-          
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">別紙の対応</label>
               <div className="text-gray-800">{supportPlan.evacuation_plan_completed ? '済' : '未了'}</div>
             </div>
-            
             {supportPlan.evacuation_plan_other_details && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">その他の詳細</label>
@@ -450,7 +422,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
           </div>
         </div>
 
-        {/* システム情報 */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">システム情報</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -458,12 +429,10 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
               <label className="block text-sm font-medium text-gray-700 mb-1">作成日時</label>
               <div className="text-gray-800">{formatDate(supportPlan.created_at)}</div>
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">最終更新日時</label>
               <div className="text-gray-800">{formatDate(supportPlan.updated_at)}</div>
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">利用者ID</label>
               <div className="text-gray-800">{supportPlan.user_id}</div>

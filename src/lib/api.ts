@@ -1,5 +1,3 @@
-// src/lib/api.ts
-
 import { supabase } from './supabase'
 import { Database } from '@/types/database'
 
@@ -34,19 +32,15 @@ export const usersApi = {
   },
 
   create: async (user: UserInsert): Promise<User> => {
-    // ★★★ 最終修正：オブジェクトをコピーしてから、ageプロパティを安全に削除 ★★★
-    const userWithoutAge = { ...user };
-    delete (userWithoutAge as Partial<User>).age; // ageプロパティを削除
-    
-    console.log('usersApi.create: データ送信開始', { uid: userWithoutAge.uid, name: userWithoutAge.name })
-    const { data, error } = await supabase.from('users').insert([userWithoutAge]).select().single()
+    console.log('usersApi.create: データ送信開始', { uid: user.uid, name: user.name })
+    const { data, error } = await supabase.from('users').insert([user]).select().single()
     if (error) {
       console.error('usersApi.create: Supabaseエラー', {
         error,
         errorMessage: error.message,
         errorCode: error.code,
         errorDetails: error.details,
-        sentData: userWithoutAge
+        sentData: user
       })
       throw error
     }
@@ -55,11 +49,7 @@ export const usersApi = {
   },
 
   update: async (id: string, user: Partial<User>): Promise<User> => {
-    // ★★★ 最終修正：オブジェクトをコピーしてから、ageプロパティを安全に削除 ★★★
-    const userWithoutAge = { ...user };
-    delete userWithoutAge.age; // ageプロパティを削除
-
-    const { data, error } = await supabase.from('users').update(userWithoutAge).eq('id', id).select().single()
+    const { data, error } = await supabase.from('users').update(user).eq('id', id).select().single()
     if (error) throw error
     return data
   },

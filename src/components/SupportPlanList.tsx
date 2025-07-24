@@ -1,11 +1,10 @@
-// src/components/SupportPlanList.tsx
-
 'use client'
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supportPlansApi } from '@/lib/api'
 import { Database } from '@/types/database'
+import { calculateAge } from '@/utils/date'
 
 // 型エイリアス
 type SupportPlan = Database['public']['Tables']['support_plans']['Row']
@@ -71,7 +70,6 @@ const SupportPlanList: React.FC = () => {
   
   return (
     <div className="space-y-6">
-      {/* 検索・フィルタリング */}
       <div className="bg-gray-50 rounded-lg p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -116,7 +114,6 @@ const SupportPlanList: React.FC = () => {
         </div>
       </div>
 
-      {/* 支援計画一覧 */}
       {filteredSupportPlans.length === 0 ? (
         <div className="bg-white border rounded-lg p-8 text-center">
           <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -136,18 +133,22 @@ const SupportPlanList: React.FC = () => {
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
           {filteredSupportPlans.map((plan) => {
-            // ★★★ エラー修正箇所 ★★★
-            // 不要になった careInsuranceLevels の定義を削除。
-            // lifeSupportServices も新しいレイアウトでは使わないため削除。
+            let age = null;
+            try {
+                if (plan.birth_date) {
+                    age = calculateAge(plan.birth_date);
+                }
+            } catch {
+                // Do nothing on error
+            }
             return (
               <div key={plan.id} className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
-                  {/* 左側：主要情報 */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-x-3">
                       <p className="text-base font-semibold leading-6 text-gray-900">
                         {plan.name}
-                        {plan.age != null && <span className="ml-2 text-sm font-normal text-gray-500">({plan.age}歳)</span>}
+                        {age !== null && <span className="ml-2 text-sm font-normal text-gray-500">({age}歳)</span>}
                       </p>
                     </div>
                     <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 text-xs leading-5 text-gray-500">
@@ -170,7 +171,6 @@ const SupportPlanList: React.FC = () => {
                       </p>
                     )}
                   </div>
-                   {/* 右側：アクションボタン */}
                    <div className="mt-4 sm:mt-0 sm:ml-4 flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <Link
                       href={`/support-plans/${plan.id}`}

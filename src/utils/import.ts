@@ -79,7 +79,6 @@ export const validateImportData = (data: Partial<User>[]): ImportValidationResul
       }
     }
     
-    if (user.age !== undefined && user.age !== null && user.age < 0) warnings.push(`行 ${rowNum}: 年齢「${user.age}」は0以上の数値で入力してください`);
     if (user.rent !== undefined && user.rent !== null && user.rent < 0) warnings.push(`行 ${rowNum}: 家賃「${user.rent}」は0以上の数値で入力してください`);
   })
   
@@ -95,7 +94,6 @@ const parseRowToUser = (row: (string | number)[], headers: string[]): Partial<Us
   
       const valueStr = value.toString().trim();
       
-      // 👇 動的な代入を避け、各キーに対して型安全に代入する
       if (header === userMapping.uid) user.uid = valueStr;
       else if (header === userMapping.name) user.name = valueStr;
       else if (header === userMapping.birth_date) user.birth_date = valueStr;
@@ -114,7 +112,6 @@ const parseRowToUser = (row: (string | number)[], headers: string[]): Partial<Us
       else if (header === userMapping.support_medical_institution) user.support_medical_institution = valueStr;
       else if (header === userMapping.notes) user.notes = valueStr;
       // 数値型
-      else if (header === userMapping.age) user.age = parseFloat(valueStr);
       else if (header === userMapping.deposit) user.deposit = parseFloat(valueStr);
       else if (header === userMapping.key_money) user.key_money = parseFloat(valueStr);
       else if (header === userMapping.rent) user.rent = parseFloat(valueStr);
@@ -209,7 +206,7 @@ export const importUsersFromCSV = (file: File): Promise<ImportResult> => {
 }
 
 const userMapping: { [key in keyof User]?: string } = {
-  uid: 'UID', name: '氏名', birth_date: '生年月日', gender: '性別', age: '年齢',
+  uid: 'UID', name: '氏名', birth_date: '生年月日', gender: '性別',
   property_address: '物件住所', property_name: '物件名', room_number: '部屋番号',
   intermediary: '仲介', deposit: '敷金', key_money: '礼金', rent: '家賃',
   fire_insurance: '火災保険', common_fee: '共益費', landlord_rent: '大家家賃',

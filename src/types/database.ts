@@ -1,4 +1,3 @@
-
 export type Json =
   | string
   | number
@@ -13,37 +12,11 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          operationName?: string
-          query?: string
-          variables?: Json
-          extensions?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       consultations: {
         Row: {
           address: string | null
-          age: number | null
           attribute_childcare: boolean | null
           attribute_disability: boolean | null
           attribute_disability_intellectual: boolean | null
@@ -178,7 +151,6 @@ export type Database = {
         }
         Insert: {
           address?: string | null
-          age?: number | null
           attribute_childcare?: boolean | null
           attribute_disability?: boolean | null
           attribute_disability_intellectual?: boolean | null
@@ -313,7 +285,6 @@ export type Database = {
         }
         Update: {
           address?: string | null
-          age?: number | null
           attribute_childcare?: boolean | null
           attribute_disability?: boolean | null
           attribute_disability_intellectual?: boolean | null
@@ -492,7 +463,6 @@ export type Database = {
       }
       support_plans: {
         Row: {
-          age: number
           birth_date: string
           care_level_care1: boolean | null
           care_level_care2: boolean | null
@@ -550,7 +520,6 @@ export type Database = {
           welfare_worker: string | null
         }
         Insert: {
-          age: number
           birth_date: string
           care_level_care1?: boolean | null
           care_level_care2?: boolean | null
@@ -608,7 +577,6 @@ export type Database = {
           welfare_worker?: string | null
         }
         Update: {
-          age?: number
           birth_date?: string
           care_level_care1?: boolean | null
           care_level_care2?: boolean | null
@@ -677,7 +645,6 @@ export type Database = {
       }
       users: {
         Row: {
-          age: number | null
           birth_date: string | null
           common_fee: number | null
           created_at: string
@@ -713,7 +680,6 @@ export type Database = {
           welfare_recipient: boolean | null
         }
         Insert: {
-          age?: number | null
           birth_date?: string | null
           common_fee?: number | null
           created_at?: string
@@ -749,7 +715,6 @@ export type Database = {
           welfare_recipient?: boolean | null
         }
         Update: {
-          age?: number | null
           birth_date?: string | null
           common_fee?: number | null
           created_at?: string
@@ -923,9 +888,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

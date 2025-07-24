@@ -1,5 +1,3 @@
-// src/components/ConsultationList.tsx
-
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -7,6 +5,7 @@ import Link from 'next/link'
 import { consultationsApi, usersApi } from '@/lib/api'
 import { generateNewUID } from '@/utils/uid'
 import { Database } from '@/types/database'
+import { calculateAge } from '@/utils/date'
 
 // 型エイリアス
 type Consultation = Database['public']['Tables']['consultations']['Row']
@@ -36,7 +35,7 @@ const ConsultationList: React.FC = () => {
     fetchConsultations()
   }, [])
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
     if (!dateString) return ''
     return new Date(dateString).toLocaleDateString('ja-JP')
   }
@@ -49,7 +48,7 @@ const ConsultationList: React.FC = () => {
       (consultation.next_appointment_details && consultation.next_appointment_details.toLowerCase().includes(searchTerm.toLowerCase()))
 
     const matchesDate = !dateFilter ||
-      consultation.consultation_date.startsWith(dateFilter)
+      (consultation.consultation_date && consultation.consultation_date.startsWith(dateFilter))
 
     const matchesAttribute = !attributeFilter || 
       (attributeFilter === 'elderly' && consultation.attribute_elderly) ||
@@ -67,7 +66,6 @@ const ConsultationList: React.FC = () => {
   })
 
   const handleRegisterAsUser = async (consultation: Consultation) => {
-    // 登録確認ダイアログ
     if (!confirm(`「${consultation.name || '匿名'}」さんを利用者として登録しますか？`)) {
         return;
     }
@@ -82,7 +80,6 @@ const ConsultationList: React.FC = () => {
           ? `${consultation.birth_year}-${String(consultation.birth_month).padStart(2, '0')}-${String(consultation.birth_day).padStart(2, '0')}`
           : undefined,
         gender: consultation.gender,
-        age: consultation.age,
         property_address: consultation.address,
         resident_contact: consultation.phone_mobile || consultation.phone_home,
         line_available: false,
@@ -94,7 +91,6 @@ const ConsultationList: React.FC = () => {
       const newUser = await usersApi.create(userData)
       await consultationsApi.update(consultation.id, { user_id: newUser.id })
       
-      // stateを直接更新して即時反映
       setConsultations(prev => 
         prev.map(c => c.id === consultation.id ? { ...c, user_id: newUser.id } : c)
       );
@@ -130,7 +126,6 @@ const ConsultationList: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* 検索・フィルタリング */}
       <div className="bg-gray-50 rounded-lg p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -157,31 +152,6 @@ const ConsultationList: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
             />
           </div>
-
-          {/* 属性フィルタは一旦コメントアウト
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              属性
-            </label>
-            <select
-              value={attributeFilter}
-              onChange={(e) => setAttributeFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
-            >
-              <option value="">全て</option>
-              <option value="elderly">高齢</option>
-              <option value="disability">障がい</option>
-              <option value="childcare">子育て</option>
-              <option value="single_parent">ひとり親</option>
-              <option value="dv">DV</option>
-              <option value="foreigner">外国人</option>
-              <option value="poverty">生活困窮</option>
-              <option value="low_income">低所得者</option>
-              <option value="lgbt">LGBT</option>
-              <option value="welfare">生保</option>
-            </select>
-          </div>
-          */}
         </div>
 
         <div className="mt-4 flex items-center justify-between">
@@ -201,7 +171,6 @@ const ConsultationList: React.FC = () => {
         </div>
       </div>
 
-      {/* 相談履歴一覧 */}
       {filteredConsultations.length === 0 ? (
         <div className="bg-white border rounded-lg p-8 text-center">
           <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -221,10 +190,20 @@ const ConsultationList: React.FC = () => {
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
           {filteredConsultations.map((consultation) => {
+            let age = null;
+            if (consultation.birth_year && consultation.birth_month && consultation.birth_day) {
+                try {
+                    const birthDateStr = `${consultation.birth_year}-${String(consultation.birth_month).padStart(2, '0')}-${String(consultation.birth_day).padStart(2, '0')}`;
+                    if (!isNaN(new Date(birthDateStr).getTime())) {
+                        age = calculateAge(birthDateStr);
+                    }
+                } catch {
+                    // Do nothing on error
+                }
+            }
             return (
               <div key={consultation.id} className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
-                  {/* 左側：主要情報 */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-x-3">
                       <p className="text-sm font-semibold leading-6 text-gray-900">
@@ -239,17 +218,14 @@ const ConsultationList: React.FC = () => {
                     <div className="mt-1 flex items-center gap-x-2 text-xs leading-5 text-gray-500">
                       <p>相談日: {formatDate(consultation.consultation_date)}</p>
                       <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current"><circle cx={1} cy={1} r={1} /></svg>
-                      {consultation.age && <p>年齢: {consultation.age}歳</p>}
+                      {age !== null && <p>年齢: {age}歳</p>}
                     </div>
-                    {/* 相談内容のプレビュー */}
                     {consultation.consultation_content && (
                         <p className="mt-2 text-sm text-gray-600 line-clamp-2">
                             {consultation.consultation_content}
                         </p>
                     )}
                   </div>
-
-                  {/* 右側：アクションボタン */}
                   <div className="mt-4 sm:mt-0 sm:ml-4 flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <Link
                       href={`/consultations/${consultation.id}`}

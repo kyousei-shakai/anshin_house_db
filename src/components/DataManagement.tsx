@@ -13,17 +13,14 @@ import {
   exportConsultationReport
 } from '@/utils/export'
 import { importUsersFromExcel, importUsersFromCSV, ImportResult } from '@/utils/import'
-// 👇 1. インポートを 'Database' 型に変更
 import { Database } from '@/types/database'
 
-// 👇 2. 新しい型定義から型エイリアスを作成
 type Consultation = Database['public']['Tables']['consultations']['Row']
 type SupportPlan = Database['public']['Tables']['support_plans']['Row']
 type UserInsert = Database['public']['Tables']['users']['Insert']
 
 const DataManagement: React.FC = () => {
   const { users, refreshUsers } = useUsers()
-  // 👇 3. useState の型指定は変更なしでOK
   const [consultations, setConsultations] = useState<Consultation[]>([])
   const [supportPlans, setSupportPlans] = useState<SupportPlan[]>([])
   const [loading, setLoading] = useState(false)
@@ -32,7 +29,6 @@ const DataManagement: React.FC = () => {
   const [reportEndDate, setReportEndDate] = useState('')
   const [exportMonth, setExportMonth] = useState('')
 
-  // データ取得
   const fetchAllData = async () => {
     setLoading(true)
     try {
@@ -66,14 +62,12 @@ const DataManagement: React.FC = () => {
     fetchAllData()
   }, [])
 
-  // 月フィルタ機能
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getFilteredData = (data: any[], dateField: string) => {
     if (!exportMonth) return data
 
     return data.filter(item => {
       const itemDateValue = item[dateField];
-      // 👇 日付データが存在しない場合を考慮
       if (!itemDateValue) return false;
       const itemDate = new Date(itemDateValue)
       const filterDate = new Date(exportMonth + '-01')
@@ -82,7 +76,6 @@ const DataManagement: React.FC = () => {
     })
   }
 
-  // エクスポート処理
   const handleExportUsers = (format: 'excel' | 'csv') => {
     const filteredUsers = getFilteredData(users, 'created_at')
     const timestamp = new Date().toISOString().slice(0, 10)
@@ -132,7 +125,6 @@ const DataManagement: React.FC = () => {
     exportConsultationReport(consultations, reportStartDate, reportEndDate, filename)
   }
 
-  // インポート処理
   const handleImport = async (file: File) => {
     setLoading(true)
     setImportResult(null)
@@ -176,13 +168,11 @@ const DataManagement: React.FC = () => {
               throw new Error(`UID「${userData.uid}」は既に存在します`)
             }
             
-            // 👇 4. インポート時の型を UserInsert に合わせる
             const processedData: UserInsert = {
               uid: userData.uid,
               name: userData.name,
               birth_date: userData.birth_date || undefined,
               gender: userData.gender || undefined,
-              age: userData.age && !isNaN(Number(userData.age)) ? Number(userData.age) : null,
               property_address: userData.property_address || undefined,
               property_name: userData.property_name || undefined,
               room_number: userData.room_number || undefined,
@@ -276,7 +266,6 @@ const DataManagement: React.FC = () => {
     }
   }
   
-  // 👇 5. JSXは変更なしでOK
   return (
     <div className="space-y-8">
       {/* データエクスポート */}
@@ -447,7 +436,7 @@ const DataManagement: React.FC = () => {
               <strong>必須項目:</strong> UID, 氏名
             </p>
             <p>
-              <strong>必須ヘッダー:</strong> UID、氏名、生年月日、性別、年齢、物件住所、物件名、部屋番号、仲介、敷金、礼金、家賃、火災保険、共益費、大家家賃、大家共益費、家賃差額、入居日、次回更新年月日、更新回数、入居者連絡先、LINE、緊急連絡先、緊急連絡先氏名、続柄、見守りシステム、支援機関/医療機関、備考、代理納付該当、生活保護受給者、死後事務委任
+              <strong>必須ヘッダー:</strong> UID、氏名、生年月日、性別、物件住所、物件名、部屋番号、仲介、敷金、礼金、家賃、火災保険、共益費、大家家賃、大家共益費、家賃差額、入居日、次回更新年月日、更新回数、入居者連絡先、LINE、緊急連絡先、緊急連絡先氏名、続柄、見守りシステム、支援機関/医療機関、備考、代理納付該当、生活保護受給者、死後事務委任
             </p>
           </div>
           {loading && (

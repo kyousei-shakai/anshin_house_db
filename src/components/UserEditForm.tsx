@@ -4,10 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@/hooks/useUsers'
 import { usersApi } from '@/lib/api'
-// 👇 1. インポートを 'Database' 型に変更
 import { Database } from '@/types/database'
 
-// 👇 2. 新しい型定義から型エイリアスを作成
 type UserUpdate = Partial<Database['public']['Tables']['users']['Update']>
 
 interface UserEditFormProps {
@@ -20,12 +18,10 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userId }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  // フォームで扱うデータの state (文字列と boolean で管理)
   const [formData, setFormData] = useState({
     name: '',
     birth_date: '',
     gender: '' as 'male' | 'female' | 'other' | '',
-    age: '',
     property_address: '',
     property_name: '',
     room_number: '',
@@ -55,13 +51,11 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userId }) => {
   })
 
   useEffect(() => {
-    // 👇 3. useUserから取得したデータでフォームを初期化
     if (user) {
       setFormData({
         name: user.name || '',
         birth_date: user.birth_date?.split('T')[0] || '',
         gender: user.gender as 'male' | 'female' | 'other' | '' || '',
-        age: user.age?.toString() || '',
         property_address: user.property_address || '',
         property_name: user.property_name || '',
         room_number: user.room_number || '',
@@ -104,12 +98,10 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userId }) => {
       setLoading(true)
       setError(null)
       
-      // 👇 4. フォームのデータをDB保存用の正しい型(UserUpdate)に変換
       const userData: UserUpdate = {
         name: formData.name.trim(),
         birth_date: formData.birth_date || null,
         gender: formData.gender || null,
-        age: formData.age ? parseInt(formData.age, 10) : null,
         property_address: formData.property_address.trim() || null,
         property_name: formData.property_name.trim() || null,
         room_number: formData.room_number.trim() || null,
@@ -138,7 +130,6 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userId }) => {
         posthumous_affairs: formData.posthumous_affairs
       }
       
-      // 👇 5. `as any` を削除
       await usersApi.update(userId, userData)
       router.push(`/users/${userId}`)
     } catch (err) {
@@ -215,10 +206,6 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userId }) => {
                 <option value="female">女性</option>
                 <option value="other">その他</option>
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">年齢</label>
-              <input type="number" name="age" value={formData.age} onChange={handleChange} min="0" className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
         </div>

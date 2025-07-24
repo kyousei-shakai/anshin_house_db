@@ -1,16 +1,15 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supportPlansApi, usersApi } from '@/lib/api'
-// 👇 1. インポートを 'Database' 型に変更
 import { Database } from '@/types/database'
+import { calculateAge } from '@/utils/date'
 
-// 👇 2. 新しい型定義から型エイリアスを作成
+// 型エイリアス
 type User = Database['public']['Tables']['users']['Row']
 type SupportPlanInsert = Database['public']['Tables']['support_plans']['Insert']
 type SupportPlanUpdate = Partial<Database['public']['Tables']['support_plans']['Update']>
-
 
 interface SupportPlanFormProps {
   editMode?: boolean
@@ -23,7 +22,6 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
   const [error, setError] = useState<string | null>(null)
   const [users, setUsers] = useState<User[]>([])
   
-  // フォームで扱うデータの state (文字列と boolean で管理)
   const [formData, setFormData] = useState({
     user_id: '',
     creation_date: new Date().toISOString().split('T')[0],
@@ -88,7 +86,6 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
 
         if (editMode && supportPlanId) {
           const planData = await supportPlansApi.getById(supportPlanId);
-          // 👇 3. データベースから取得したデータでフォームを初期化
           if (planData) {
             setFormData({
               user_id: planData.user_id,
@@ -166,7 +163,7 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
         ...prev,
         user_id: userId,
         name: selectedUser.name,
-        furigana: selectedUser.name,
+        furigana: selectedUser.name, // 暫定で名前を入れる
         birth_date: selectedUser.birth_date ? selectedUser.birth_date.split('T')[0] : '',
         residence: selectedUser.property_address || '',
         phone_mobile: selectedUser.resident_contact || ''
@@ -174,17 +171,18 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
     }
   }
 
-  const calculateAge = (birthDate: string): number => {
-    if (!birthDate) return 0;
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
+  const calculatedAge = useMemo(() => {
+    if (formData.birth_date) {
+      try {
+        return calculateAge(formData.birth_date)
+      } 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      catch (e) {
+        return null
+      }
     }
-    return age;
-  }
+    return null
+  }, [formData.birth_date])
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -209,45 +207,72 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
       setLoading(true);
       setError(null);
       
-      const age = calculateAge(formData.birth_date);
-      
-      // 👇 4. 送信データの方を SupportPlanInsert または Update に指定
-      const commonData = {
-        ...formData,
-        age,
+      const commonData: Omit<SupportPlanInsert, 'user_id' | 'id' | 'created_at' | 'updated_at'> = {
+        creation_date: formData.creation_date,
+        staff_name: formData.staff_name,
+        name: formData.name,
+        furigana: formData.furigana,
+        birth_date: formData.birth_date,
+        residence: formData.residence,
         phone_mobile: formData.phone_mobile.trim() || null,
+        line_available: formData.line_available,
+        welfare_recipient: formData.welfare_recipient,
         welfare_worker: formData.welfare_worker.trim() || null,
         welfare_contact: formData.welfare_contact.trim() || null,
+        care_level_independent: formData.care_level_independent,
+        care_level_support1: formData.care_level_support1,
+        care_level_support2: formData.care_level_support2,
+        care_level_care1: formData.care_level_care1,
+        care_level_care2: formData.care_level_care2,
+        care_level_care3: formData.care_level_care3,
+        care_level_care4: formData.care_level_care4,
+        care_level_care5: formData.care_level_care5,
+        outpatient_care: formData.outpatient_care,
         outpatient_institution: formData.outpatient_institution.trim() || null,
+        visiting_medical: formData.visiting_medical,
         visiting_medical_institution: formData.visiting_medical_institution.trim() || null,
+        home_oxygen: formData.home_oxygen,
         physical_disability_level: formData.physical_disability_level.trim() || null,
         mental_disability_level: formData.mental_disability_level.trim() || null,
         therapy_certificate_level: formData.therapy_certificate_level.trim() || null,
+        pension_national: formData.pension_national,
+        pension_employee: formData.pension_employee,
+        pension_disability: formData.pension_disability,
+        pension_survivor: formData.pension_survivor,
+        pension_corporate: formData.pension_corporate,
+        pension_other: formData.pension_other,
         pension_other_details: formData.pension_other_details.trim() || null,
+        monitoring_secom: formData.monitoring_secom,
         monitoring_secom_details: formData.monitoring_secom_details.trim() || null,
+        monitoring_hello_light: formData.monitoring_hello_light,
         monitoring_hello_light_details: formData.monitoring_hello_light_details.trim() || null,
+        support_shopping: formData.support_shopping,
+        support_bank_visit: formData.support_bank_visit,
+        support_cleaning: formData.support_cleaning,
+        support_bulb_change: formData.support_bulb_change,
+        support_garbage_disposal: formData.support_garbage_disposal,
         goals: formData.goals.trim() || null,
         needs_financial: formData.needs_financial.trim() || null,
         needs_physical: formData.needs_physical.trim() || null,
         needs_mental: formData.needs_mental.trim() || null,
         needs_lifestyle: formData.needs_lifestyle.trim() || null,
         needs_environment: formData.needs_environment.trim() || null,
+        evacuation_plan_completed: formData.evacuation_plan_completed,
         evacuation_plan_other_details: formData.evacuation_plan_other_details.trim() || null
       };
       
       if (editMode && supportPlanId) {
         const updatePayload: SupportPlanUpdate = commonData;
-        delete (updatePayload as Partial<SupportPlanInsert>).user_id; // user_idは更新しない
-        
         await supportPlansApi.update(supportPlanId, updatePayload);
         router.push(`/support-plans/${supportPlanId}`);
       } else {
-        const createPayload: SupportPlanInsert = { ...commonData, user_id: formData.user_id, age };
+        const createPayload: SupportPlanInsert = { ...commonData, user_id: formData.user_id };
         await supportPlansApi.create(createPayload);
         router.push('/support-plans');
       }
 
     } catch (err) {
+      console.error("保存エラー詳細:", err);
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
       setLoading(false);
@@ -306,7 +331,7 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
             <label className="block text-sm font-medium text-gray-700 mb-1">生年月日 <span className="text-red-500">*</span></label>
             <div className="flex items-center space-x-2">
               <input type="date" name="birth_date" value={formData.birth_date} onChange={handleChange} className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-              {formData.birth_date && (<span className="text-gray-600">年齢: {calculateAge(formData.birth_date)}歳</span>)}
+              {calculatedAge !== null && (<span className="text-gray-600">年齢: {calculatedAge}歳</span>)}
             </div>
           </div>
           <div>

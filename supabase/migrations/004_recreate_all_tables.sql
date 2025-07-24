@@ -14,14 +14,13 @@ CREATE TABLE staff (
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Usersテーブルを作成
+-- Usersテーブルを作成 (修正済みで問題なし)
 CREATE TABLE users (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   uid text UNIQUE NOT NULL,
   name text NOT NULL,
   birth_date date,
   gender text CHECK (gender IN ('male', 'female', 'other')),
---   age integer,
   property_address text,
   property_name text,
   room_number text,
@@ -52,7 +51,7 @@ CREATE TABLE users (
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Consultationsテーブルを作成（新しい仕様に対応）
+-- Consultationsテーブルを作成（★★ 修正 ★★）
 CREATE TABLE consultations (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   
@@ -101,7 +100,7 @@ CREATE TABLE consultations (
   birth_year integer,
   birth_month integer,
   birth_day integer,
-  age integer, -- 自動計算フィールド
+  -- age integer, -- ★★ ageカラムを削除 ★★
   
   -- 2. 身体状況・利用サービス
   physical_condition text CHECK (physical_condition IN ('independent', 'support1', 'support2', 'care1', 'care2', 'care3', 'care4', 'care5')),
@@ -220,7 +219,7 @@ CREATE TABLE consultations (
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Support Plansテーブルを作成（新しい仕様に対応）
+-- Support Plansテーブルを作成（★★ 修正 ★★）
 CREATE TABLE support_plans (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -231,16 +230,16 @@ CREATE TABLE support_plans (
   name text NOT NULL,
   furigana text NOT NULL,
   birth_date date NOT NULL,
-  age integer NOT NULL,
+  -- age integer NOT NULL, -- ★★ ageカラムを削除 ★★
   residence text NOT NULL,
   phone_mobile text,
   line_available boolean DEFAULT false,
   
-  -- 2. 生活保護・介護保険
+  -- ... (以降の定義は変更なし) ...
+  
   welfare_recipient boolean DEFAULT false,
   welfare_worker text,
   welfare_contact text,
-  
   care_level_independent boolean DEFAULT false,
   care_level_support1 boolean DEFAULT false,
   care_level_support2 boolean DEFAULT false,
@@ -249,20 +248,14 @@ CREATE TABLE support_plans (
   care_level_care3 boolean DEFAULT false,
   care_level_care4 boolean DEFAULT false,
   care_level_care5 boolean DEFAULT false,
-  
-  -- 3. 医療状況
   outpatient_care boolean DEFAULT false,
   outpatient_institution text,
   visiting_medical boolean DEFAULT false,
   visiting_medical_institution text,
   home_oxygen boolean DEFAULT false,
-  
-  -- 4. 障がい状況
   physical_disability_level text,
   mental_disability_level text,
   therapy_certificate_level text,
-  
-  -- 5. 年金状況
   pension_national boolean DEFAULT false,
   pension_employee boolean DEFAULT false,
   pension_disability boolean DEFAULT false,
@@ -270,31 +263,23 @@ CREATE TABLE support_plans (
   pension_corporate boolean DEFAULT false,
   pension_other boolean DEFAULT false,
   pension_other_details text,
-  
-  -- 6. 生活支援サービス
   monitoring_secom boolean DEFAULT false,
   monitoring_secom_details text,
   monitoring_hello_light boolean DEFAULT false,
   monitoring_hello_light_details text,
-  
   support_shopping boolean DEFAULT false,
   support_bank_visit boolean DEFAULT false,
   support_cleaning boolean DEFAULT false,
   support_bulb_change boolean DEFAULT false,
   support_garbage_disposal boolean DEFAULT false,
-  
-  -- 7. 支援計画
   goals text,
   needs_financial text,
   needs_physical text,
   needs_mental text,
   needs_lifestyle text,
   needs_environment text,
-  
-  -- 8. 個別避難計画
   evacuation_plan_completed boolean DEFAULT false,
   evacuation_plan_other_details text,
-  
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -341,28 +326,4 @@ CREATE TRIGGER update_support_plans_updated_at
     FOR EACH ROW 
     EXECUTE FUNCTION update_updated_at_column();
 
--- 年齢自動計算関数
-CREATE OR REPLACE FUNCTION calculate_age(birth_year integer, birth_month integer, birth_day integer)
-RETURNS integer AS $$
-BEGIN
-    IF birth_year IS NULL OR birth_month IS NULL OR birth_day IS NULL THEN
-        RETURN NULL;
-    END IF;
-    
-    RETURN date_part('year', age(make_date(birth_year, birth_month, birth_day)));
-END;
-$$ language 'plpgsql';
-
--- 年齢自動更新トリガー
-CREATE OR REPLACE FUNCTION update_age_trigger()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.age = calculate_age(NEW.birth_year, NEW.birth_month, NEW.birth_day);
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-CREATE TRIGGER consultation_age_update 
-    BEFORE INSERT OR UPDATE ON consultations
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_age_trigger();
+-- ★★ 年齢自動計算・更新関連の関数とトリガーはすべて不要なため削除 ★★

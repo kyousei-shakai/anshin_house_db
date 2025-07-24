@@ -1,12 +1,41 @@
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
-// 👇 1. インポートを 'Database' 型に変更
 import { Database } from '@/types/database'
 
-// 👇 2. 新しい型定義から型エイリアスを作成
+// 型エイリアス
 type User = Database['public']['Tables']['users']['Row']
 type Consultation = Database['public']['Tables']['consultations']['Row']
 type SupportPlan = Database['public']['Tables']['support_plans']['Row']
+
+// ★★★ 修正箇所 ★★★
+// このファイル内で閉じたヘルパー関数ではなく、プロジェクト共通のユーティリティ関数をインポートして使用するのが理想ですが、
+// ひとまずこのファイル内で完結させる形で修正します。
+const calculateAgeFromDate = (birthDate: string | null): number | '' => {
+  if (!birthDate) return '';
+  try {
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  } catch {
+    return '';
+  }
+};
+
+const calculateAgeFromYMD = (year: number | null, month: number | null, day: number | null): number | '' => {
+    if (!year || !month || !day) return '';
+    try {
+        const birthDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        return calculateAgeFromDate(birthDateStr);
+    } catch {
+        return '';
+    }
+}
+
 
 // 利用者データをExcelにエクスポート
 export const exportUsersToExcel = (users: User[], filename: string = 'users.xlsx') => {
@@ -16,7 +45,7 @@ export const exportUsersToExcel = (users: User[], filename: string = 'users.xlsx
       '氏名': user.name,
       '生年月日': user.birth_date ? new Date(user.birth_date).toLocaleDateString('ja-JP') : '',
       '性別': user.gender === 'male' ? '男性' : user.gender === 'female' ? '女性' : user.gender === 'other' ? 'その他' : '',
-      '年齢': user.age ?? '',
+      '年齢': calculateAgeFromDate(user.birth_date), // ★ 修正
       '物件住所': user.property_address || '',
       '物件名': user.property_name || '',
       '部屋番号': user.room_number || '',
@@ -45,7 +74,7 @@ export const exportUsersToCSV = (users: User[], filename: string = 'users.csv') 
       '氏名': user.name,
       '生年月日': user.birth_date ? new Date(user.birth_date).toLocaleDateString('ja-JP') : '',
       '性別': user.gender === 'male' ? '男性' : user.gender === 'female' ? '女性' : user.gender === 'other' ? 'その他' : '',
-      '年齢': user.age ?? '',
+      '年齢': calculateAgeFromDate(user.birth_date), // ★ 修正
       '物件住所': user.property_address || '',
       '物件名': user.property_name || '',
       '部屋番号': user.room_number || '',
@@ -67,7 +96,6 @@ export const exportUsersToCSV = (users: User[], filename: string = 'users.csv') 
 export const exportConsultationsToExcel = (consultations: Consultation[], filename: string = 'consultations.xlsx') => {
   const worksheet = XLSX.utils.json_to_sheet(
     consultations.map(c => {
-      // 👇 3. フラットなデータから動的に配列を生成
       const consultation_route = [
         c.consultation_route_self && '本人', c.consultation_route_family && '家族', c.consultation_route_care_manager && 'ケアマネ',
         c.consultation_route_elderly_center && '支援センター（高齢者）', c.consultation_route_disability_center && '支援センター（障害者）',
@@ -91,7 +119,7 @@ export const exportConsultationsToExcel = (consultations: Consultation[], filena
         'ID': c.id,
         '相談日': new Date(c.consultation_date).toLocaleDateString('ja-JP'),
         '氏名': c.name || '匿名',
-        '年齢': c.age ?? '',
+        '年齢': calculateAgeFromYMD(c.birth_year, c.birth_month, c.birth_day), // ★ 修正
         '性別': c.gender === 'male' ? '男性' : c.gender === 'female' ? '女性' : c.gender === 'other' ? 'その他' : '',
         '相談ルート': consultation_route,
         '属性': attributes,
@@ -144,7 +172,7 @@ export const exportConsultationsToCSV = (consultations: Consultation[], filename
         'ID': c.id,
         '相談日': new Date(c.consultation_date).toLocaleDateString('ja-JP'),
         '氏名': c.name || '匿名',
-        '年齢': c.age ?? '',
+        '年齢': calculateAgeFromYMD(c.birth_year, c.birth_month, c.birth_day), // ★ 修正
         '性別': c.gender === 'male' ? '男性' : c.gender === 'female' ? '女性' : c.gender === 'other' ? 'その他' : '',
         '相談ルート': consultation_route,
         '属性': attributes,
@@ -191,7 +219,7 @@ export const exportSupportPlansToExcel = (plans: SupportPlan[], filename: string
       return {
         'ID': plan.id,
         '利用者名': plan.name,
-        '年齢': plan.age,
+        '年齢': calculateAgeFromDate(plan.birth_date), // ★ 修正
         '作成日': new Date(plan.creation_date).toLocaleDateString('ja-JP'),
         '担当スタッフ': plan.staff_name,
         '居住場所': plan.residence || '',
@@ -242,7 +270,7 @@ export const exportSupportPlansToCSV = (plans: SupportPlan[], filename: string =
       return {
         'ID': plan.id,
         '利用者名': plan.name,
-        '年齢': plan.age,
+        '年齢': calculateAgeFromDate(plan.birth_date), // ★ 修正
         '作成日': new Date(plan.creation_date).toLocaleDateString('ja-JP'),
         '担当スタッフ': plan.staff_name,
         '居住場所': plan.residence || '',
@@ -314,7 +342,7 @@ export const exportConsultationReport = (
       return {
         '相談日': new Date(consultation.consultation_date).toLocaleDateString('ja-JP'),
         '氏名': consultation.name || '匿名',
-        '年齢': consultation.age ?? '',
+        '年齢': calculateAgeFromYMD(consultation.birth_year, consultation.birth_month, consultation.birth_day), // ★ 修正
         '属性': attributes,
         '相談ルート': consultation_route,
         '相談内容': consultation.consultation_content || '',

@@ -3,10 +3,8 @@
 import React, { useState } from 'react'
 import { usersApi } from '@/lib/api'
 import { generateNewUID } from '@/utils/uid'
-// 👇 1. インポートを 'Database' 型に変更
 import { Database } from '@/types/database'
 
-// 👇 2. 新しい型定義から型エイリアスを作成
 type User = Database['public']['Tables']['users']['Row']
 type UserInsert = Database['public']['Tables']['users']['Insert']
 
@@ -17,12 +15,10 @@ interface NewUserModalProps {
 }
 
 const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  // 👇 3. フォームのstateの型を文字列とbooleanに限定 (DBの型とは別)
   const initialFormData = {
     name: '',
     birth_date: '',
     gender: '' as 'male' | 'female' | 'other' | '',
-    age: '',
     property_address: '',
     property_name: '',
     room_number: '',
@@ -68,13 +64,11 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSuccess 
 
       const newUID = await generateNewUID()
 
-      // 👇 4. フォームの文字列データを、DB保存用の正しい型(UserInsert)に変換
       const userData: UserInsert = {
         uid: newUID,
         name: formData.name.trim(),
         birth_date: formData.birth_date || null,
         gender: formData.gender || null,
-        age: formData.age ? parseInt(formData.age, 10) : null,
         property_address: formData.property_address.trim() || null,
         property_name: formData.property_name.trim() || null,
         room_number: formData.room_number.trim() || null,
@@ -103,12 +97,11 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSuccess 
         posthumous_affairs: formData.posthumous_affairs
       }
       
-      // 👇 5. `as any` を削除。`usersApi.create` は `UserInsert` 型を受け取るように修正済み
       const newUser = await usersApi.create(userData)
       onSuccess(newUser)
       onClose()
 
-      setFormData(initialFormData) // フォームをリセット
+      setFormData(initialFormData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました')
     } finally {
@@ -207,20 +200,6 @@ const NewUserModal: React.FC<NewUserModalProps> = ({ isOpen, onClose, onSuccess 
                   <option value="female">女性</option>
                   <option value="other">その他</option>
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  年齢
-                </label>
-                <input
-                  type="number"
-                  name="age"
-                  value={formData.age}
-                  onChange={handleChange}
-                  min="0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
               </div>
             </div>
           </div>

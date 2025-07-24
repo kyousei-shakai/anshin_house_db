@@ -1,13 +1,12 @@
-// src/components/ConsultationDetail.tsx
-
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link' // Linkコンポーネントをインポート
+import Link from 'next/link'
 import { consultationsApi, usersApi } from '@/lib/api'
 import { generateNewUID } from '@/utils/uid'
 import { Database } from '@/types/database'
+import { calculateAge } from '@/utils/date'
 
 // 型エイリアス
 type Consultation = Database['public']['Tables']['consultations']['Row']
@@ -22,7 +21,21 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
   const [consultation, setConsultation] = useState<Consultation | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false) // 削除処理中の状態を追加
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const calculatedAge = useMemo(() => {
+    if (consultation?.birth_year && consultation?.birth_month && consultation?.birth_day) {
+      try {
+        const birthDate = `${consultation.birth_year}-${String(consultation.birth_month).padStart(2, '0')}-${String(consultation.birth_day).padStart(2, '0')}`;
+        if (!isNaN(new Date(birthDate).getTime())) {
+          return calculateAge(birthDate);
+        }
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }, [consultation]);
 
   useEffect(() => {
     const fetchConsultation = async () => {
@@ -53,7 +66,7 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
     try {
       await consultationsApi.delete(consultationId)
       alert('相談履歴を削除しました。')
-      router.push('/consultations') // 相談履歴一覧ページにリダイレクト
+      router.push('/consultations')
       router.refresh()
     } catch (err) {
       console.error('相談履歴の削除エラー:', err)
@@ -81,7 +94,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
           ? `${consultation.birth_year}-${String(consultation.birth_month).padStart(2, '0')}-${String(consultation.birth_day).padStart(2, '0')}`
           : undefined,
         gender: consultation.gender,
-        age: consultation.age,
         property_address: consultation.address,
         resident_contact: consultation.phone_mobile || consultation.phone_home,
         line_available: false,
@@ -157,7 +169,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
 
   return (
     <div className="bg-white rounded-lg shadow-md">
-      {/* ヘッダー */}
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -205,33 +216,27 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
       </div>
 
       <div className="p-6 space-y-8">
-        {/* 1. 基本情報 */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">1. 基本情報</h2>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">相談日</label>
               <div className="text-gray-800">{formatDate(consultation.consultation_date)}</div>
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">お名前</label>
               <div className="text-gray-800">{consultation.name ? `${consultation.name}様` : '匿名'}</div>
             </div>
-            
             {consultation.furigana && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">フリガナ</label>
                 <div className="text-gray-800">{consultation.furigana}</div>
               </div>
             )}
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">性別</label>
               <div className="text-gray-800">{getGenderLabel(consultation.gender)}</div>
             </div>
-            
             {(consultation.birth_year || consultation.birth_month || consultation.birth_day) && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">生年月日</label>
@@ -239,11 +244,10 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
                   {consultation.birth_year && `${consultation.birth_year}年`}
                   {consultation.birth_month && `${consultation.birth_month}月`}
                   {consultation.birth_day && `${consultation.birth_day}日`}
-                  {consultation.age != null && ` (満${consultation.age}歳)`}
+                  {calculatedAge != null && ` (満${calculatedAge}歳)`}
                 </div>
               </div>
             )}
-            
             {consultation.address && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">住所</label>
@@ -253,7 +257,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
                 </div>
               </div>
             )}
-            
             {(consultation.phone_home || consultation.phone_mobile) && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">連絡先</label>
@@ -264,8 +267,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               </div>
             )}
           </div>
-          
-          {/* 相談ルート */}
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">相談ルート</label>
             <div className="flex flex-wrap gap-2">
@@ -278,8 +279,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               {consultation.consultation_route_other && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">その他{consultation.consultation_route_other_text && `: ${consultation.consultation_route_other_text}`}</span>}
             </div>
           </div>
-          
-          {/* 属性 */}
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">属性</label>
             <div className="flex flex-wrap gap-2">
@@ -308,8 +307,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               {consultation.attribute_welfare && <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">生保</span>}
             </div>
           </div>
-          
-          {/* 世帯構成 */}
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">世帯構成</label>
             <div className="flex flex-wrap gap-2">
@@ -324,10 +321,8 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
           </div>
         </div>
 
-        {/* 2. 身体状況・利用サービス */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">2. 身体状況・利用サービス</h2>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {consultation.physical_condition && (
               <div>
@@ -335,7 +330,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
                 <div className="text-gray-800">{getPhysicalConditionLabel(consultation.physical_condition)}</div>
               </div>
             )}
-            
             {consultation.medical_history && (
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">既往症及び病歴</label>
@@ -343,8 +337,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               </div>
             )}
           </div>
-          
-          {/* 手帳 */}
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">手帳</label>
             <div className="space-y-1">
@@ -368,8 +360,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               )}
             </div>
           </div>
-          
-          {/* 利用中のサービス */}
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">利用中の支援サービス</label>
             <div className="flex flex-wrap gap-2">
@@ -381,7 +371,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               {consultation.service_other && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">その他{consultation.service_other_text && `: ${consultation.service_other_text}`}</span>}
             </div>
           </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             {consultation.service_provider && (
               <div>
@@ -389,14 +378,12 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
                 <div className="text-gray-800">{consultation.service_provider}</div>
               </div>
             )}
-            
             {consultation.care_support_office && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">居宅介護支援事業所</label>
                 <div className="text-gray-800">{consultation.care_support_office}</div>
               </div>
             )}
-            
             {consultation.care_manager && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">担当</label>
@@ -406,11 +393,9 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
           </div>
         </div>
 
-        {/* 3. 医療・収入 */}
         {(consultation.medical_institution_name || consultation.income_salary || consultation.welfare_recipient) && (
           <div className="bg-gray-50 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">3. 医療・収入</h2>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {consultation.medical_institution_name && (
                 <div>
@@ -421,7 +406,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
                   </div>
                 </div>
               )}
-              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">収入</label>
                 <div className="space-y-1 text-gray-800">
@@ -441,11 +425,9 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
           </div>
         )}
 
-        {/* 4. ADL/IADL */}
         {(consultation.dementia || consultation.hospital_support_required !== undefined || consultation.other_notes) && (
           <div className="bg-gray-50 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">4. ADL/IADL</h2>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {consultation.dementia && (
                 <div>
@@ -456,14 +438,12 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
                   </div>
                 </div>
               )}
-              
               {consultation.hospital_support_required !== undefined && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">通院支援</label>
                   <div className="text-gray-800">{consultation.hospital_support_required ? '要' : '不要'}</div>
                 </div>
               )}
-              
               {consultation.medication_management_needed !== undefined && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">内服管理の必要性</label>
@@ -471,7 +451,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
                 </div>
               )}
             </div>
-            
             {consultation.other_notes && (
               <div className="mt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">その他特記事項</label>
@@ -485,10 +464,8 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
           </div>
         )}
 
-        {/* 5. 相談内容等 */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">5. 相談内容等</h2>
-          
           {consultation.consultation_content && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">相談内容（困りごと、何が大変でどうしたいか、等）</label>
@@ -499,7 +476,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               </div>
             </div>
           )}
-          
           {consultation.relocation_reason && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">転居理由</label>
@@ -510,8 +486,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               </div>
             </div>
           )}
-          
-          {/* 緊急連絡先 */}
           {(consultation.emergency_contact_name || consultation.emergency_contact_relationship) && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">緊急連絡先</label>
@@ -523,7 +497,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
                       {consultation.emergency_contact_relationship && ` (${consultation.emergency_contact_relationship})`}
                     </div>
                   )}
-                  
                   {(consultation.emergency_contact_postal_code || consultation.emergency_contact_address) && (
                     <div>
                       <span className="font-medium">住所:</span> 
@@ -531,7 +504,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
                       {consultation.emergency_contact_address}
                     </div>
                   )}
-                  
                   {(consultation.emergency_contact_phone_home || consultation.emergency_contact_phone_mobile) && (
                     <div>
                       <span className="font-medium">連絡先:</span>
@@ -539,7 +511,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
                       {consultation.emergency_contact_phone_mobile && ` 携帯: ${consultation.emergency_contact_phone_mobile}`}
                     </div>
                   )}
-                  
                   {consultation.emergency_contact_email && (
                     <div>
                       <span className="font-medium">Email:</span> {consultation.emergency_contact_email}
@@ -549,7 +520,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               </div>
             </div>
           )}
-          
           {consultation.consultation_result && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">相談結果</label>
@@ -560,7 +530,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               </div>
             </div>
           )}
-          
           {consultation.next_appointment_scheduled !== undefined && (
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">次回予定</label>
@@ -582,7 +551,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
           )}
         </div>
 
-        {/* システム情報 */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">システム情報</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -590,12 +558,10 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               <label className="block text-sm font-medium text-gray-700 mb-1">作成日時</label>
               <div className="text-gray-800">{formatDate(consultation.created_at)}</div>
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">最終更新日時</label>
               <div className="text-gray-800">{formatDate(consultation.updated_at)}</div>
             </div>
-            
             {consultation.user_id && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">利用者ID</label>
