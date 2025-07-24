@@ -18,6 +18,7 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
   const [supportPlan, setSupportPlan] = useState<SupportPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const fetchSupportPlan = async () => {
@@ -49,7 +50,31 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
     return null
   }, [supportPlan])
 
-  const formatDate = (dateString: string) => {
+  const handleDelete = async () => {
+    if (!supportPlan) return;
+
+    const isConfirmed = window.confirm(
+      `本当にこの支援計画を削除しますか？\n（氏名: ${supportPlan.name}, 作成日: ${formatDate(supportPlan.creation_date)}）\nこの操作は元に戻せません。`
+    );
+    if (!isConfirmed) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await supportPlansApi.delete(supportPlanId);
+      alert('支援計画を削除しました。');
+      router.push('/support-plans'); // 支援計画一覧ページへ遷移
+      router.refresh();
+    } catch (err) {
+      console.error('支援計画の削除エラー:', err);
+      alert('支援計画の削除に失敗しました。');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return ''
     return new Date(dateString).toLocaleDateString('ja-JP')
   }
@@ -119,7 +144,7 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
   return (
     <div className="bg-white rounded-lg shadow-md">
       <div className="px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
               支援計画 - {supportPlan.name}
@@ -128,12 +153,26 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
               作成日: {formatDate(supportPlan.creation_date)} | 担当: {supportPlan.staff_name}
             </p>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <button
               onClick={() => router.push(`/support-plans/${supportPlan.id}/edit`)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="inline-flex items-center justify-center gap-x-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
+              <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
+              </svg>
               編集
+            </button>
+            <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                type="button"
+                className="inline-flex items-center justify-center gap-x-2 rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50"
+            >
+                <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.58.22-2.365.468a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.576l.84-10.518.149.022a.75.75 0 10.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
+                </svg>
+                {isDeleting ? '削除中...' : '削除'}
             </button>
           </div>
         </div>
