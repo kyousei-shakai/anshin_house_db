@@ -16,6 +16,32 @@ interface ConsultationDetailProps {
   consultationId: string
 }
 
+// ★★ 視認性向上のための小さなコンポーネントを追加 ★★
+const DetailItem: React.FC<{ label: string; children: React.ReactNode; fullWidth?: boolean }> = ({ label, children, fullWidth = false }) => {
+  if (!children) return null; // 子要素がなければ何も表示しない
+
+  return (
+    <div className={`py-4 sm:py-5 ${fullWidth ? 'sm:col-span-2' : ''}`}>
+      <dt className="text-sm font-medium text-gray-600">{label}</dt>
+      <dd className="mt-1 text-base font-medium text-gray-900">{children}</dd>
+    </div>
+  );
+};
+
+const DetailSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+    <div className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+        <div className="px-4 py-5 sm:px-6">
+            <h2 className="text-lg font-semibold leading-6 text-gray-900">{title}</h2>
+        </div>
+        <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
+            <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
+                {children}
+            </dl>
+        </div>
+    </div>
+);
+
+
 const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId }) => {
   const router = useRouter()
   const [consultation, setConsultation] = useState<Consultation | null>(null)
@@ -77,8 +103,10 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
   }
 
   const formatDate = (dateString: string | null | undefined): string => {
-    if (!dateString) return ''
-    return new Date(dateString).toLocaleDateString('ja-JP')
+    if (!dateString) return '未設定'
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '無効な日付';
+    return date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
   }
 
   const handleRegisterAsUser = async () => {
@@ -139,7 +167,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
     }
   }
 
-  // ★★ ラベル表示用のヘルパー関数群を追加 ★★
   const getAdlStatusLabel = (independent: boolean | null, partial: boolean | null, full: boolean | null, other: boolean | null, otherText: string | null): string => {
     if (independent) return '自立';
     if (partial) return '一部介助';
@@ -167,468 +194,232 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600"></div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <div className="text-red-500 text-sm">
-          エラーが発生しました: {error}
-        </div>
+      <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
+        <p className="font-bold">エラー</p>
+        <p>データの読み込みに失敗しました: {error}</p>
       </div>
     )
   }
 
   if (!consultation) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <div className="text-yellow-700 text-sm">
-          相談が見つかりません
-        </div>
+      <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
+        <p className="font-bold">情報</p>
+        <p>指定された相談データは見つかりませんでした。</p>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              相談詳細 - {formatDate(consultation.consultation_date)}
-            </h1>
-            <p className="text-sm text-gray-600 mt-1">
-              ID: {consultation.id}
-            </p>
+    <div className="space-y-10">
+      {/* ★★ ヘッダー部分のデザインを修正 ★★ */}
+      <div className="lg:flex lg:items-center lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+            相談詳細
+          </h1>
+          <div className="mt-1 flex flex-col sm:mt-0 sm:flex-row sm:flex-wrap sm:space-x-6">
+            <div className="mt-2 flex items-center text-sm text-gray-500">
+              <svg className="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.75 2a.75.75 0 01.75.75v1.5h6.5v-1.5a.75.75 0 011.5 0v1.5h.75a3.25 3.25 0 013.25 3.25v6.5a3.25 3.25 0 01-3.25 3.25H4.75a3.25 3.25 0 01-3.25-3.25v-6.5A3.25 3.25 0 014.75 4h.75V2.75A.75.75 0 015.75 2zM4 9.75a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75a.75.75 0 01-.75-.75z" clipRule="evenodd" /></svg>
+              相談日: {formatDate(consultation.consultation_date)}
+            </div>
+            <div className="mt-2 flex items-center text-sm text-gray-500">
+              <svg className="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.095a1.23 1.23 0 00.41-1.412A9.957 9.957 0 0010 12c-2.31 0-4.438.784-6.131 2.095z" /></svg>
+              相談者: {consultation.name || '匿名'}
+            </div>
           </div>
-          <div className="flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        </div>
+        <div className="mt-5 flex lg:ml-4 lg:mt-0">
+          <span className="sm:ml-3">
             <Link
               href={`/consultations/${consultation.id}/edit`}
-              className="inline-flex items-center justify-center gap-x-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
             >
-              <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
-              </svg>
+              <svg className="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" /></svg>
               編集
             </Link>
-            {!consultation.user_id && (
-              <button 
-                onClick={handleRegisterAsUser}
-                className="inline-flex items-center justify-center gap-x-2 rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-              >
-                <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path d="M11 5a3 3 0 11-6 0 3 3 0 016 0zM2.047 14.5a.75.75 0 001.06 1.061l4.94-4.939a.75.75 0 00-1.06-1.06l-4.94 4.938zM17.953 14.5a.75.75 0 01-1.06 1.061l-4.94-4.939a.75.75 0 111.06-1.06l4.94 4.938z" />
-                </svg>
-                利用者として登録
+          </span>
+          {!consultation.user_id && (
+            <span className="ml-3">
+              <button onClick={handleRegisterAsUser} type="button" className="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
+                <svg className="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M8 8a3 3 0 100-6 3 3 0 000 6zM12 8a5 5 0 11-10 0 5 5 0 0110 0zM12 15a4 4 0 01-4 4H4a4 4 0 01-4-4v-1.382a3 3 0 01.99-2.121l4-4a3 3 0 014.242 0l4 4A3 3 0 0116 13.618V15z" /></svg>
+                利用者登録
               </button>
-            )}
-            <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                type="button"
-                className="inline-flex items-center justify-center gap-x-2 rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50"
-            >
-                <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                    <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.58.22-2.365.468a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.576l.84-10.518.149.022a.75.75 0 10.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" />
-                </svg>
-                {isDeleting ? '削除中...' : '削除'}
+            </span>
+          )}
+          <span className="ml-3">
+            <button onClick={handleDelete} disabled={isDeleting} type="button" className="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 disabled:opacity-50">
+              <svg className="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.58.22-2.365.468a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.576l.84-10.518.149.022a.75.75 0 10.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" /></svg>
+              {isDeleting ? '削除中...' : '削除'}
             </button>
-          </div>
+          </span>
         </div>
       </div>
-
-      <div className="p-6 space-y-8">
-        {/* 1. 基本情報 */}
-        <div className="bg-gray-50 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">1. 基本情報</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">相談日</label>
-              <div className="text-gray-800">{formatDate(consultation.consultation_date)}</div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">お名前</label>
-              <div className="text-gray-800">{consultation.name ? `${consultation.name}様` : '匿名'}</div>
-            </div>
-            {consultation.furigana && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">フリガナ</label>
-                <div className="text-gray-800">{consultation.furigana}</div>
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">性別</label>
-              <div className="text-gray-800">{getGenderLabel(consultation.gender)}</div>
-            </div>
-            {(consultation.birth_year || consultation.birth_month || consultation.birth_day) && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">生年月日</label>
-                <div className="text-gray-800">
-                  {consultation.birth_year && `${consultation.birth_year}年`}
-                  {consultation.birth_month && `${consultation.birth_month}月`}
-                  {consultation.birth_day && `${consultation.birth_day}日`}
-                  {calculatedAge != null && ` (満${calculatedAge}歳)`}
-                </div>
-              </div>
-            )}
-            {consultation.address && (
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">住所</label>
-                <div className="text-gray-800">
-                  {consultation.postal_code && `〒${consultation.postal_code} `}
-                  {consultation.address}
-                </div>
-              </div>
-            )}
-            {(consultation.phone_home || consultation.phone_mobile) && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">連絡先</label>
-                <div className="text-gray-800">
-                  {consultation.phone_home && <div>自宅: {consultation.phone_home}</div>}
-                  {consultation.phone_mobile && <div>携帯: {consultation.phone_mobile}</div>}
-                </div>
-              </div>
-            )}
+      
+      {/* ★★ 各セクションを DetailSection と DetailItem で再構築 ★★ */}
+      <DetailSection title="1. 基本情報">
+        <DetailItem label="相談日">{formatDate(consultation.consultation_date)}</DetailItem>
+        <DetailItem label="お名前">{consultation.name ? `${consultation.name}様` : '匿名'}</DetailItem>
+        <DetailItem label="フリガナ">{consultation.furigana}</DetailItem>
+        <DetailItem label="性別">{getGenderLabel(consultation.gender)}</DetailItem>
+        <DetailItem label="生年月日">
+          {consultation.birth_year && `${consultation.birth_year}年`}
+          {consultation.birth_month && ` ${consultation.birth_month}月`}
+          {consultation.birth_day && ` ${consultation.birth_day}日`}
+          {calculatedAge != null && ` (満${calculatedAge}歳)`}
+        </DetailItem>
+        <DetailItem label="住所">
+          {consultation.postal_code && `〒${consultation.postal_code} `}
+          {consultation.address}
+        </DetailItem>
+        <DetailItem label="連絡先">
+          {consultation.phone_home && <div>自宅: {consultation.phone_home}</div>}
+          {consultation.phone_mobile && <div>携帯: {consultation.phone_mobile}</div>}
+        </DetailItem>
+        <DetailItem label="相談ルート" fullWidth>
+          <div className="flex flex-wrap gap-2">
+            {consultation.consultation_route_self && <span className="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-xs font-medium">本人</span>}
+            {consultation.consultation_route_family && <span className="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-xs font-medium">家族</span>}
+            {consultation.consultation_route_care_manager && <span className="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-xs font-medium">ケアマネ</span>}
+            {consultation.consultation_route_elderly_center && <span className="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-xs font-medium">支援センター（高齢者）</span>}
+            {consultation.consultation_route_disability_center && <span className="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-xs font-medium">支援センター（障害者）</span>}
+            {consultation.consultation_route_government && <span className="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-xs font-medium">行政機関{consultation.consultation_route_government_other && `: ${consultation.consultation_route_government_other}`}</span>}
+            {consultation.consultation_route_other && <span className="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-xs font-medium">その他{consultation.consultation_route_other_text && `: ${consultation.consultation_route_other_text}`}</span>}
           </div>
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">相談ルート</label>
-            <div className="flex flex-wrap gap-2">
-              {consultation.consultation_route_self && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">本人</span>}
-              {consultation.consultation_route_family && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">家族</span>}
-              {consultation.consultation_route_care_manager && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">ケアマネ</span>}
-              {consultation.consultation_route_elderly_center && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">支援センター（高齢者）</span>}
-              {consultation.consultation_route_disability_center && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">支援センター（障害者）</span>}
-              {consultation.consultation_route_government && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">行政機関{consultation.consultation_route_government_other && `: ${consultation.consultation_route_government_other}`}</span>}
-              {consultation.consultation_route_other && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">その他{consultation.consultation_route_other_text && `: ${consultation.consultation_route_other_text}`}</span>}
-            </div>
+        </DetailItem>
+        <DetailItem label="属性" fullWidth>
+          <div className="flex flex-wrap gap-2">
+            {consultation.attribute_elderly && <span className="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-medium">高齢</span>}
+            {consultation.attribute_disability && <span className="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-medium">障がい {[consultation.attribute_disability_mental && '精神', consultation.attribute_disability_physical && '身体', consultation.attribute_disability_intellectual && '知的'].filter(Boolean).join('・')}</span>}
+            {consultation.attribute_childcare && <span className="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-medium">子育て</span>}
+            {consultation.attribute_single_parent && <span className="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-medium">ひとり親</span>}
+            {consultation.attribute_dv && <span className="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-medium">DV</span>}
+            {consultation.attribute_foreigner && <span className="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-medium">外国人</span>}
+            {consultation.attribute_poverty && <span className="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-medium">生活困窮</span>}
+            {consultation.attribute_low_income && <span className="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-medium">低所得者</span>}
+            {consultation.attribute_lgbt && <span className="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-medium">LGBT</span>}
+            {consultation.attribute_welfare && <span className="bg-green-100 text-green-800 px-2.5 py-1 rounded-full text-xs font-medium">生保</span>}
           </div>
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">属性</label>
-            <div className="flex flex-wrap gap-2">
-              {consultation.attribute_elderly && <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">高齢</span>}
-              {consultation.attribute_disability && (
-                <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
-                  障がい
-                  {(consultation.attribute_disability_mental || consultation.attribute_disability_physical || consultation.attribute_disability_intellectual) && (
-                    <span className="ml-1">
-                      ({[
-                        consultation.attribute_disability_mental && '精神',
-                        consultation.attribute_disability_physical && '身体',
-                        consultation.attribute_disability_intellectual && '知的'
-                      ].filter(Boolean).join('・')})
-                    </span>
-                  )}
-                </span>
-              )}
-              {consultation.attribute_childcare && <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">子育て</span>}
-              {consultation.attribute_single_parent && <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">ひとり親</span>}
-              {consultation.attribute_dv && <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">DV</span>}
-              {consultation.attribute_foreigner && <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">外国人</span>}
-              {consultation.attribute_poverty && <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">生活困窮</span>}
-              {consultation.attribute_low_income && <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">低所得者</span>}
-              {consultation.attribute_lgbt && <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">LGBT</span>}
-              {consultation.attribute_welfare && <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">生保</span>}
-            </div>
+        </DetailItem>
+        <DetailItem label="世帯構成" fullWidth>
+          <div className="flex flex-wrap gap-2">
+            {consultation.household_single && <span className="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-xs font-medium">独居</span>}
+            {consultation.household_couple && <span className="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-xs font-medium">夫婦</span>}
+            {consultation.household_common_law && <span className="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-xs font-medium">内縁夫婦</span>}
+            {consultation.household_parent_child && <span className="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-xs font-medium">親子</span>}
+            {consultation.household_siblings && <span className="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-xs font-medium">兄弟姉妹</span>}
+            {consultation.household_acquaintance && <span className="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-xs font-medium">知人</span>}
+            {consultation.household_other && <span className="bg-purple-100 text-purple-800 px-2.5 py-1 rounded-full text-xs font-medium">その他{consultation.household_other_text && `: ${consultation.household_other_text}`}</span>}
           </div>
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">世帯構成</label>
-            <div className="flex flex-wrap gap-2">
-              {consultation.household_single && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">独居</span>}
-              {consultation.household_couple && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">夫婦</span>}
-              {consultation.household_common_law && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">内縁夫婦</span>}
-              {consultation.household_parent_child && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">親子</span>}
-              {consultation.household_siblings && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">兄弟姉妹</span>}
-              {consultation.household_acquaintance && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">知人</span>}
-              {consultation.household_other && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">その他{consultation.household_other_text && `: ${consultation.household_other_text}`}</span>}
-            </div>
+        </DetailItem>
+      </DetailSection>
+
+      <DetailSection title="2. 身体状況・利用サービス">
+        <DetailItem label="身体状況">{getPhysicalConditionLabel(consultation.physical_condition)}</DetailItem>
+        <DetailItem label="手帳" fullWidth>
+          <div className="space-y-1">
+            {consultation.mental_disability_certificate && <div>精神障害者保健福祉手帳 {consultation.mental_disability_level && ` (${consultation.mental_disability_level})`}</div>}
+            {consultation.physical_disability_certificate && <div>身体障害者手帳 {consultation.physical_disability_level && ` (${consultation.physical_disability_level})`}</div>}
+            {consultation.therapy_certificate && <div>療育手帳 {consultation.therapy_level && ` (${consultation.therapy_level})`}</div>}
+            {!consultation.mental_disability_certificate && !consultation.physical_disability_certificate && !consultation.therapy_certificate && <div className="text-gray-500">なし</div>}
           </div>
-        </div>
-
-        {/* 2. 身体状況・利用サービス */}
-        <div className="bg-gray-50 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">2. 身体状況・利用サービス</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">身体状況</label>
-              <div className="text-gray-800">{getPhysicalConditionLabel(consultation.physical_condition)}</div>
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">手帳</label>
-              <div className="space-y-1">
-                {consultation.mental_disability_certificate || consultation.physical_disability_certificate || consultation.therapy_certificate ? (
-                  <>
-                    {consultation.mental_disability_certificate && (
-                      <div className="text-gray-800">
-                        精神障害者保健福祉手帳
-                        {consultation.mental_disability_level && ` (${consultation.mental_disability_level})`}
-                      </div>
-                    )}
-                    {consultation.physical_disability_certificate && (
-                      <div className="text-gray-800">
-                        身体障害者手帳
-                        {consultation.physical_disability_level && ` (${consultation.physical_disability_level})`}
-                      </div>
-                    )}
-                    {consultation.therapy_certificate && (
-                      <div className="text-gray-800">
-                        療育手帳
-                        {consultation.therapy_level && ` (${consultation.therapy_level})`}
-                      </div>
-                    )}
-                  </>
-                ) : <div className="text-gray-800">なし</div> }
-              </div>
-            </div>
-            <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">既往症及び病歴</label>
-                <div className="text-gray-800 whitespace-pre-wrap">{consultation.medical_history || '記載なし'}</div>
-            </div>
+        </DetailItem>
+        <DetailItem label="利用中の支援サービス" fullWidth>
+          <div className="flex flex-wrap gap-2">
+            {consultation.service_day_service && <span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-medium">デイサービス</span>}
+            {consultation.service_visiting_nurse && <span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-medium">訪問看護</span>}
+            {consultation.service_visiting_care && <span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-medium">訪問介護</span>}
+            {consultation.service_home_medical && <span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-medium">在宅診療</span>}
+            {consultation.service_short_stay && <span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-medium">短期入所施設</span>}
+            {consultation.service_other && <span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-xs font-medium">その他{consultation.service_other_text && `: ${consultation.service_other_text}`}</span>}
           </div>
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">利用中の支援サービス</label>
-            <div className="flex flex-wrap gap-2">
-              {consultation.service_day_service && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">デイサービス</span>}
-              {consultation.service_visiting_nurse && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">訪問看護</span>}
-              {consultation.service_visiting_care && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">訪問介護</span>}
-              {consultation.service_home_medical && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">在宅診療</span>}
-              {consultation.service_short_stay && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">短期入所施設</span>}
-              {consultation.service_other && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">その他{consultation.service_other_text && `: ${consultation.service_other_text}`}</span>}
-            </div>
+        </DetailItem>
+        <DetailItem label="サービス提供事業所">{consultation.service_provider || '未設定'}</DetailItem>
+        <DetailItem label="居宅介護支援事業所">{consultation.care_support_office || '未設定'}</DetailItem>
+        <DetailItem label="担当ケアマネージャー">{consultation.care_manager || '未設定'}</DetailItem>
+        <DetailItem label="既往症及び病歴" fullWidth><div className="whitespace-pre-wrap">{consultation.medical_history || '記載なし'}</div></DetailItem>
+      </DetailSection>
+
+      <DetailSection title="3. 医療・収入">
+        <DetailItem label="かかりつけ医療機関">
+            {consultation.medical_institution_name || '未設定'}
+            {consultation.medical_institution_staff && ` (担当: ${consultation.medical_institution_staff})`}
+        </DetailItem>
+        <DetailItem label="収入">
+          <div className="space-y-1">
+            {consultation.income_salary && <div>給与: {Number(consultation.income_salary).toLocaleString()}円</div>}
+            {consultation.income_injury_allowance && <div>傷病手当: {Number(consultation.income_injury_allowance).toLocaleString()}円</div>}
+            {consultation.income_pension && <div>年金振込額: {Number(consultation.income_pension).toLocaleString()}円</div>}
+            {consultation.welfare_recipient && <div>生活保護受給 {consultation.welfare_staff && ` (担当: ${consultation.welfare_staff})`}</div>}
+            {consultation.savings && <div>預金: {Number(consultation.savings).toLocaleString()}円</div>}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">サービス提供事業所</label>
-              <div className="text-gray-800">{consultation.service_provider || '未設定'}</div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">居宅介護支援事業所</label>
-              <div className="text-gray-800">{consultation.care_support_office || '未設定'}</div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">担当</label>
-              <div className="text-gray-800">{consultation.care_manager || '未設定'}</div>
-            </div>
-          </div>
-        </div>
+        </DetailItem>
+      </DetailSection>
 
-        {/* 3. 医療・収入 */}
-        <div className="bg-gray-50 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">3. 医療・収入</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">かかりつけ医療機関</label>
-              <div className="text-gray-800">
-                {consultation.medical_institution_name || '未設定'}
-                {consultation.medical_institution_staff && ` (担当: ${consultation.medical_institution_staff})`}
-              </div>
+      <DetailSection title="4. ADL/IADL">
+        <DetailItem label="認知症">
+            {consultation.dementia || '未設定'}
+            {consultation.dementia_hospital && ` (病院: ${consultation.dementia_hospital})`}
+        </DetailItem>
+        <DetailItem label="通院支援">{consultation.hospital_support_required ? '要' : '不要'}</DetailItem>
+        <DetailItem label="内服管理の必要性">{consultation.medication_management_needed ? '有' : '無'}</DetailItem>
+        <DetailItem label="移動">{getAdlStatusLabel(consultation.mobility_independent, consultation.mobility_partial_assist, consultation.mobility_full_assist, consultation.mobility_other, consultation.mobility_other_text)}</DetailItem>
+        <DetailItem label="移動補助具・福祉用具">{consultation.mobility_aids || '未設定'}</DetailItem>
+        <DetailItem label="食事">{getAdlStatusLabel(consultation.eating_independent, consultation.eating_partial_assist, consultation.eating_full_assist, consultation.eating_other, consultation.eating_other_text)}</DetailItem>
+        <DetailItem label="買物">{getBinaryStatusLabel(consultation.shopping_possible, consultation.shopping_support_needed, '可', '支援必要', consultation.shopping_support_text)}</DetailItem>
+        <DetailItem label="ゴミ出し">{getBinaryStatusLabel(consultation.garbage_disposal_independent, consultation.garbage_disposal_support_needed, '自立', '支援必要', consultation.garbage_disposal_support_text)}</DetailItem>
+        <DetailItem label="排泄">{getAdlStatusLabel(consultation.excretion_independent, consultation.excretion_partial_assist, consultation.excretion_full_assist, consultation.excretion_other, consultation.excretion_other_text)}</DetailItem>
+        <DetailItem label="2階への移動">{consultation.second_floor_possible === true ? '可' : consultation.second_floor_possible === false ? '不可' : '未設定'}</DetailItem>
+        <DetailItem label="入浴">{getAdlStatusLabel(consultation.bathing_independent, consultation.bathing_partial_assist, consultation.bathing_full_assist, consultation.bathing_other, consultation.bathing_other_text)}</DetailItem>
+        <DetailItem label="金銭管理支援者">{consultation.money_management_supporter || '未設定'}</DetailItem>
+        <DetailItem label="代理納付サービスの利用">{consultation.proxy_payment === true ? '有' : consultation.proxy_payment === false ? '無' : '未設定'}</DetailItem>
+        <DetailItem label="家賃納入方法">{getRentPaymentMethodLabel(consultation.rent_payment_method)}</DetailItem>
+        <DetailItem label="その他特記事項" fullWidth><div className="whitespace-pre-wrap">{consultation.other_notes || '記載なし'}</div></DetailItem>
+      </DetailSection>
+
+      <DetailSection title="5. 相談内容等">
+        <DetailItem label="相談内容（困りごと、何が大変でどうしたいか、等）" fullWidth>
+            <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">{consultation.consultation_content || '記載なし'}</div>
+        </DetailItem>
+        <DetailItem label="転居理由" fullWidth>
+            <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">{consultation.relocation_reason || '記載なし'}</div>
+        </DetailItem>
+        <DetailItem label="緊急連絡先" fullWidth>
+            <div className="space-y-2">
+                <div><span className="font-medium">氏名:</span> {consultation.emergency_contact_name || '未設定'} {consultation.emergency_contact_relationship && `(${consultation.emergency_contact_relationship})`}</div>
+                <div><span className="font-medium">住所:</span> {consultation.emergency_contact_postal_code && `〒${consultation.emergency_contact_postal_code} `}{consultation.emergency_contact_address || '未設定'}</div>
+                <div><span className="font-medium">連絡先:</span> {consultation.emergency_contact_phone_home && `自宅: ${consultation.emergency_contact_phone_home}`}{consultation.emergency_contact_phone_mobile && ` 携帯: ${consultation.emergency_contact_phone_mobile}`}</div>
+                <div><span className="font-medium">Email:</span> {consultation.emergency_contact_email || '未設定'}</div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">収入</label>
-              <div className="space-y-1 text-gray-800">
-                {consultation.income_salary && <div>給与: {Number(consultation.income_salary).toLocaleString()}円</div>}
-                {consultation.income_injury_allowance && <div>傷病手当: {Number(consultation.income_injury_allowance).toLocaleString()}円</div>}
-                {consultation.income_pension && <div>年金振込額: {Number(consultation.income_pension).toLocaleString()}円</div>}
-                {consultation.welfare_recipient && (
-                  <div>
-                    生活保護受給
-                    {consultation.welfare_staff && ` (担当: ${consultation.welfare_staff})`}
-                  </div>
-                )}
-                {consultation.savings && <div>預金: {Number(consultation.savings).toLocaleString()}円</div>}
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* 4. ADL/IADL (★★ 修正 ★★) */}
-        <div className="bg-gray-50 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">4. ADL/IADL</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6">
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">認知症</label>
-                  <div className="text-gray-800">
-                    {consultation.dementia || '未設定'}
-                    {consultation.dementia_hospital && ` (病院: ${consultation.dementia_hospital})`}
-                  </div>
-              </div>
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">通院支援</label>
-                  <div className="text-gray-800">{consultation.hospital_support_required ? '要' : '不要'}</div>
-              </div>
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">内服管理の必要性</label>
-                  <div className="text-gray-800">{consultation.medication_management_needed ? '有' : '無'}</div>
-              </div>
+        </DetailItem>
+        <DetailItem label="相談結果" fullWidth>
+            <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">{consultation.consultation_result || '記載なし'}</div>
+        </DetailItem>
+        <DetailItem label="次回予定" fullWidth>
+          {consultation.next_appointment_scheduled ? (
+            <div>あり{consultation.next_appointment_details && <div className="mt-1 text-sm text-gray-600">詳細: {consultation.next_appointment_details}</div>}</div>
+          ) : 'なし'}
+        </DetailItem>
+      </DetailSection>
 
-              {/* ★★ ここからが追加・修正項目の表示 ★★ */}
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">移動</label>
-                  <div className="text-gray-800">{getAdlStatusLabel(consultation.mobility_independent, consultation.mobility_partial_assist, consultation.mobility_full_assist, consultation.mobility_other, consultation.mobility_other_text)}</div>
-              </div>
-
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">移動補助具・福祉用具</label>
-                  <div className="text-gray-800">{consultation.mobility_aids || '未設定'}</div>
-              </div>
-              
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">食事</label>
-                  <div className="text-gray-800">{getAdlStatusLabel(consultation.eating_independent, consultation.eating_partial_assist, consultation.eating_full_assist, consultation.eating_other, consultation.eating_other_text)}</div>
-              </div>
-
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">買物</label>
-                  <div className="text-gray-800">{getBinaryStatusLabel(consultation.shopping_possible, consultation.shopping_support_needed, '可', '支援必要', consultation.shopping_support_text)}</div>
-              </div>
-
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ゴミ出し</label>
-                  <div className="text-gray-800">{getBinaryStatusLabel(consultation.garbage_disposal_independent, consultation.garbage_disposal_support_needed, '自立', '支援必要', consultation.garbage_disposal_support_text)}</div>
-              </div>
-
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">排泄</label>
-                  <div className="text-gray-800">{getAdlStatusLabel(consultation.excretion_independent, consultation.excretion_partial_assist, consultation.excretion_full_assist, consultation.excretion_other, consultation.excretion_other_text)}</div>
-              </div>
-
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">2階への移動</label>
-                  <div className="text-gray-800">{consultation.second_floor_possible === true ? '可' : consultation.second_floor_possible === false ? '不可' : '未設定'}</div>
-              </div>
-
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">入浴</label>
-                  <div className="text-gray-800">{getAdlStatusLabel(consultation.bathing_independent, consultation.bathing_partial_assist, consultation.bathing_full_assist, consultation.bathing_other, consultation.bathing_other_text)}</div>
-              </div>
-
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">金銭管理支援者</label>
-                  <div className="text-gray-800">{consultation.money_management_supporter || '未設定'}</div>
-              </div>
-
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">代理納付サービスの利用</label>
-                  <div className="text-gray-800">{consultation.proxy_payment === true ? '有' : consultation.proxy_payment === false ? '無' : '未設定'}</div>
-              </div>
-
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">家賃納入方法</label>
-                  <div className="text-gray-800">{getRentPaymentMethodLabel(consultation.rent_payment_method)}</div>
-              </div>
-            </div>
-            
-            {consultation.other_notes && (
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">その他特記事項</label>
-                <div className="bg-white p-4 rounded-md border border-gray-200">
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {consultation.other_notes}
-                  </p>
-                </div>
-              </div>
-            )}
-        </div>
-
-        {/* 5. 相談内容等 */}
-        <div className="bg-gray-50 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">5. 相談内容等</h2>
-          {consultation.consultation_content && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">相談内容（困りごと、何が大変でどうしたいか、等）</label>
-              <div className="bg-white p-4 rounded-md border border-gray-200">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {consultation.consultation_content}
-                </p>
-              </div>
-            </div>
-          )}
-          {consultation.relocation_reason && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">転居理由</label>
-              <div className="bg-white p-4 rounded-md border border-gray-200">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {consultation.relocation_reason}
-                </p>
-              </div>
-            </div>
-          )}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">緊急連絡先</label>
-            <div className="bg-white p-4 rounded-md border border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <span className="font-medium">氏名:</span> {consultation.emergency_contact_name || '未設定'}
-                  {consultation.emergency_contact_relationship && ` (${consultation.emergency_contact_relationship})`}
-                </div>
-                <div>
-                  <span className="font-medium">住所:</span> 
-                  {consultation.emergency_contact_postal_code && `〒${consultation.emergency_contact_postal_code} `}
-                  {consultation.emergency_contact_address || '未設定'}
-                </div>
-                <div>
-                  <span className="font-medium">連絡先:</span>
-                  {consultation.emergency_contact_phone_home && ` 自宅: ${consultation.emergency_contact_phone_home}`}
-                  {consultation.emergency_contact_phone_mobile && ` 携帯: ${consultation.emergency_contact_phone_mobile}`}
-                </div>
-                <div>
-                  <span className="font-medium">Email:</span> {consultation.emergency_contact_email || '未設定'}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">相談結果</label>
-            <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {consultation.consultation_result || '記載なし'}
-              </p>
-            </div>
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">次回予定</label>
-            <div className="text-gray-800">
-              {consultation.next_appointment_scheduled ? (
-                <div>
-                  あり
-                  {consultation.next_appointment_details && (
-                    <div className="mt-1 text-sm text-gray-600">
-                      詳細: {consultation.next_appointment_details}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                'なし'
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* システム情報 */}
-        <div className="bg-gray-50 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">システム情報</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">作成日時</label>
-              <div className="text-gray-800">{formatDate(consultation.created_at)}</div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">最終更新日時</label>
-              <div className="text-gray-800">{formatDate(consultation.updated_at)}</div>
-            </div>
-            {consultation.user_id && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">利用者ID</label>
-                <Link href={`/users/${consultation.user_id}`} className="text-blue-600 hover:underline">
+      <DetailSection title="システム情報">
+        <DetailItem label="作成日時">{formatDate(consultation.created_at)}</DetailItem>
+        <DetailItem label="最終更新日時">{formatDate(consultation.updated_at)}</DetailItem>
+        <DetailItem label="利用者ID">
+            {consultation.user_id ? (
+                <Link href={`/users/${consultation.user_id}`} className="text-indigo-600 hover:text-indigo-800 hover:underline">
                   {consultation.user_id}
                 </Link>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+            ) : '未登録'}
+        </DetailItem>
+      </DetailSection>
     </div>
   )
 }
