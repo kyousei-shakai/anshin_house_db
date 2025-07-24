@@ -139,6 +139,31 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
     }
   }
 
+  // ★★ ラベル表示用のヘルパー関数群を追加 ★★
+  const getAdlStatusLabel = (independent: boolean | null, partial: boolean | null, full: boolean | null, other: boolean | null, otherText: string | null): string => {
+    if (independent) return '自立';
+    if (partial) return '一部介助';
+    if (full) return '全介助';
+    if (other) return `その他${otherText ? ` (${otherText})` : ''}`;
+    return '未設定';
+  };
+
+  const getBinaryStatusLabel = (positive: boolean | null, negative: boolean | null, positiveLabel: string, negativeLabel: string, detailText?: string | null): string => {
+    if (positive) return positiveLabel;
+    if (negative) return `${negativeLabel}${detailText ? ` (${detailText})` : ''}`;
+    return '未設定';
+  }
+
+  const getRentPaymentMethodLabel = (method: string | null | undefined): string => {
+    if (!method) return '未設定';
+    switch (method) {
+        case 'transfer': return '振込';
+        case 'collection': return '集金';
+        case 'automatic': return '口座振替';
+        default: return method;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -216,9 +241,10 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
       </div>
 
       <div className="p-6 space-y-8">
+        {/* 1. 基本情報 */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">1. 基本情報</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">相談日</label>
               <div className="text-gray-800">{formatDate(consultation.consultation_date)}</div>
@@ -249,7 +275,7 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               </div>
             )}
             {consultation.address && (
-              <div>
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">住所</label>
                 <div className="text-gray-800">
                   {consultation.postal_code && `〒${consultation.postal_code} `}
@@ -321,43 +347,44 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
           </div>
         </div>
 
+        {/* 2. 身体状況・利用サービス */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">2. 身体状況・利用サービス</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {consultation.physical_condition && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">身体状況</label>
-                <div className="text-gray-800">{getPhysicalConditionLabel(consultation.physical_condition)}</div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">身体状況</label>
+              <div className="text-gray-800">{getPhysicalConditionLabel(consultation.physical_condition)}</div>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">手帳</label>
+              <div className="space-y-1">
+                {consultation.mental_disability_certificate || consultation.physical_disability_certificate || consultation.therapy_certificate ? (
+                  <>
+                    {consultation.mental_disability_certificate && (
+                      <div className="text-gray-800">
+                        精神障害者保健福祉手帳
+                        {consultation.mental_disability_level && ` (${consultation.mental_disability_level})`}
+                      </div>
+                    )}
+                    {consultation.physical_disability_certificate && (
+                      <div className="text-gray-800">
+                        身体障害者手帳
+                        {consultation.physical_disability_level && ` (${consultation.physical_disability_level})`}
+                      </div>
+                    )}
+                    {consultation.therapy_certificate && (
+                      <div className="text-gray-800">
+                        療育手帳
+                        {consultation.therapy_level && ` (${consultation.therapy_level})`}
+                      </div>
+                    )}
+                  </>
+                ) : <div className="text-gray-800">なし</div> }
               </div>
-            )}
-            {consultation.medical_history && (
-              <div className="md:col-span-2">
+            </div>
+            <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">既往症及び病歴</label>
-                <div className="text-gray-800 whitespace-pre-wrap">{consultation.medical_history}</div>
-              </div>
-            )}
-          </div>
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">手帳</label>
-            <div className="space-y-1">
-              {consultation.mental_disability_certificate && (
-                <div className="text-gray-800">
-                  精神障害者保健福祉手帳
-                  {consultation.mental_disability_level && ` (${consultation.mental_disability_level})`}
-                </div>
-              )}
-              {consultation.physical_disability_certificate && (
-                <div className="text-gray-800">
-                  身体障害者手帳
-                  {consultation.physical_disability_level && ` (${consultation.physical_disability_level})`}
-                </div>
-              )}
-              {consultation.therapy_certificate && (
-                <div className="text-gray-800">
-                  療育手帳
-                  {consultation.therapy_level && ` (${consultation.therapy_level})`}
-                </div>
-              )}
+                <div className="text-gray-800 whitespace-pre-wrap">{consultation.medical_history || '記載なし'}</div>
             </div>
           </div>
           <div className="mt-4">
@@ -372,85 +399,127 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            {consultation.service_provider && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">サービス提供事業所</label>
-                <div className="text-gray-800">{consultation.service_provider}</div>
-              </div>
-            )}
-            {consultation.care_support_office && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">居宅介護支援事業所</label>
-                <div className="text-gray-800">{consultation.care_support_office}</div>
-              </div>
-            )}
-            {consultation.care_manager && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">担当</label>
-                <div className="text-gray-800">{consultation.care_manager}</div>
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">サービス提供事業所</label>
+              <div className="text-gray-800">{consultation.service_provider || '未設定'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">居宅介護支援事業所</label>
+              <div className="text-gray-800">{consultation.care_support_office || '未設定'}</div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">担当</label>
+              <div className="text-gray-800">{consultation.care_manager || '未設定'}</div>
+            </div>
           </div>
         </div>
 
-        {(consultation.medical_institution_name || consultation.income_salary || consultation.welfare_recipient) && (
-          <div className="bg-gray-50 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">3. 医療・収入</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {consultation.medical_institution_name && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">かかりつけ医療機関</label>
-                  <div className="text-gray-800">
-                    {consultation.medical_institution_name}
-                    {consultation.medical_institution_staff && ` (担当: ${consultation.medical_institution_staff})`}
+        {/* 3. 医療・収入 */}
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">3. 医療・収入</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">かかりつけ医療機関</label>
+              <div className="text-gray-800">
+                {consultation.medical_institution_name || '未設定'}
+                {consultation.medical_institution_staff && ` (担当: ${consultation.medical_institution_staff})`}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">収入</label>
+              <div className="space-y-1 text-gray-800">
+                {consultation.income_salary && <div>給与: {Number(consultation.income_salary).toLocaleString()}円</div>}
+                {consultation.income_injury_allowance && <div>傷病手当: {Number(consultation.income_injury_allowance).toLocaleString()}円</div>}
+                {consultation.income_pension && <div>年金振込額: {Number(consultation.income_pension).toLocaleString()}円</div>}
+                {consultation.welfare_recipient && (
+                  <div>
+                    生活保護受給
+                    {consultation.welfare_staff && ` (担当: ${consultation.welfare_staff})`}
                   </div>
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">収入</label>
-                <div className="space-y-1 text-gray-800">
-                  {consultation.income_salary && <div>給与: {Number(consultation.income_salary).toLocaleString()}円</div>}
-                  {consultation.income_injury_allowance && <div>傷病手当: {Number(consultation.income_injury_allowance).toLocaleString()}円</div>}
-                  {consultation.income_pension && <div>年金振込額: {Number(consultation.income_pension).toLocaleString()}円</div>}
-                  {consultation.welfare_recipient && (
-                    <div>
-                      生活保護受給
-                      {consultation.welfare_staff && ` (担当: ${consultation.welfare_staff})`}
-                    </div>
-                  )}
-                  {consultation.savings && <div>預金: {Number(consultation.savings).toLocaleString()}円</div>}
-                </div>
+                )}
+                {consultation.savings && <div>預金: {Number(consultation.savings).toLocaleString()}円</div>}
               </div>
             </div>
           </div>
-        )}
-
-        {(consultation.dementia || consultation.hospital_support_required !== undefined || consultation.other_notes) && (
-          <div className="bg-gray-50 rounded-lg p-6">
+        </div>
+        
+        {/* 4. ADL/IADL (★★ 修正 ★★) */}
+        <div className="bg-gray-50 rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">4. ADL/IADL</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {consultation.dementia && (
-                <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-6">
+              <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">認知症</label>
                   <div className="text-gray-800">
-                    {consultation.dementia}
+                    {consultation.dementia || '未設定'}
                     {consultation.dementia_hospital && ` (病院: ${consultation.dementia_hospital})`}
                   </div>
-                </div>
-              )}
-              {consultation.hospital_support_required !== undefined && (
-                <div>
+              </div>
+              <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">通院支援</label>
                   <div className="text-gray-800">{consultation.hospital_support_required ? '要' : '不要'}</div>
-                </div>
-              )}
-              {consultation.medication_management_needed !== undefined && (
-                <div>
+              </div>
+              <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">内服管理の必要性</label>
                   <div className="text-gray-800">{consultation.medication_management_needed ? '有' : '無'}</div>
-                </div>
-              )}
+              </div>
+
+              {/* ★★ ここからが追加・修正項目の表示 ★★ */}
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">移動</label>
+                  <div className="text-gray-800">{getAdlStatusLabel(consultation.mobility_independent, consultation.mobility_partial_assist, consultation.mobility_full_assist, consultation.mobility_other, consultation.mobility_other_text)}</div>
+              </div>
+
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">移動補助具・福祉用具</label>
+                  <div className="text-gray-800">{consultation.mobility_aids || '未設定'}</div>
+              </div>
+              
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">食事</label>
+                  <div className="text-gray-800">{getAdlStatusLabel(consultation.eating_independent, consultation.eating_partial_assist, consultation.eating_full_assist, consultation.eating_other, consultation.eating_other_text)}</div>
+              </div>
+
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">買物</label>
+                  <div className="text-gray-800">{getBinaryStatusLabel(consultation.shopping_possible, consultation.shopping_support_needed, '可', '支援必要', consultation.shopping_support_text)}</div>
+              </div>
+
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ゴミ出し</label>
+                  <div className="text-gray-800">{getBinaryStatusLabel(consultation.garbage_disposal_independent, consultation.garbage_disposal_support_needed, '自立', '支援必要', consultation.garbage_disposal_support_text)}</div>
+              </div>
+
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">排泄</label>
+                  <div className="text-gray-800">{getAdlStatusLabel(consultation.excretion_independent, consultation.excretion_partial_assist, consultation.excretion_full_assist, consultation.excretion_other, consultation.excretion_other_text)}</div>
+              </div>
+
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">2階への移動</label>
+                  <div className="text-gray-800">{consultation.second_floor_possible === true ? '可' : consultation.second_floor_possible === false ? '不可' : '未設定'}</div>
+              </div>
+
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">入浴</label>
+                  <div className="text-gray-800">{getAdlStatusLabel(consultation.bathing_independent, consultation.bathing_partial_assist, consultation.bathing_full_assist, consultation.bathing_other, consultation.bathing_other_text)}</div>
+              </div>
+
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">金銭管理支援者</label>
+                  <div className="text-gray-800">{consultation.money_management_supporter || '未設定'}</div>
+              </div>
+
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">代理納付サービスの利用</label>
+                  <div className="text-gray-800">{consultation.proxy_payment === true ? '有' : consultation.proxy_payment === false ? '無' : '未設定'}</div>
+              </div>
+
+              <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">家賃納入方法</label>
+                  <div className="text-gray-800">{getRentPaymentMethodLabel(consultation.rent_payment_method)}</div>
+              </div>
             </div>
+            
             {consultation.other_notes && (
               <div className="mt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">その他特記事項</label>
@@ -461,9 +530,9 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
                 </div>
               </div>
             )}
-          </div>
-        )}
+        </div>
 
+        {/* 5. 相談内容等 */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">5. 相談内容等</h2>
           {consultation.consultation_content && (
@@ -486,71 +555,58 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
               </div>
             </div>
           )}
-          {(consultation.emergency_contact_name || consultation.emergency_contact_relationship) && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">緊急連絡先</label>
-              <div className="bg-white p-4 rounded-md border border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {consultation.emergency_contact_name && (
-                    <div>
-                      <span className="font-medium">氏名:</span> {consultation.emergency_contact_name}
-                      {consultation.emergency_contact_relationship && ` (${consultation.emergency_contact_relationship})`}
-                    </div>
-                  )}
-                  {(consultation.emergency_contact_postal_code || consultation.emergency_contact_address) && (
-                    <div>
-                      <span className="font-medium">住所:</span> 
-                      {consultation.emergency_contact_postal_code && `〒${consultation.emergency_contact_postal_code} `}
-                      {consultation.emergency_contact_address}
-                    </div>
-                  )}
-                  {(consultation.emergency_contact_phone_home || consultation.emergency_contact_phone_mobile) && (
-                    <div>
-                      <span className="font-medium">連絡先:</span>
-                      {consultation.emergency_contact_phone_home && ` 自宅: ${consultation.emergency_contact_phone_home}`}
-                      {consultation.emergency_contact_phone_mobile && ` 携帯: ${consultation.emergency_contact_phone_mobile}`}
-                    </div>
-                  )}
-                  {consultation.emergency_contact_email && (
-                    <div>
-                      <span className="font-medium">Email:</span> {consultation.emergency_contact_email}
-                    </div>
-                  )}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">緊急連絡先</label>
+            <div className="bg-white p-4 rounded-md border border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <span className="font-medium">氏名:</span> {consultation.emergency_contact_name || '未設定'}
+                  {consultation.emergency_contact_relationship && ` (${consultation.emergency_contact_relationship})`}
+                </div>
+                <div>
+                  <span className="font-medium">住所:</span> 
+                  {consultation.emergency_contact_postal_code && `〒${consultation.emergency_contact_postal_code} `}
+                  {consultation.emergency_contact_address || '未設定'}
+                </div>
+                <div>
+                  <span className="font-medium">連絡先:</span>
+                  {consultation.emergency_contact_phone_home && ` 自宅: ${consultation.emergency_contact_phone_home}`}
+                  {consultation.emergency_contact_phone_mobile && ` 携帯: ${consultation.emergency_contact_phone_mobile}`}
+                </div>
+                <div>
+                  <span className="font-medium">Email:</span> {consultation.emergency_contact_email || '未設定'}
                 </div>
               </div>
             </div>
-          )}
-          {consultation.consultation_result && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">相談結果</label>
-              <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {consultation.consultation_result}
-                </p>
-              </div>
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">相談結果</label>
+            <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {consultation.consultation_result || '記載なし'}
+              </p>
             </div>
-          )}
-          {consultation.next_appointment_scheduled !== undefined && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">次回予定</label>
-              <div className="text-gray-800">
-                {consultation.next_appointment_scheduled ? (
-                  <div>
-                    あり
-                    {consultation.next_appointment_details && (
-                      <div className="mt-1 text-sm text-gray-600">
-                        詳細: {consultation.next_appointment_details}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  'なし'
-                )}
-              </div>
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">次回予定</label>
+            <div className="text-gray-800">
+              {consultation.next_appointment_scheduled ? (
+                <div>
+                  あり
+                  {consultation.next_appointment_details && (
+                    <div className="mt-1 text-sm text-gray-600">
+                      詳細: {consultation.next_appointment_details}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                'なし'
+              )}
             </div>
-          )}
+          </div>
         </div>
 
+        {/* システム情報 */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-gray-800 mb-4">システム情報</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -565,7 +621,9 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
             {consultation.user_id && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">利用者ID</label>
-                <div className="text-gray-800">{consultation.user_id}</div>
+                <Link href={`/users/${consultation.user_id}`} className="text-blue-600 hover:underline">
+                  {consultation.user_id}
+                </Link>
               </div>
             )}
           </div>

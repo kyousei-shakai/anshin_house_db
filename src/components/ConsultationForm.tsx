@@ -1,5 +1,3 @@
-// src/components/ConsultationForm.tsx
-
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -17,7 +15,7 @@ interface ConsultationFormProps {
   consultationId?: string
 }
 
-// フォームで扱うデータの型定義
+// フォームで扱うデータの型定義 (★★ 修正 ★★)
 type ConsultationFormData = {
   consultation_date: string
   consultation_route_self: boolean
@@ -90,49 +88,34 @@ type ConsultationFormData = {
   dementia_hospital: string
   hospital_support_required: boolean
   medication_management_needed: boolean
-  mobility_independent: boolean
-  mobility_partial_assist: boolean
-  mobility_full_assist: boolean
-  mobility_other: boolean
+  
+  // ★★ ここからが追加・変更箇所です ★★
+  // ラジオボタンを管理するための中間状態
+  mobility_status: 'independent' | 'partial_assist' | 'full_assist' | 'other' | ''
   mobility_other_text: string
-  eating_independent: boolean
-  eating_partial_assist: boolean
-  eating_full_assist: boolean
-  eating_other: boolean
+  mobility_aids: string // 新規追加
+  
+  eating_status: 'independent' | 'partial_assist' | 'full_assist' | 'other' | ''
   eating_other_text: string
-  shopping_possible: boolean
-  shopping_support_needed: boolean
+
+  shopping_status: 'possible' | 'support_needed' | ''
   shopping_support_text: string
-  cooking_possible: boolean
-  cooking_support_needed: boolean
-  cooking_support_text: string
-  excretion_independent: boolean
-  excretion_partial_assist: boolean
-  excretion_full_assist: boolean
-  excretion_other: boolean
-  excretion_other_text: string
-  diaper_usage: boolean
-  garbage_disposal_independent: boolean
-  garbage_disposal_support_needed: boolean
+
+  garbage_disposal_status: 'independent' | 'support_needed' | ''
   garbage_disposal_support_text: string
-  stairs_independent: boolean
-  stairs_partial_assist: boolean
-  stairs_full_assist: boolean
-  stairs_other: boolean
-  stairs_other_text: string
-  second_floor_possible: boolean
-  bed_or_futon: 'bed' | 'futon' | ''
-  bathing_independent: boolean
-  bathing_partial_assist: boolean
-  bathing_full_assist: boolean
-  bathing_other: boolean
+
+  excretion_status: 'independent' | 'partial_assist' | 'full_assist' | 'other' | ''
+  excretion_other_text: string
+
+  second_floor_possible: 'possible' | 'impossible' | ''
+
+  bathing_status: 'independent' | 'partial_assist' | 'full_assist' | 'other' | ''
   bathing_other_text: string
-  unit_bath_possible: boolean
-  money_management: string
-  supporter_available: boolean
-  supporter_text: string
-  proxy_payment: boolean
+  
+  money_management_supporter: string // 新規追加
+  uses_proxy_payment_service: 'yes' | 'no' | ''
   rent_payment_method: 'transfer' | 'collection' | 'automatic' | ''
+
   other_notes: string
   consultation_content: string
   relocation_reason: string
@@ -225,49 +208,33 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
     dementia_hospital: '',
     hospital_support_required: false,
     medication_management_needed: false,
-    mobility_independent: false,
-    mobility_partial_assist: false,
-    mobility_full_assist: false,
-    mobility_other: false,
+    
+    // ★★ 追加項目の初期値 ★★
+    mobility_status: '',
     mobility_other_text: '',
-    eating_independent: false,
-    eating_partial_assist: false,
-    eating_full_assist: false,
-    eating_other: false,
+    mobility_aids: '',
+    
+    eating_status: '',
     eating_other_text: '',
-    shopping_possible: false,
-    shopping_support_needed: false,
+
+    shopping_status: '',
     shopping_support_text: '',
-    cooking_possible: false,
-    cooking_support_needed: false,
-    cooking_support_text: '',
-    excretion_independent: false,
-    excretion_partial_assist: false,
-    excretion_full_assist: false,
-    excretion_other: false,
-    excretion_other_text: '',
-    diaper_usage: false,
-    garbage_disposal_independent: false,
-    garbage_disposal_support_needed: false,
+
+    garbage_disposal_status: '',
     garbage_disposal_support_text: '',
-    stairs_independent: false,
-    stairs_partial_assist: false,
-    stairs_full_assist: false,
-    stairs_other: false,
-    stairs_other_text: '',
-    second_floor_possible: false,
-    bed_or_futon: '',
-    bathing_independent: false,
-    bathing_partial_assist: false,
-    bathing_full_assist: false,
-    bathing_other: false,
+
+    excretion_status: '',
+    excretion_other_text: '',
+
+    second_floor_possible: '',
+
+    bathing_status: '',
     bathing_other_text: '',
-    unit_bath_possible: false,
-    money_management: '',
-    supporter_available: false,
-    supporter_text: '',
-    proxy_payment: false,
+
+    money_management_supporter: '',
+    uses_proxy_payment_service: '',
     rent_payment_method: '',
+    
     other_notes: '',
     consultation_content: '',
     relocation_reason: '',
@@ -291,6 +258,15 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
         try {
           const data = await consultationsApi.getById(consultationId);
           if (data) {
+            // DBのboolean値からフォームのラジオボタン状態へ変換するヘルパー
+            const getStatus = (independent: boolean | null, partial: boolean | null, full: boolean | null, other: boolean | null) => {
+                if (independent) return 'independent';
+                if (partial) return 'partial_assist';
+                if (full) return 'full_assist';
+                if (other) return 'other';
+                return '';
+            };
+
             setFormData({
                 consultation_date: data.consultation_date ? data.consultation_date.split('T')[0] : '',
                 consultation_route_self: data.consultation_route_self || false,
@@ -361,51 +337,35 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
                 savings: data.savings || '',
                 dementia: data.dementia || '',
                 dementia_hospital: data.dementia_hospital || '',
-                hospital_support_required: data.hospital_support_required || false,
-                medication_management_needed: data.medication_management_needed || false,
-                mobility_independent: data.mobility_independent || false,
-                mobility_partial_assist: data.mobility_partial_assist || false,
-                mobility_full_assist: data.mobility_full_assist || false,
-                mobility_other: data.mobility_other || false,
+                hospital_support_required: data.hospital_support_required === true,
+                medication_management_needed: data.medication_management_needed === true,
+                
+                // ★★ 追加・変更項目のデータマッピング ★★
+                mobility_status: getStatus(data.mobility_independent, data.mobility_partial_assist, data.mobility_full_assist, data.mobility_other),
                 mobility_other_text: data.mobility_other_text || '',
-                eating_independent: data.eating_independent || false,
-                eating_partial_assist: data.eating_partial_assist || false,
-                eating_full_assist: data.eating_full_assist || false,
-                eating_other: data.eating_other || false,
+                mobility_aids: data.mobility_aids || '',
+
+                eating_status: getStatus(data.eating_independent, data.eating_partial_assist, data.eating_full_assist, data.eating_other),
                 eating_other_text: data.eating_other_text || '',
-                shopping_possible: data.shopping_possible || false,
-                shopping_support_needed: data.shopping_support_needed || false,
+                
+                shopping_status: data.shopping_possible ? 'possible' : data.shopping_support_needed ? 'support_needed' : '',
                 shopping_support_text: data.shopping_support_text || '',
-                cooking_possible: data.cooking_possible || false,
-                cooking_support_needed: data.cooking_support_needed || false,
-                cooking_support_text: data.cooking_support_text || '',
-                excretion_independent: data.excretion_independent || false,
-                excretion_partial_assist: data.excretion_partial_assist || false,
-                excretion_full_assist: data.excretion_full_assist || false,
-                excretion_other: data.excretion_other || false,
-                excretion_other_text: data.excretion_other_text || '',
-                diaper_usage: data.diaper_usage || false,
-                garbage_disposal_independent: data.garbage_disposal_independent || false,
-                garbage_disposal_support_needed: data.garbage_disposal_support_needed || false,
+
+                garbage_disposal_status: data.garbage_disposal_independent ? 'independent' : data.garbage_disposal_support_needed ? 'support_needed' : '',
                 garbage_disposal_support_text: data.garbage_disposal_support_text || '',
-                stairs_independent: data.stairs_independent || false,
-                stairs_partial_assist: data.stairs_partial_assist || false,
-                stairs_full_assist: data.stairs_full_assist || false,
-                stairs_other: data.stairs_other || false,
-                stairs_other_text: data.stairs_other_text || '',
-                second_floor_possible: data.second_floor_possible || false,
-                bed_or_futon: data.bed_or_futon as ConsultationFormData['bed_or_futon'] || '',
-                bathing_independent: data.bathing_independent || false,
-                bathing_partial_assist: data.bathing_partial_assist || false,
-                bathing_full_assist: data.bathing_full_assist || false,
-                bathing_other: data.bathing_other || false,
+                
+                excretion_status: getStatus(data.excretion_independent, data.excretion_partial_assist, data.excretion_full_assist, data.excretion_other),
+                excretion_other_text: data.excretion_other_text || '',
+                
+                second_floor_possible: data.second_floor_possible === true ? 'possible' : data.second_floor_possible === false ? 'impossible' : '',
+
+                bathing_status: getStatus(data.bathing_independent, data.bathing_partial_assist, data.bathing_full_assist, data.bathing_other),
                 bathing_other_text: data.bathing_other_text || '',
-                unit_bath_possible: data.unit_bath_possible || false,
-                money_management: data.money_management || '',
-                supporter_available: data.supporter_available || false,
-                supporter_text: data.supporter_text || '',
-                proxy_payment: data.proxy_payment || false,
+
+                money_management_supporter: data.money_management_supporter || '',
+                uses_proxy_payment_service: data.proxy_payment === true ? 'yes' : data.proxy_payment === false ? 'no' : '',
                 rent_payment_method: data.rent_payment_method as ConsultationFormData['rent_payment_method'] || '',
+
                 other_notes: data.other_notes || '',
                 consultation_content: data.consultation_content || '',
                 relocation_reason: data.relocation_reason || '',
@@ -440,16 +400,20 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
     setFormData(prev => ({ ...prev, [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value }));
   };
 
+  // ラジオボタン用の特別なハンドラ
+  const handleRadioChange = (name: keyof ConsultationFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
       setError(null);
 
-      // ★★★ ビルドエラー修正箇所 ★★★
-      // 送信するデータオブジェクトを、Supabaseの型に厳密に合わせて構築する
+      // フォームのラジオボタン状態からDBのboolean値へ逆変換
       const dataToSubmit: ConsultationUpdate = {
-        consultation_date: formData.consultation_date, // 必須項目なのでそのまま
+        consultation_date: formData.consultation_date,
         consultation_route_self: formData.consultation_route_self,
         consultation_route_family: formData.consultation_route_family,
         consultation_route_care_manager: formData.consultation_route_care_manager,
@@ -520,49 +484,47 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
         dementia_hospital: formData.dementia_hospital || null,
         hospital_support_required: formData.hospital_support_required,
         medication_management_needed: formData.medication_management_needed,
-        mobility_independent: formData.mobility_independent,
-        mobility_partial_assist: formData.mobility_partial_assist,
-        mobility_full_assist: formData.mobility_full_assist,
-        mobility_other: formData.mobility_other,
-        mobility_other_text: formData.mobility_other_text || null,
-        eating_independent: formData.eating_independent,
-        eating_partial_assist: formData.eating_partial_assist,
-        eating_full_assist: formData.eating_full_assist,
-        eating_other: formData.eating_other,
-        eating_other_text: formData.eating_other_text || null,
-        shopping_possible: formData.shopping_possible,
-        shopping_support_needed: formData.shopping_support_needed,
-        shopping_support_text: formData.shopping_support_text || null,
-        cooking_possible: formData.cooking_possible,
-        cooking_support_needed: formData.cooking_support_needed,
-        cooking_support_text: formData.cooking_support_text || null,
-        excretion_independent: formData.excretion_independent,
-        excretion_partial_assist: formData.excretion_partial_assist,
-        excretion_full_assist: formData.excretion_full_assist,
-        excretion_other: formData.excretion_other,
-        excretion_other_text: formData.excretion_other_text || null,
-        diaper_usage: formData.diaper_usage,
-        garbage_disposal_independent: formData.garbage_disposal_independent,
-        garbage_disposal_support_needed: formData.garbage_disposal_support_needed,
-        garbage_disposal_support_text: formData.garbage_disposal_support_text || null,
-        stairs_independent: formData.stairs_independent,
-        stairs_partial_assist: formData.stairs_partial_assist,
-        stairs_full_assist: formData.stairs_full_assist,
-        stairs_other: formData.stairs_other,
-        stairs_other_text: formData.stairs_other_text || null,
-        second_floor_possible: formData.second_floor_possible,
-        bed_or_futon: formData.bed_or_futon || null,
-        bathing_independent: formData.bathing_independent,
-        bathing_partial_assist: formData.bathing_partial_assist,
-        bathing_full_assist: formData.bathing_full_assist,
-        bathing_other: formData.bathing_other,
-        bathing_other_text: formData.bathing_other_text || null,
-        unit_bath_possible: formData.unit_bath_possible,
-        money_management: formData.money_management || null,
-        supporter_available: formData.supporter_available,
-        supporter_text: formData.supporter_text || null,
-        proxy_payment: formData.proxy_payment,
+        
+        // ★★ 追加・変更項目の送信データ整形 ★★
+        mobility_independent: formData.mobility_status === 'independent',
+        mobility_partial_assist: formData.mobility_status === 'partial_assist',
+        mobility_full_assist: formData.mobility_status === 'full_assist',
+        mobility_other: formData.mobility_status === 'other',
+        mobility_other_text: formData.mobility_status === 'other' ? formData.mobility_other_text || null : null,
+        mobility_aids: formData.mobility_aids || null,
+
+        eating_independent: formData.eating_status === 'independent',
+        eating_partial_assist: formData.eating_status === 'partial_assist',
+        eating_full_assist: formData.eating_status === 'full_assist',
+        eating_other: formData.eating_status === 'other',
+        eating_other_text: formData.eating_status === 'other' ? formData.eating_other_text || null : null,
+
+        shopping_possible: formData.shopping_status === 'possible',
+        shopping_support_needed: formData.shopping_status === 'support_needed',
+        shopping_support_text: formData.shopping_status === 'support_needed' ? formData.shopping_support_text || null : null,
+
+        garbage_disposal_independent: formData.garbage_disposal_status === 'independent',
+        garbage_disposal_support_needed: formData.garbage_disposal_status === 'support_needed',
+        garbage_disposal_support_text: formData.garbage_disposal_status === 'support_needed' ? formData.garbage_disposal_support_text || null : null,
+
+        excretion_independent: formData.excretion_status === 'independent',
+        excretion_partial_assist: formData.excretion_status === 'partial_assist',
+        excretion_full_assist: formData.excretion_status === 'full_assist',
+        excretion_other: formData.excretion_status === 'other',
+        excretion_other_text: formData.excretion_status === 'other' ? formData.excretion_other_text || null : null,
+
+        second_floor_possible: formData.second_floor_possible === 'possible' ? true : formData.second_floor_possible === 'impossible' ? false : null,
+
+        bathing_independent: formData.bathing_status === 'independent',
+        bathing_partial_assist: formData.bathing_status === 'partial_assist',
+        bathing_full_assist: formData.bathing_status === 'full_assist',
+        bathing_other: formData.bathing_status === 'other',
+        bathing_other_text: formData.bathing_status === 'other' ? formData.bathing_other_text || null : null,
+
+        money_management_supporter: formData.money_management_supporter || null,
+        proxy_payment: formData.uses_proxy_payment_service === 'yes' ? true : formData.uses_proxy_payment_service === 'no' ? false : null,
         rent_payment_method: formData.rent_payment_method || null,
+
         other_notes: formData.other_notes || null,
         consultation_content: formData.consultation_content || null,
         relocation_reason: formData.relocation_reason || null,
@@ -634,14 +596,12 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
       {/* 1. 基本情報 */}
       <div className="bg-gray-50 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">1. 基本情報</h2>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">相談日 <span className="text-red-500">*</span></label>
             <input type="date" name="consultation_date" value={formData.consultation_date} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white" required />
           </div>
         </div>
-
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">相談ルート</label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -656,7 +616,6 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
             <div><label className="flex items-center"><input type="checkbox" name="consultation_route_other" checked={formData.consultation_route_other} onChange={handleChange} className="mr-2" /><span className="text-gray-800 mr-2">その他</span>{formData.consultation_route_other && (<input type="text" name="consultation_route_other_text" value={formData.consultation_route_other_text} onChange={handleChange} placeholder="詳細を入力" className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm text-gray-700" />)}</label></div>
           </div>
         </div>
-
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">属性</label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -681,7 +640,6 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
             <label className="flex items-center"><input type="checkbox" name="attribute_welfare" checked={formData.attribute_welfare} onChange={handleChange} className="mr-2" /><span className="text-gray-800">生保</span></label>
           </div>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div><label className="block text-sm font-medium text-gray-700 mb-1">お名前</label><div className="flex items-center"><input type="text" name="name" value={formData.name} onChange={handleChange} className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white" placeholder="匿名の場合は空欄" /><span className="ml-2 text-gray-600">様</span></div></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">フリガナ</label><input type="text" name="furigana" value={formData.furigana} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white" /></div>
@@ -694,7 +652,6 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
             </div>
           </div>
         </div>
-
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">世帯構成</label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -707,14 +664,12 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
             <div><label className="flex items-center"><input type="checkbox" name="household_other" checked={formData.household_other} onChange={handleChange} className="mr-2" /><span className="text-gray-800">その他</span></label>{formData.household_other && (<input type="text" name="household_other_text" value={formData.household_other_text} onChange={handleChange} placeholder="詳細を入力" className="mt-1 w-full px-2 py-1 border border-gray-300 rounded text-sm" />)}</div>
           </div>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div><label className="block text-sm font-medium text-gray-700 mb-1">郵便番号</label><input type="text" name="postal_code" value={formData.postal_code} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800" placeholder="123-4567" /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">都道府県・市区町村・番地等</label><input type="text" name="address" value={formData.address} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800" /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">自宅電話番号</label><input type="tel" name="phone_home" value={formData.phone_home} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800" /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">携帯電話番号</label><input type="tel" name="phone_mobile" value={formData.phone_mobile} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800" /></div>
         </div>
-
         <div className="mt-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">生年月日</label>
           <div className="flex space-x-2 items-center">
@@ -789,14 +744,14 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
         </div>
       </div>
 
-      {/* 4. ADL/IADL */}
+      {/* 4. ADL/IADL (★★ 修正 ★★) */}
       <div className="bg-gray-50 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">4. ADL/IADL</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div><label className="block text-sm font-medium text-gray-700 mb-1">認知症</label><input type="text" name="dementia" value={formData.dementia} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700" /></div>
           <div><label className="block text-sm font-medium text-gray-700 mb-1">病院名</label><input type="text" name="dementia_hospital" value={formData.dementia_hospital} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700" /></div>
         </div>
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">通院支援</label>
             <div className="flex space-x-4">
@@ -812,6 +767,133 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
             </div>
           </div>
         </div>
+        
+        {/* =================================== */}
+        {/* ★★ ここからが追加する項目群です ★★ */}
+        {/* =================================== */}
+
+        <div className="mt-6 border-t pt-6 space-y-4">
+          {/* 移動 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">移動</label>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              <label className="flex items-center"><input type="radio" name="mobility_status" value="independent" checked={formData.mobility_status === 'independent'} onChange={(e) => handleRadioChange('mobility_status', e.target.value)} className="mr-1" /><span className="text-gray-700">自立</span></label>
+              <label className="flex items-center"><input type="radio" name="mobility_status" value="partial_assist" checked={formData.mobility_status === 'partial_assist'} onChange={(e) => handleRadioChange('mobility_status', e.target.value)} className="mr-1" /><span className="text-gray-700">一部介助</span></label>
+              <label className="flex items-center"><input type="radio" name="mobility_status" value="full_assist" checked={formData.mobility_status === 'full_assist'} onChange={(e) => handleRadioChange('mobility_status', e.target.value)} className="mr-1" /><span className="text-gray-700">全介助</span></label>
+              <label className="flex items-center"><input type="radio" name="mobility_status" value="other" checked={formData.mobility_status === 'other'} onChange={(e) => handleRadioChange('mobility_status', e.target.value)} className="mr-1" /><span className="text-gray-700">その他</span></label>
+            </div>
+            {formData.mobility_status === 'other' && (
+              <input type="text" name="mobility_other_text" value={formData.mobility_other_text} onChange={handleChange} placeholder="その他の詳細" className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 text-sm" />
+            )}
+          </div>
+
+          {/* 移動補助具・福祉用具 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">移動補助具・福祉用具</label>
+            <input type="text" name="mobility_aids" value={formData.mobility_aids} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700" />
+          </div>
+
+          {/* 食事 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">食事</label>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              <label className="flex items-center"><input type="radio" name="eating_status" value="independent" checked={formData.eating_status === 'independent'} onChange={(e) => handleRadioChange('eating_status', e.target.value)} className="mr-1" /><span className="text-gray-700">自立</span></label>
+              <label className="flex items-center"><input type="radio" name="eating_status" value="partial_assist" checked={formData.eating_status === 'partial_assist'} onChange={(e) => handleRadioChange('eating_status', e.target.value)} className="mr-1" /><span className="text-gray-700">一部介助</span></label>
+              <label className="flex items-center"><input type="radio" name="eating_status" value="full_assist" checked={formData.eating_status === 'full_assist'} onChange={(e) => handleRadioChange('eating_status', e.target.value)} className="mr-1" /><span className="text-gray-700">全介助</span></label>
+              <label className="flex items-center"><input type="radio" name="eating_status" value="other" checked={formData.eating_status === 'other'} onChange={(e) => handleRadioChange('eating_status', e.target.value)} className="mr-1" /><span className="text-gray-700">その他</span></label>
+            </div>
+            {formData.eating_status === 'other' && (
+              <input type="text" name="eating_other_text" value={formData.eating_other_text} onChange={handleChange} placeholder="その他の詳細" className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 text-sm" />
+            )}
+          </div>
+          
+          {/* 買物 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">買物</label>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              <label className="flex items-center"><input type="radio" name="shopping_status" value="possible" checked={formData.shopping_status === 'possible'} onChange={(e) => handleRadioChange('shopping_status', e.target.value)} className="mr-1" /><span className="text-gray-700">可</span></label>
+              <label className="flex items-center"><input type="radio" name="shopping_status" value="support_needed" checked={formData.shopping_status === 'support_needed'} onChange={(e) => handleRadioChange('shopping_status', e.target.value)} className="mr-1" /><span className="text-gray-700">支援必要</span></label>
+            </div>
+            {formData.shopping_status === 'support_needed' && (
+              <input type="text" name="shopping_support_text" value={formData.shopping_support_text} onChange={handleChange} placeholder="支援内容の詳細" className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 text-sm" />
+            )}
+          </div>
+
+          {/* ゴミ出し */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">ゴミ出し</label>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              <label className="flex items-center"><input type="radio" name="garbage_disposal_status" value="independent" checked={formData.garbage_disposal_status === 'independent'} onChange={(e) => handleRadioChange('garbage_disposal_status', e.target.value)} className="mr-1" /><span className="text-gray-700">自立</span></label>
+              <label className="flex items-center"><input type="radio" name="garbage_disposal_status" value="support_needed" checked={formData.garbage_disposal_status === 'support_needed'} onChange={(e) => handleRadioChange('garbage_disposal_status', e.target.value)} className="mr-1" /><span className="text-gray-700">支援必要</span></label>
+            </div>
+            {formData.garbage_disposal_status === 'support_needed' && (
+              <input type="text" name="garbage_disposal_support_text" value={formData.garbage_disposal_support_text} onChange={handleChange} placeholder="支援内容の詳細" className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 text-sm" />
+            )}
+          </div>
+
+          {/* 排泄 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">排泄</label>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              <label className="flex items-center"><input type="radio" name="excretion_status" value="independent" checked={formData.excretion_status === 'independent'} onChange={(e) => handleRadioChange('excretion_status', e.target.value)} className="mr-1" /><span className="text-gray-700">自立</span></label>
+              <label className="flex items-center"><input type="radio" name="excretion_status" value="partial_assist" checked={formData.excretion_status === 'partial_assist'} onChange={(e) => handleRadioChange('excretion_status', e.target.value)} className="mr-1" /><span className="text-gray-700">一部介助</span></label>
+              <label className="flex items-center"><input type="radio" name="excretion_status" value="full_assist" checked={formData.excretion_status === 'full_assist'} onChange={(e) => handleRadioChange('excretion_status', e.target.value)} className="mr-1" /><span className="text-gray-700">全介助</span></label>
+              <label className="flex items-center"><input type="radio" name="excretion_status" value="other" checked={formData.excretion_status === 'other'} onChange={(e) => handleRadioChange('excretion_status', e.target.value)} className="mr-1" /><span className="text-gray-700">その他</span></label>
+            </div>
+            {formData.excretion_status === 'other' && (
+              <input type="text" name="excretion_other_text" value={formData.excretion_other_text} onChange={handleChange} placeholder="その他の詳細" className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 text-sm" />
+            )}
+          </div>
+          
+          {/* 2階への移動 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">2階への移動</label>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              <label className="flex items-center"><input type="radio" name="second_floor_possible" value="possible" checked={formData.second_floor_possible === 'possible'} onChange={(e) => handleRadioChange('second_floor_possible', e.target.value)} className="mr-1" /><span className="text-gray-700">可</span></label>
+              <label className="flex items-center"><input type="radio" name="second_floor_possible" value="impossible" checked={formData.second_floor_possible === 'impossible'} onChange={(e) => handleRadioChange('second_floor_possible', e.target.value)} className="mr-1" /><span className="text-gray-700">不可</span></label>
+            </div>
+          </div>
+
+          {/* 入浴 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">入浴</label>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              <label className="flex items-center"><input type="radio" name="bathing_status" value="independent" checked={formData.bathing_status === 'independent'} onChange={(e) => handleRadioChange('bathing_status', e.target.value)} className="mr-1" /><span className="text-gray-700">自立</span></label>
+              <label className="flex items-center"><input type="radio" name="bathing_status" value="partial_assist" checked={formData.bathing_status === 'partial_assist'} onChange={(e) => handleRadioChange('bathing_status', e.target.value)} className="mr-1" /><span className="text-gray-700">一部介助</span></label>
+              <label className="flex items-center"><input type="radio" name="bathing_status" value="full_assist" checked={formData.bathing_status === 'full_assist'} onChange={(e) => handleRadioChange('bathing_status', e.target.value)} className="mr-1" /><span className="text-gray-700">全介助</span></label>
+              <label className="flex items-center"><input type="radio" name="bathing_status" value="other" checked={formData.bathing_status === 'other'} onChange={(e) => handleRadioChange('bathing_status', e.target.value)} className="mr-1" /><span className="text-gray-700">その他</span></label>
+            </div>
+            {formData.bathing_status === 'other' && (
+              <input type="text" name="bathing_other_text" value={formData.bathing_other_text} onChange={handleChange} placeholder="その他の詳細" className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 text-sm" />
+            )}
+          </div>
+          
+          {/* 金銭管理支援者 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">金銭管理支援者</label>
+            <input type="text" name="money_management_supporter" value={formData.money_management_supporter} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700" />
+          </div>
+
+          {/* 代理納付サービスの利用 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">代理納付サービスの利用</label>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              <label className="flex items-center"><input type="radio" name="uses_proxy_payment_service" value="yes" checked={formData.uses_proxy_payment_service === 'yes'} onChange={(e) => handleRadioChange('uses_proxy_payment_service', e.target.value)} className="mr-1" /><span className="text-gray-700">有</span></label>
+              <label className="flex items-center"><input type="radio" name="uses_proxy_payment_service" value="no" checked={formData.uses_proxy_payment_service === 'no'} onChange={(e) => handleRadioChange('uses_proxy_payment_service', e.target.value)} className="mr-1" /><span className="text-gray-700">無</span></label>
+            </div>
+          </div>
+
+          {/* 家賃納入方法 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">家賃納入方法</label>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              <label className="flex items-center"><input type="radio" name="rent_payment_method" value="transfer" checked={formData.rent_payment_method === 'transfer'} onChange={(e) => handleRadioChange('rent_payment_method', e.target.value)} className="mr-1" /><span className="text-gray-700">振込</span></label>
+              <label className="flex items-center"><input type="radio" name="rent_payment_method" value="collection" checked={formData.rent_payment_method === 'collection'} onChange={(e) => handleRadioChange('rent_payment_method', e.target.value)} className="mr-1" /><span className="text-gray-700">集金</span></label>
+              <label className="flex items-center"><input type="radio" name="rent_payment_method" value="automatic" checked={formData.rent_payment_method === 'automatic'} onChange={(e) => handleRadioChange('rent_payment_method', e.target.value)} className="mr-1" /><span className="text-gray-700">口座振替</span></label>
+            </div>
+          </div>
+        </div>
+        
         <div className="mt-4"><label className="block text-sm font-medium text-gray-700 mb-1">その他特記事項</label><textarea name="other_notes" value={formData.other_notes} onChange={handleChange} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700" placeholder="例：聴力、視力、喫煙" /></div>
       </div>
 

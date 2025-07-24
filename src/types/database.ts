@@ -101,12 +101,14 @@ export type Database = {
           medication_management_needed: boolean | null
           mental_disability_certificate: boolean | null
           mental_disability_level: string | null
+          mobility_aids: string | null
           mobility_full_assist: boolean | null
           mobility_independent: boolean | null
           mobility_other: boolean | null
           mobility_other_text: string | null
           mobility_partial_assist: boolean | null
           money_management: string | null
+          money_management_supporter: string | null
           name: string | null
           next_appointment_details: string | null
           next_appointment_scheduled: boolean | null
@@ -235,12 +237,14 @@ export type Database = {
           medication_management_needed?: boolean | null
           mental_disability_certificate?: boolean | null
           mental_disability_level?: string | null
+          mobility_aids?: string | null
           mobility_full_assist?: boolean | null
           mobility_independent?: boolean | null
           mobility_other?: boolean | null
           mobility_other_text?: string | null
           mobility_partial_assist?: boolean | null
           money_management?: string | null
+          money_management_supporter?: string | null
           name?: string | null
           next_appointment_details?: string | null
           next_appointment_scheduled?: boolean | null
@@ -369,12 +373,14 @@ export type Database = {
           medication_management_needed?: boolean | null
           mental_disability_certificate?: boolean | null
           mental_disability_level?: string | null
+          mobility_aids?: string | null
           mobility_full_assist?: boolean | null
           mobility_independent?: boolean | null
           mobility_other?: boolean | null
           mobility_other_text?: string | null
           mobility_partial_assist?: boolean | null
           money_management?: string | null
+          money_management_supporter?: string | null
           name?: string | null
           next_appointment_details?: string | null
           next_appointment_scheduled?: boolean | null
