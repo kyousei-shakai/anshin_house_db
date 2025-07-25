@@ -127,11 +127,10 @@ export default function HomeClient({ stats }: HomeClientProps) {
             )}
             {activeTab === 'future' && (
               <div>
-                  <h3 className="text-md font-semibold text-gray-800 mb-2">より良いシステムを目指して</h3>
+                  <h3 className="text-md font-semibold text-gray-800 mb-2"></h3>
                   <p className="text-sm text-gray-600 leading-relaxed">
-                    このシステムは、スタッフの皆様の声を反映して、これからも成長していきます。<br />
-                    現在、より業務を効率化するための新しい機能（例：統計レポート機能の強化、カレンダー連携によるスケジュール管理など）を計画中です。<br />
-                    具体的な内容が決まり次第、こちらで詳細をご案内します。「こんな機能があったら便利」といったご意見もお待ちしております。
+                    このシステムは、スタッフの皆様の声を反映して、作成していきます。<br />
+                    「ここがやりにくい、こんな機能があったら便利」といったご意見もお待ちしております。
                   </p>
               </div>
             )}
