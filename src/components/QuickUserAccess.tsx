@@ -8,19 +8,19 @@ const QuickUserAccess: React.FC = () => {
   const { users, loading } = useUsers()
   const [searchTerm, setSearchTerm] = useState('')
   const [isExpanded, setIsExpanded] = useState(false)
-  const searchRef = useRef<HTMLDivElement>(null)
+  const componentRef = useRef<HTMLDivElement>(null)
 
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.uid.toLowerCase().includes(searchTerm.toLowerCase())
-  ).slice(0, 5) // 最大5件表示
+  ).slice(0, 5)
 
-  const recentUsers = users.slice(0, 3) // 最新の3件
+  const recentUsers = users.slice(0, 3)
 
   // クリックアウトサイドで検索を閉じる
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      if (componentRef.current && !componentRef.current.contains(event.target as Node)) {
         if (isExpanded) {
           setIsExpanded(false)
           setSearchTerm('')
@@ -35,7 +35,7 @@ const QuickUserAccess: React.FC = () => {
   }, [isExpanded])
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4">
+    <div ref={componentRef} className="bg-white rounded-lg shadow-md p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900">利用者名簿</h2>
         <div className="flex items-center space-x-2">
@@ -52,7 +52,7 @@ const QuickUserAccess: React.FC = () => {
       </div>
 
       {/* 検索バー */}
-      <div ref={searchRef} className="mb-4">
+      <div className="mb-4">
         <div className="relative">
           <input
             type="text"
@@ -62,7 +62,8 @@ const QuickUserAccess: React.FC = () => {
               setSearchTerm(e.target.value)
               setIsExpanded(e.target.value.length > 0)
             }}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            // ▼ 変更点: text-gray-900 を追加して文字色を濃くする
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
           />
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
