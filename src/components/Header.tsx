@@ -144,9 +144,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             利用者名簿
           </Link>
 
-          <button className="text-gray-600 hover:text-gray-900 px-2 md:px-3 py-2 rounded-md text-xs md:text-sm font-medium">
+          {/* <button className="text-gray-600 hover:text-gray-900 px-2 md:px-3 py-2 rounded-md text-xs md:text-sm font-medium">
             設定
-          </button>
+          </button> */}
         </div>
       </div>
     </header>

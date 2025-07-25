@@ -1,3 +1,5 @@
+// src/components/QuickUserAccess.tsx
+
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
@@ -12,10 +14,10 @@ const QuickUserAccess: React.FC = () => {
 
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.uid.toLowerCase().includes(searchTerm.toLowerCase())
+    (user.uid && user.uid.toLowerCase().includes(searchTerm.toLowerCase()))
   ).slice(0, 5)
 
-  const recentUsers = users.slice(0, 3)
+  // const recentUsers = users.slice(0, 3) // ← この行はもう使わないので削除します
 
   // クリックアウトサイドで検索を閉じる
   useEffect(() => {
@@ -51,7 +53,7 @@ const QuickUserAccess: React.FC = () => {
         </div>
       </div>
 
-      {/* 検索バー */}
+      {/* --- 検索バー --- */}
       <div className="mb-4">
         <div className="relative">
           <input
@@ -62,7 +64,6 @@ const QuickUserAccess: React.FC = () => {
               setSearchTerm(e.target.value)
               setIsExpanded(e.target.value.length > 0)
             }}
-            // ▼ 変更点: text-gray-900 を追加して文字色を濃くする
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
           />
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -86,13 +87,15 @@ const QuickUserAccess: React.FC = () => {
         </div>
       </div>
 
-      {/* 検索結果または最近の利用者 */}
+      {/* --- 検索結果または最近の利用者 --- */}
       {loading ? (
         <div className="text-center py-4 text-gray-500 text-sm">読み込み中...</div>
       ) : (
         <div className="space-y-2">
-          {isExpanded && searchTerm ? (
-            // 検索結果
+          {/* ▼▼▼ 【最重要修正点】ここからのロジックを変更します ▼▼▼ */}
+          {/* 「isExpanded と searchTerm が両方真である」場合にのみ、検索結果のブロックが表示されるようにします */}
+          {isExpanded && searchTerm && (
+            // 検索結果の表示ロジックはそのまま
             <>
               {filteredUsers.length > 0 ? (
                 <>
@@ -115,7 +118,7 @@ const QuickUserAccess: React.FC = () => {
                   ))}
                   {users.filter(user =>
                     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    user.uid.toLowerCase().includes(searchTerm.toLowerCase())
+                    (user.uid && user.uid.toLowerCase().includes(searchTerm.toLowerCase()))
                   ).length > 5 && (
                     <div className="text-center py-2">
                       <Link 
@@ -133,45 +136,17 @@ const QuickUserAccess: React.FC = () => {
                 </div>
               )}
             </>
-          ) : (
-            // 最近の利用者
-            <>
-              <div className="text-xs text-gray-500 mb-2">最近追加された利用者</div>
-              {recentUsers.length > 0 ? (
-                <>
-                  {recentUsers.map((user) => (
-                    <Link
-                      key={user.id}
-                      href={`/users/${user.id}`}
-                      className="block p-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <div className="font-medium text-gray-900 text-sm">{user.name}</div>
-                          <div className="text-xs text-gray-500">UID: {user.uid}</div>
-                        </div>
-                        <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </Link>
-                  ))}
-                  <div className="text-center pt-2">
-                    <Link 
-                      href="/users"
-                      className="text-blue-600 text-sm hover:text-blue-800 font-medium"
-                    >
-                      すべての利用者を見る →
-                    </Link>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-4 text-gray-500 text-sm">
-                  利用者が登録されていません
-                </div>
-              )}
-            </>
           )}
+
+          <div className="text-center pt-2">
+            <Link 
+              href="/users"
+              className="text-blue-600 text-sm hover:text-blue-800 font-medium"
+            >
+              すべての利用者を見る →
+            </Link>
+          </div>
+
         </div>
       )}
     </div>
