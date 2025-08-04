@@ -3,16 +3,20 @@ import Link from 'next/link'
 import Layout from '@/components/Layout'
 import UserEditForm from '@/components/UserEditForm'
 
+// 1. ★ 型定義を、Next.jsが期待する Promise を含む形に戻します
+//    キーの名前は 'id' から 'uid' に変更します。
 interface UserEditPageProps {
   params: Promise<{
-    id: string
+    uid: string
   }>
 }
 
+// 2. ★ ページコンポーネントを async function として宣言します
 export default async function UserEditPage({ params }: UserEditPageProps) {
-  const { id } = await params
+  // 3. ★ propsで受け取った params を await で解決して値を取り出します
+  const { uid } = await params
 
-  if (!id) {
+  if (!uid) {
     notFound()
   }
 
@@ -32,7 +36,8 @@ export default async function UserEditPage({ params }: UserEditPageProps) {
                   <svg className="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
                     <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 9 4-4-4-4"/>
                   </svg>
-                  <Link href={`/users/${id}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
+                  {/* リンク先は、解決済みの uid を使います */}
+                  <Link href={`/users/${uid}`} className="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
                     利用者詳細
                   </Link>
                 </div>
@@ -49,7 +54,7 @@ export default async function UserEditPage({ params }: UserEditPageProps) {
           </nav>
         </div>
 
-        <UserEditForm userId={id} />
+        <UserEditForm userUid={uid} />
       </div>
     </Layout>
   )

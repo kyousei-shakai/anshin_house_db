@@ -3,16 +3,19 @@ import Link from 'next/link'
 import Layout from '@/components/Layout'
 import UserDetailTabs from '@/components/UserDetailTabs'
 
+// 1. ★ 型定義を、Promise を含む形に戻します
 interface UserDetailPageProps {
   params: Promise<{
-    id: string
+    uid: string
   }>
 }
 
+// 2. ★ ページコンポーネントを async function として宣言します
 export default async function UserDetailPage({ params }: UserDetailPageProps) {
-  const { id } = await params
+  // 3. ★ params を await で解決します
+  const { uid } = await params
 
-  if (!id) {
+  if (!uid) {
     notFound()
   }
 
@@ -39,7 +42,7 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
           </nav>
         </div>
 
-        <UserDetailTabs userId={id} />
+        <UserDetailTabs userUid={uid} />
       </div>
     </Layout>
   )

@@ -1,5 +1,3 @@
-// src/components/QuickUserAccess.tsx
-
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
@@ -17,9 +15,6 @@ const QuickUserAccess: React.FC = () => {
     (user.uid && user.uid.toLowerCase().includes(searchTerm.toLowerCase()))
   ).slice(0, 5)
 
-  // const recentUsers = users.slice(0, 3) // ← この行はもう使わないので削除します
-
-  // クリックアウトサイドで検索を閉じる
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (componentRef.current && !componentRef.current.contains(event.target as Node)) {
@@ -53,7 +48,6 @@ const QuickUserAccess: React.FC = () => {
         </div>
       </div>
 
-      {/* --- 検索バー --- */}
       <div className="mb-4">
         <div className="relative">
           <input
@@ -87,24 +81,22 @@ const QuickUserAccess: React.FC = () => {
         </div>
       </div>
 
-      {/* --- 検索結果または最近の利用者 --- */}
       {loading ? (
         <div className="text-center py-4 text-gray-500 text-sm">読み込み中...</div>
       ) : (
         <div className="space-y-2">
-          {/* ▼▼▼ 【最重要修正点】ここからのロジックを変更します ▼▼▼ */}
-          {/* 「isExpanded と searchTerm が両方真である」場合にのみ、検索結果のブロックが表示されるようにします */}
           {isExpanded && searchTerm && (
-            // 検索結果の表示ロジックはそのまま
             <>
               {filteredUsers.length > 0 ? (
                 <>
                   {filteredUsers.map((user) => (
+                    // ▼▼▼▼▼▼▼▼▼▼ ここが修正点 ▼▼▼▼▼▼▼▼▼▼
                     <Link
                       key={user.id}
-                      href={`/users/${user.id}`}
+                      href={`/users/${user.uid}`}
                       className="block p-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors"
                     >
+                    {/* ▲▲▲▲▲▲▲▲▲▲ ここが修正点 ▲▲▲▲▲▲▲▲▲▲ */}
                       <div className="flex justify-between items-center">
                         <div>
                           <div className="font-medium text-gray-900 text-sm">{user.name}</div>

@@ -2,14 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { usersApi } from '@/lib/api'
-// 👇 1. インポートを 'Database' 型に変更
 import { Database } from '@/types/database'
 
-// 👇 2. 新しい型定義から型エイリアスを作成
 type User = Database['public']['Tables']['users']['Row']
 
+
 export const useUsers = () => {
-  // 👇 3. useStateの型指定は変更なしでOK
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -43,14 +41,18 @@ export const useUsers = () => {
   }
 }
 
-export const useUser = (id: string | null) => {
-  // 👇 4. こちらのuseStateの型指定も変更なしでOK
+
+// =================================================================
+// useUser フック (個別取得用)
+// ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼ ここからが修正箇所です ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+// =================================================================
+export const useUser = (uid: string | null) => { // 1. 引数名を id から uid に変更
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchUser = useCallback(async () => {
-    if (!id) {
+    if (!uid) { // 2. 変数名も uid に変更
       setUser(null)
       setLoading(false)
       return
@@ -59,14 +61,19 @@ export const useUser = (id: string | null) => {
     try {
       setLoading(true)
       setError(null)
-      const data = await usersApi.getById(id)
+      
+      // 3. ★★★ 最重要変更点 ★★★
+      //    id(UUID)で検索する getById から、
+      //    uid(人間が読めるID)で検索する getByUid に変更する。
+      const data = await usersApi.getByUid(uid)
+      
       setUser(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [uid]) // 4. useCallbackの依存配列も uid に変更
 
   useEffect(() => {
     fetchUser()

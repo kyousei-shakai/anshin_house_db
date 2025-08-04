@@ -1,27 +1,31 @@
-// src/components/UserDetailTabs.tsx
-
 'use client'
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation' // useRouterをインポート
-import { useUser } from '@/hooks/useUsers'
-import { usersApi } from '@/lib/api' // usersApiをインポート
+import { useRouter } from 'next/navigation'
+import { useUser } from '@/hooks/useUsers' 
+import { usersApi } from '@/lib/api'
 import UserBasicInfo from './UserBasicInfo'
 import UserConsultationHistory from './UserConsultationHistory'
 import UserSupportPlans from './UserSupportPlans'
 
+// 1. Propsの型定義を userId から userUid に変更
 interface UserDetailTabsProps {
-  userId: string
+  userUid: string
 }
 
-const UserDetailTabs: React.FC<UserDetailTabsProps> = ({ userId }) => {
-  const { user, loading, error } = useUser(userId)
+const UserDetailTabs: React.FC<UserDetailTabsProps> = ({ userUid }) => {
+  // 2. useUserフックに userUid を渡すように変更
+  //    (useUserフックは後で 'uid' で検索するように修正が必要です)
+  const { user, loading, error } = useUser(userUid)
   const [activeTab, setActiveTab] = useState<'basic' | 'consultations' | 'support-plans'>('basic')
-  const [isDeleting, setIsDeleting] = useState(false) // 削除処理中の状態を追加
-  const router = useRouter() // ルーターを初期化
+  const [isDeleting, setIsDeleting] = useState(false)
+  const router = useRouter()
 
   const handleDelete = async () => {
+    // 3. ★★★ 最重要変更点 ★★★
+    // 削除APIを呼び出すためには、主キーである `id` (UUID) が必要。
+    // user オブジェクトが存在しない場合は処理を中断する。
     if (!user) return;
 
     const isConfirmed = window.confirm(`本当に「${user.name}」さんを削除しますか？\nこの操作は元に戻せません。`)
@@ -31,7 +35,8 @@ const UserDetailTabs: React.FC<UserDetailTabsProps> = ({ userId }) => {
 
     setIsDeleting(true)
     try {
-      await usersApi.delete(userId)
+      // 4. usersApi.delete には、主キーである `user.id` (UUID) を渡す
+      await usersApi.delete(user.id)
       alert('利用者を削除しました。')
       router.push('/')
       router.refresh()
@@ -91,8 +96,9 @@ const UserDetailTabs: React.FC<UserDetailTabsProps> = ({ userId }) => {
             <p className="text-sm text-gray-600 mt-1">UID: {user.uid}</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+            {/* 5. 「編集」ボタンのリンク先を新しいURL形式 (`/users/[uid]/edit`) に変更 */}
             <Link
-              href={`/users/${userId}/edit`}
+              href={`/users/${user.uid}/edit`}
               className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center text-sm md:text-base"
             >
               編集
@@ -103,7 +109,6 @@ const UserDetailTabs: React.FC<UserDetailTabsProps> = ({ userId }) => {
             >
               新規相談
             </Link>
-            {/* ★★★ ここからが唯一の変更点 ★★★ */}
             <button
                 onClick={handleDelete}
                 disabled={isDeleting}
@@ -112,7 +117,6 @@ const UserDetailTabs: React.FC<UserDetailTabsProps> = ({ userId }) => {
             >
                 {isDeleting ? '削除中...' : '利用者削除'}
             </button>
-            {/* ★★★ ここまでが唯一の変更点 ★★★ */}
           </div>
         </div>
       </div>
@@ -140,8 +144,9 @@ const UserDetailTabs: React.FC<UserDetailTabsProps> = ({ userId }) => {
       {/* タブコンテンツ */}
       <div className="p-6">
         {activeTab === 'basic' && <UserBasicInfo user={user} />}
-        {activeTab === 'consultations' && <UserConsultationHistory userId={userId} />}
-        {activeTab === 'support-plans' && <UserSupportPlans userId={userId} />}
+        {/* 6. 下層コンポーネントには、主キーである `user.id` (UUID) を渡す */}
+        {activeTab === 'consultations' && <UserConsultationHistory userId={user.id} />}
+        {activeTab === 'support-plans' && <UserSupportPlans userId={user.id} />}
       </div>
     </div>
   )

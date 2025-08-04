@@ -21,13 +21,14 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     user.uid.toLowerCase().includes(searchTerm.toLowerCase())
   ).slice(0, 5)
 
-  const handleUserClick = (userId: string) => {
+  // ▼▼▼▼▼▼▼▼▼▼ ここが修正点 ▼▼▼▼▼▼▼▼▼▼
+  const handleUserClick = (userUid: string) => { // 引数を userUid に変更
     setSearchTerm('')
     setShowSearchResults(false)
-    router.push(`/users/${userId}`)
+    router.push(`/users/${userUid}`) // 遷移先を userUid を使って生成
   }
+  // ▲▲▲▲▲▲▲▲▲▲ ここが修正点 ▲▲▲▲▲▲▲▲▲▲
 
-  // クリックアウトサイドで検索結果を閉じる
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -45,7 +46,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     <header className="bg-white border-b border-gray-200 px-3 md:px-6 py-4">
       <div className="flex justify-between items-center">
         <div className="flex items-center space-x-3 md:space-x-6">
-          {/* モバイルメニューボタン */}
           <button
             onClick={onMenuClick}
             className="lg:hidden p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
@@ -59,7 +59,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             居住支援管理システム
           </h1>
           
-          {/* デスクトップナビゲーション */}
           <nav className="hidden md:flex space-x-2 lg:space-x-4">
             <Link href="/" className="text-gray-600 hover:text-gray-900 px-2 lg:px-3 py-2 rounded-md text-xs lg:text-sm font-medium">
               ホーム
@@ -80,7 +79,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         </div>
         
         <div className="flex items-center space-x-2 md:space-x-4">
-          {/* モバイル用利用者検索 */}
           <div ref={searchRef} className="relative md:hidden">
             <div className="relative">
               <input
@@ -101,17 +99,18 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               </div>
             </div>
             
-            {/* 検索結果ドロップダウン */}
             {showSearchResults && searchTerm && (
               <div className="absolute right-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-64 overflow-y-auto">
                 {filteredUsers.length > 0 ? (
                   <>
                     {filteredUsers.map((user) => (
+                      // ▼▼▼▼▼▼▼▼▼▼ ここが修正点 ▼▼▼▼▼▼▼▼▼▼
                       <button
                         key={user.id}
-                        onClick={() => handleUserClick(user.id)}
+                        onClick={() => handleUserClick(user.uid)}
                         className="w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
                       >
+                      {/* ▲▲▲▲▲▲▲▲▲▲ ここが修正点 ▲▲▲▲▲▲▲▲▲▲ */}
                         <div className="font-medium text-gray-900 text-sm">{user.name}</div>
                         <div className="text-xs text-gray-500">UID: {user.uid}</div>
                       </button>
@@ -136,7 +135,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             )}
           </div>
 
-          {/* 利用者名簿へのクイックアクセス（デスクトップ） */}
           <Link 
             href="/users"
             className="hidden md:block text-gray-600 hover:text-gray-900 px-2 md:px-3 py-2 rounded-md text-xs md:text-sm font-medium"
@@ -144,9 +142,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             利用者名簿
           </Link>
 
-          {/* <button className="text-gray-600 hover:text-gray-900 px-2 md:px-3 py-2 rounded-md text-xs md:text-sm font-medium">
-            設定
-          </button> */}
         </div>
       </div>
     </header>

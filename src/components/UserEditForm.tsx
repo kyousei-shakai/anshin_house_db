@@ -2,22 +2,26 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser } from '@/hooks/useUsers'
+import { useUser } from '@/hooks/useUsers' 
 import { usersApi } from '@/lib/api'
 import { Database } from '@/types/database'
 
 type UserUpdate = Partial<Database['public']['Tables']['users']['Update']>
 
+// 1. Propsの型定義を userId から userUid に変更
 interface UserEditFormProps {
-  userId: string
+  userUid: string
 }
 
-const UserEditForm: React.FC<UserEditFormProps> = ({ userId }) => {
+const UserEditForm: React.FC<UserEditFormProps> = ({ userUid }) => {
   const router = useRouter()
-  const { user, loading: userLoading, error: userError } = useUser(userId)
+  // 2. useUserフックに userUid を渡すように変更
+  //    (useUserフックは後で 'uid' で検索するように修正が必要です)
+  const { user, loading: userLoading, error: userError } = useUser(userUid)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
+  // フォームデータのState定義は変更なし
   const [formData, setFormData] = useState({
     name: '',
     birth_date: '',
@@ -50,6 +54,7 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userId }) => {
     posthumous_affairs: false
   })
 
+  // フォームデータへの初期値設定ロジックは変更なし
   useEffect(() => {
     if (user) {
       setFormData({
@@ -89,6 +94,14 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userId }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // 3. ★★★ 最重要変更点 ★★★
+    // 更新APIを呼び出すためには、主キーである `id` (UUID) が必要。
+    // user オブジェクトが存在しない場合は処理を中断するガード節を追加。
+    if (!user) {
+      setError('更新対象のユーザー情報が見つかりません。')
+      return
+    }
+
     if (!formData.name.trim()) {
       setError('氏名は必須です')
       return
@@ -130,8 +143,12 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userId }) => {
         posthumous_affairs: formData.posthumous_affairs
       }
       
-      await usersApi.update(userId, userData)
-      router.push(`/users/${userId}`)
+      // 4. usersApi.update には、主キーである `user.id` (UUID) を渡す
+      await usersApi.update(user.id, userData)
+      
+      // 5. リダイレクト先を新しいURL形式 (`/users/[uid]`) に変更
+      router.push(`/users/${user.uid}`)
+
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました')
     } finally {
@@ -139,6 +156,7 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userId }) => {
     }
   }
 
+  // handleChange関数は変更なし
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
     const isCheckbox = type === 'checkbox'
@@ -148,6 +166,7 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userId }) => {
     }))
   }
 
+  // JSX部分は変更なし
   if (userLoading) {
     return (
       <div className="flex justify-center items-center h-64">

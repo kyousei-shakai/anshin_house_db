@@ -135,7 +135,7 @@ const UsersPage: React.FC = () => {
               return (
                 <Link
                   key={user.id}
-                  href={`/users/${user.id}`}
+                  href={`/users/${user.uid}`}
                   className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
                   <div className="flex justify-between items-start mb-3">

@@ -1,5 +1,3 @@
-// src/components/Sidebar.tsx
-
 'use client'
 
 import React, { useState } from 'react'
@@ -70,7 +68,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       <div className="p-4 border-b border-gray-200">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">利用者名簿</h2>
         
-        {/* 検索バー */}
         <div className="relative mb-4">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
               <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -86,7 +83,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           />
         </div>
 
-        {/* 新規追加ボタン */}
         <Link
           href="/users/new"
           onClick={handleUserClick}
@@ -100,13 +96,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       </div>
       
       <div className="border-b border-gray-200 px-4 py-2">
-         {/* 件数表示 */}
          <div className="text-xs text-gray-500">
           {filteredUsers.length} / {users.length} 件表示
         </div>
       </div>
 
-      {/* 利用者一覧 */}
       <div className="flex-1 overflow-y-auto">
         {filteredUsers.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-500">
@@ -117,12 +111,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             <ul role="list" className="divide-y divide-gray-200">
               {filteredUsers.map((user) => (
                 <li key={user.id}>
+                  {/* ▼▼▼▼▼▼▼▼▼▼ ここが修正点 ▼▼▼▼▼▼▼▼▼▼ */}
                   <Link
-                    href={`/users/${user.id}`}
+                    href={`/users/${user.uid}`}
                     onClick={handleUserClick}
                     className="block px-4 py-3 transition-colors hover:bg-gray-50"
                   >
-                    {/* ★★★ ここを修正 ★★★ (font-semibold を削除) */}
+                  {/* ▲▲▲▲▲▲▲▲▲▲ ここが修正点 ▲▲▲▲▲▲▲▲▲▲ */}
                     <p className="text-gray-900 truncate">
                       {user.name}
                     </p>
@@ -145,7 +140,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         )}
       </div>
 
-      {/* 更新ボタン */}
       <div className="p-4 border-t border-gray-200">
         <button
           onClick={refreshUsers}
