@@ -17,7 +17,8 @@ const UsersPage: React.FC = () => {
     .filter(user =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.uid.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.property_address?.toLowerCase().includes(searchTerm.toLowerCase())
+      (user.property_address?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) || // 既存の行をより安全な形に修正
+      (user.property_name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)      // 物件名を検索対象に追加
     )
     .sort((a, b) => {
       switch (sortBy) {
