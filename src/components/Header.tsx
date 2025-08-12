@@ -56,7 +56,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           </button>
           
           <h1 className="text-lg md:text-2xl font-bold text-gray-900">
-            居住支援管理システム
+            居住支援管理
           </h1>
           
           <nav className="hidden md:flex space-x-2 lg:space-x-4">
