@@ -57,6 +57,7 @@ CREATE TABLE consultations (
   
   -- 1. 基本情報
   consultation_date date NOT NULL,
+  staff_name text NOT NULL,
   consultation_route_self boolean DEFAULT false,
   consultation_route_family boolean DEFAULT false,
   consultation_route_care_manager boolean DEFAULT false,

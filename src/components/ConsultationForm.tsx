@@ -18,6 +18,8 @@ interface ConsultationFormProps {
 // フォームで扱うデータの型定義 (★★ 修正 ★★)
 type ConsultationFormData = {
   consultation_date: string
+  // ▼▼▼ staff_name を追加 ▼▼▼
+  staff_name: string
   consultation_route_self: boolean
   consultation_route_family: boolean
   consultation_route_care_manager: boolean
@@ -138,6 +140,8 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
   
   const initialFormData: ConsultationFormData = {
     consultation_date: new Date().toISOString().split('T')[0],
+    // ▼▼▼ staff_name の初期値を追加 ▼▼▼
+    staff_name: '',
     consultation_route_self: false,
     consultation_route_family: false,
     consultation_route_care_manager: false,
@@ -269,6 +273,8 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
 
             setFormData({
                 consultation_date: data.consultation_date ? data.consultation_date.split('T')[0] : '',
+                // ▼▼▼ staff_name のデータマッピングを追加 ▼▼▼
+                staff_name: data.staff_name || '',
                 consultation_route_self: data.consultation_route_self || false,
                 consultation_route_family: data.consultation_route_family || false,
                 consultation_route_care_manager: data.consultation_route_care_manager || false,
@@ -414,6 +420,8 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
       // フォームのラジオボタン状態からDBのboolean値へ逆変換
       const dataToSubmit: ConsultationUpdate = {
         consultation_date: formData.consultation_date,
+        // ▼▼▼ staff_name の送信データを追加 ▼▼▼
+        staff_name: formData.staff_name,
         consultation_route_self: formData.consultation_route_self,
         consultation_route_family: formData.consultation_route_family,
         consultation_route_care_manager: formData.consultation_route_care_manager,
@@ -600,6 +608,19 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">相談日 <span className="text-red-500">*</span></label>
             <input type="date" name="consultation_date" value={formData.consultation_date} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white" required />
+          </div>
+          {/* ▼▼▼ 担当スタッフのテキスト入力欄を追加 ▼▼▼ */}
+          <div>
+            <label htmlFor="staff_name" className="block text-sm font-medium text-gray-700 mb-1">担当スタッフ <span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              id="staff_name"
+              name="staff_name"
+              value={formData.staff_name}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white"
+            />
           </div>
         </div>
         <div className="mt-4">

@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
+  // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -136,7 +136,6 @@ export type Database = {
           shopping_support_needed: boolean | null
           shopping_support_text: string | null
           staff_id: string | null
-          staff_name: string | null
           stairs_full_assist: boolean | null
           stairs_independent: boolean | null
           stairs_other: boolean | null
@@ -273,7 +272,6 @@ export type Database = {
           shopping_support_needed?: boolean | null
           shopping_support_text?: string | null
           staff_id?: string | null
-          staff_name?: string | null
           stairs_full_assist?: boolean | null
           stairs_independent?: boolean | null
           stairs_other?: boolean | null
@@ -410,7 +408,6 @@ export type Database = {
           shopping_support_needed?: boolean | null
           shopping_support_text?: string | null
           staff_id?: string | null
-          staff_name?: string | null
           stairs_full_assist?: boolean | null
           stairs_independent?: boolean | null
           stairs_other?: boolean | null
@@ -766,7 +763,7 @@ export type Database = {
     }
     Functions: {
       calculate_age: {
-        Args: { birth_day: number; birth_month: number; birth_year: number }
+        Args: { birth_year: number; birth_month: number; birth_day: number }
         Returns: number
       }
     }

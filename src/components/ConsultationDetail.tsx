@@ -266,6 +266,7 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
       {/* ★★ 各セクションを DetailSection と DetailItem で再構築 ★★ */}
       <DetailSection title="1. 基本情報">
         <DetailItem label="相談日">{formatDate(consultation.consultation_date)}</DetailItem>
+        <DetailItem label="担当スタッフ">{consultation.staff_name || '未設定'}</DetailItem>
         <DetailItem label="お名前">{consultation.name ? `${consultation.name}様` : '匿名'}</DetailItem>
         <DetailItem label="フリガナ">{consultation.furigana}</DetailItem>
         <DetailItem label="性別">{getGenderLabel(consultation.gender)}</DetailItem>
