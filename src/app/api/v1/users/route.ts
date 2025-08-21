@@ -1,34 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { usersApi } from '@/lib/api'; // あなたが提示したapi.tsをインポート
+import { usersApi } from '@/lib/api'; 
 
-// APIのシークレットキーを環境変数から取得
 const API_SECRET_KEY = process.env.API_SECRET_KEY;
 
-export async function GET(request: NextRequest) {
-  // 1. セキュリティチェック：リクエストヘッダーから認証情報を取得
-  const authHeader = request.headers.get('Authorization');
+// ▼▼▼ 許可するオリジン（リクエスト元）のリストを定義 ▼▼▼
+// 開発環境と本番環境の両方を許可します
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://anshin-house-daily-log.vercel.app'
+];
 
-  // 2. 認証情報が存在し、かつ正しいキーであるか検証
+export async function GET(request: NextRequest) {
+  // ▼▼▼ CORSチェックを追加 ▼▼▼
+  const origin = request.headers.get('origin');
+  if (!origin || !allowedOrigins.includes(origin)) {
+    // 許可されていないオリジンからのリクエストは、ここではエラーにせず、
+    // 後続の処理（認証チェックなど）に任せても良いですが、
+    // 明示的に拒否する場合は以下のようにします。
+    // return new NextResponse(null, { status: 403, statusText: "Forbidden" });
+  }
+
+  // 1. セキュリティチェック
+  const authHeader = request.headers.get('Authorization');
   if (!API_SECRET_KEY || authHeader !== `Bearer ${API_SECRET_KEY}`) {
-    // 認証失敗の場合は401 Unauthorizedエラーを返す
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    // 3. 認証成功の場合、既存のAPIロジックを使って全利用者を取得
+    // 3. 認証成功の場合
     const users = await usersApi.getAll();
-
-    // 4. API-Aの仕様に従い、必要な情報（uidとname）だけを抽出して返す
     const responseData = users.map(user => ({
       uid: user.uid,
       name: user.name,
     }));
 
-    return NextResponse.json(responseData, { status: 200 });
+    // ▼▼▼ 成功時のレスポンスにCORSヘッダーを追加 ▼▼▼
+    return NextResponse.json(responseData, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': origin || '*', // 動的にオリジンを設定
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
 
   } catch (error) {
     console.error('API Error in /api/v1/users:', error);
-    // 5. サーバー内部でエラーが発生した場合は500エラーを返す
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    // ▼▼▼ エラー時のレスポンスにもCORSヘッダーを追加 ▼▼▼
+    return NextResponse.json({ error: 'Internal Server Error' }, {
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': origin || '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
   }
+}
+
+// ▼▼▼ プリフライトリクエスト用のOPTIONSメソッドを追加 ▼▼▼
+// ブラウザは、実際のGETリクエストの前に、このAPIが安全かどうかを確認するための
+// OPTIONSリクエストを送信します。これに正しく応答することがCORS成功の鍵です。
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  if (origin && allowedOrigins.includes(origin)) {
+    return new NextResponse(null, {
+      status: 204, // No Content
+      headers: {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    });
+  }
+  // 許可されていないオリジンの場合は何も返さない
+  return new NextResponse(null, { status: 204 });
 }
