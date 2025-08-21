@@ -58,7 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       <div className="lg:hidden border-b border-gray-200">
         <nav className="p-4 space-y-2">
           <Link href="/" onClick={handleUserClick} className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">ホーム</Link>
-                    <Link href="/users" onClick={handleUserClick} className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">利用者一覧</Link>
+          <Link href="/users" onClick={handleUserClick} className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">利用者一覧</Link>
           <Link href="/consultations" onClick={handleUserClick} className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">相談履歴</Link>
           <Link href="/consultations/new" onClick={handleUserClick} className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">新規相談</Link>
           <Link href="/support-plans" onClick={handleUserClick} className="block px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-md">支援計画</Link>
