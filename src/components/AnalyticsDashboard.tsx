@@ -2,13 +2,42 @@
 'use client'
 
 import React, { useState, useMemo } from 'react';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement } from 'chart.js';
-// ▼▼▼▼▼▼▼▼▼▼ Chart をインポート ▼▼▼▼▼▼▼▼▼▼
+// ▼▼▼▼▼▼▼▼▼▼ ここからが修正点 ▼▼▼▼▼▼▼▼▼▼
+import { 
+  Chart as ChartJS, 
+  ArcElement, 
+  Tooltip, 
+  Legend, 
+  CategoryScale, 
+  LinearScale, 
+  BarElement, 
+  Title, 
+  PointElement, 
+  LineElement,
+  LineController, // 折れ線グラフの「組立説明書」をインポート
+  BarController   // 念のため棒グラフの「組立説明書」もインポート
+} from 'chart.js';
+// ▲▲▲▲▲▲▲▲▲▲ ここまでが修正点 ▲▲▲▲▲▲▲▲▲▲
 import { Doughnut, Bar, Chart } from 'react-chartjs-2';
 import { subMonths, format, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 import { Consultation, User } from '@/types/custom';
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, PointElement, LineElement);
+// ▼▼▼▼▼▼▼▼▼▼ ここからが修正点 ▼▼▼▼▼▼▼▼▼▼
+// 取得したすべての部品と組立説明書をChart.jsに登録する
+ChartJS.register(
+  ArcElement, 
+  Tooltip, 
+  Legend, 
+  CategoryScale, 
+  LinearScale, 
+  BarElement, 
+  Title, 
+  PointElement, 
+  LineElement,
+  LineController, // 登録
+  BarController   // 登録
+);
+// ▲▲▲▲▲▲▲▲▲▲ ここまでが修正点 ▲▲▲▲▲▲▲▲▲▲
 
 interface AnalyticsDashboardProps {
   consultations: Consultation[];
@@ -250,9 +279,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
         <div className="lg:col-span-5 bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">月別推移</h3>
             <div className="h-80">
-                {/* ▼▼▼▼▼▼▼▼▼▼ ここを <Bar> から <Chart> に変更 ▼▼▼▼▼▼▼▼▼▼ */}
                 <Chart type='bar' data={monthlyChartData} options={{ maintainAspectRatio: false, responsive: true, scales: { y: { type: 'linear', display: true, position: 'left', title: { display: true, text: '相談件数' } }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '新規利用者数' } } } }} />
-                {/* ▲▲▲▲▲▲▲▲▲▲ 変更ここまで ▲▲▲▲▲▲▲▲▲▲ */}
             </div>
         </div>
       </div>
