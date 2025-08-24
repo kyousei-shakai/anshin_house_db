@@ -5,8 +5,29 @@
 import Link from 'next/link'
 import React, { useState } from 'react'
 import QuickUserAccess from '@/components/QuickUserAccess'
-import AnalyticsDashboard from '@/components/AnalyticsDashboard' // 新しいコンポーネントをインポート
-import { Consultation, User } from '@/types/custom'; // 型をインポート
+import { Consultation, User } from '@/types/custom'
+import dynamic from 'next/dynamic'
+
+// ▼▼▼▼▼▼▼▼▼▼ 動的インポートの設定 ▼▼▼▼▼▼▼▼▼▼
+// AnalyticsDashboardコンポーネントをブラウザ側でのみ読み込むように設定
+const AnalyticsDashboard = dynamic(
+  () => import('@/components/AnalyticsDashboard'),
+  { 
+    // ssr: false は、サーバーサイドレンダリングを無効にすることを意味します
+    ssr: false, 
+    // 読み込みが完了するまでの間、ユーザーに表示する仮のコンポーネント
+    loading: () => 
+      <div className="mt-12">
+        <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-gray-800">データ分析ダッシュボード</h2>
+        </div>
+        <div className="w-full h-96 bg-gray-100 rounded-lg flex items-center justify-center">
+          <p className="text-gray-500">分析データを読み込み中...</p>
+        </div>
+      </div>
+  }
+)
+// ▲▲▲▲▲▲▲▲▲▲ 動的インポートの設定ここまで ▲▲▲▲▲▲▲▲▲▲
 
 const PlusCircleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -20,7 +41,6 @@ const DocumentPlusIcon = () => (
   </svg>
 );
 
-// ▼▼▼ propsの型定義を修正 ▼▼▼
 interface HomeClientProps {
   stats: {
     totalUsers: number;
@@ -94,12 +114,10 @@ export default function HomeClient({ stats, initialAnalyticsData }: HomeClientPr
         </div>
       </div>
       
-      {/* ▼▼▼▼▼▼▼▼▼▼ ここにAnalyticsDashboardコンポーネントを呼び出す ▼▼▼▼▼▼▼▼▼▼ */}
       <AnalyticsDashboard 
         consultations={initialAnalyticsData.consultations}
         users={initialAnalyticsData.users}
       />
-      {/* ▲▲▲▲▲▲▲▲▲▲ ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */}
 
       <div>
         <h2 className="text-xl font-bold text-gray-800 mb-4 mt-12">お知らせ & 開発情報</h2>

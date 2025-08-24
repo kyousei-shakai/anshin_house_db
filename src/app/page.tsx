@@ -1,10 +1,10 @@
-// app/page.tsx
+// app/page.tsx の完全なコード
 
 import Layout from '@/components/Layout'
 import { cookies } from 'next/headers'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import HomeClient from './HomeClient'
-import { Consultation, User } from '@/types/custom' // 型をインポート
+import { Consultation, User } from '@/types/custom'
 
 export default async function Home() {
   
@@ -38,48 +38,42 @@ export default async function Home() {
 
   const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
-  // ▼▼▼▼▼▼▼▼▼▼ データ取得処理を拡張 ▼▼▼▼▼▼▼▼▼▼
   const [
-    // 1. サマリーデータ
-    { count: totalUsers },
-    { count: newUsersThisMonth },
-    { count: consultationsThisMonth },
-    { count: supportPlansThisMonth },
-
-    // 2. グラフ用データ
-    { data: allConsultationsData, error: consultationsError },
-    { data: allUsersData, error: usersError },
-
+    usersCountResult,
+    newUsersCountResult,
+    consultationsCountResult,
+    supportPlansCountResult,
+    allConsultationsResult,
+    allUsersResult,
   ] = await Promise.all([
-    // サマリーデータ取得 (既存)
     supabase.from('users').select('*', { count: 'exact', head: true }),
     supabase.from('users').select('*', { count: 'exact', head: true }).gte('created_at', firstDayOfMonth),
     supabase.from('consultations').select('*', { count: 'exact', head: true }).gte('consultation_date', firstDayOfMonth),
     supabase.from('support_plans').select('*', { count: 'exact', head: true }).gte('creation_date', firstDayOfMonth),
-    
-    // グラフ用データ取得 (新規追加)
-    // グラフで必要なカラムのみを指定して取得
-    supabase.from('consultations').select('consultation_date, consultation_route_self, consultation_route_family, consultation_route_care_manager, consultation_route_elderly_center, consultation_route_disability_center, consultation_route_government, consultation_route_other, consultation_route_government_other, consultation_route_other_text, attribute_elderly, attribute_disability, attribute_poverty, attribute_single_parent, attribute_childcare, attribute_dv, attribute_foreigner, attribute_low_income, attribute_lgbt, attribute_welfare'), 
+    supabase.from('consultations').select('consultation_date, consultation_route_self, consultation_route_family, consultation_route_care_manager, consultation_route_elderly_center, consultation_route_disability_center, consultation_route_government, consultation_route_other, consultation_route_government_other, consultation_route_other_text, attribute_elderly, attribute_disability, attribute_poverty, attribute_single_parent, attribute_childcare, attribute_dv, attribute_foreigner, attribute_low_income, attribute_lgbt, attribute_welfare'),
     supabase.from('users').select('created_at')
   ]);
   
-  if (consultationsError || usersError) {
-    console.error("Data fetching error for charts:", consultationsError || usersError);
-  }
-
   const stats = {
-    totalUsers: totalUsers ?? 0,
-    newUsersThisMonth: newUsersThisMonth ?? 0,
-    consultationsThisMonth: consultationsThisMonth ?? 0,
-    supportPlansThisMonth: supportPlansThisMonth ?? 0,
+    totalUsers: usersCountResult.count ?? 0,
+    newUsersThisMonth: newUsersCountResult.count ?? 0,
+    consultationsThisMonth: consultationsCountResult.count ?? 0,
+    supportPlansThisMonth: supportPlansCountResult.count ?? 0,
   };
   
-  // グラフ用データをPropsとして渡す準備
+  // ▼▼▼▼▼ エラーハンドリングとデフォルト値の設定を強化 ▼▼▼▼▼
+  if (allConsultationsResult.error) {
+    console.error("Consultations fetch error:", allConsultationsResult.error.message);
+  }
+  if (allUsersResult.error) {
+    console.error("Users fetch error:", allUsersResult.error.message);
+  }
+
   const analyticsData = {
-    consultations: (allConsultationsData as Consultation[] | null) ?? [],
-    users: (allUsersData as User[] | null) ?? [],
+    consultations: (allConsultationsResult.data as Consultation[] | null) ?? [], // nullの場合は空配列を保証
+    users: (allUsersResult.data as User[] | null) ?? [], // nullの場合は空配列を保証
   };
-  // ▲▲▲▲▲▲▲▲▲▲ データ取得処理ここまで ▲▲▲▲▲▲▲▲▲▲
+  // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
   return (
     <Layout>
