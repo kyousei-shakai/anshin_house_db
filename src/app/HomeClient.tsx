@@ -1,47 +1,48 @@
 // app/HomeClient.tsx
 
-'use client' // このファイルがブラウザで動作することを示す命令
+'use client'
 
 import Link from 'next/link'
 import React, { useState } from 'react'
-import QuickUserAccess from '@/components/QuickUserAccess' // 忘れずにインポート
+import QuickUserAccess from '@/components/QuickUserAccess'
+import AnalyticsDashboard from '@/components/AnalyticsDashboard' // 新しいコンポーネントをインポート
+import { Consultation, User } from '@/types/custom'; // 型をインポート
 
-// アイコン用のSVGコンポーネント (Heroiconsより)
 const PlusCircleIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
   </svg>
 );
 
-// 「支援計画を作成する」ボタン用のアイコン
 const DocumentPlusIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
   </svg>
 );
 
-// サーバーから渡されるpropsの型を定義
+// ▼▼▼ propsの型定義を修正 ▼▼▼
 interface HomeClientProps {
   stats: {
     totalUsers: number;
     newUsersThisMonth: number;
     consultationsThisMonth: number;
     supportPlansThisMonth: number;
-  }
+  };
+  initialAnalyticsData: {
+    consultations: Consultation[];
+    users: User[];
+  };
 }
 
-export default function HomeClient({ stats }: HomeClientProps) {
-  // お知らせタブの状態を管理
+export default function HomeClient({ stats, initialAnalyticsData }: HomeClientProps) {
   const [activeTab, setActiveTab] = useState<'notifications' | 'future'>('notifications')
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* スマホ用：利用者名簿クイックアクセス (既存コンポーネント) */}
       <div className="lg:hidden mb-6">
         <QuickUserAccess />
       </div>
 
-      {/* --- クイックアクション --- */}
       <div className="mb-12 pt-4"> 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Link href="/consultations/new" className="group bg-blue-600 text-white rounded-lg shadow-md p-6 flex items-center hover:bg-blue-700 transition-all duration-200 transform hover:scale-105">
@@ -61,12 +62,10 @@ export default function HomeClient({ stats }: HomeClientProps) {
         </div>
       </div>
       
-      {/* --- 全体の状況 --- */}
       <div className="mb-12">
         <h2 className="text-xl font-bold text-gray-800 mb-4">全体の状況</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* 利用者情報カード */}
           <div className="bg-white rounded-lg shadow p-6 flex flex-col">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">利用者情報ハブ</h3>
             <div className="space-y-2 mb-4 flex-grow">
@@ -76,7 +75,6 @@ export default function HomeClient({ stats }: HomeClientProps) {
             <Link href="/users" className="text-sm font-medium text-blue-600 hover:text-blue-800 self-end mt-2">名簿全体を見る →</Link>
           </div>
 
-          {/* 相談記録カード */}
           <div className="bg-white rounded-lg shadow p-6 flex flex-col">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">相談記録</h3>
             <div className="space-y-2 mb-4 flex-grow">
@@ -85,7 +83,6 @@ export default function HomeClient({ stats }: HomeClientProps) {
             <Link href="/consultations" className="text-sm font-medium text-blue-600 hover:text-blue-800 self-end mt-2">履歴を詳しく見る →</Link>
           </div>
 
-          {/* 支援計画カード */}
           <div className="bg-white rounded-lg shadow p-6 flex flex-col">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">支援計画</h3>
             <div className="space-y-2 mb-4 flex-grow">
@@ -97,9 +94,15 @@ export default function HomeClient({ stats }: HomeClientProps) {
         </div>
       </div>
       
-      {/* --- お知らせ & 開発情報 --- */}
+      {/* ▼▼▼▼▼▼▼▼▼▼ ここにAnalyticsDashboardコンポーネントを呼び出す ▼▼▼▼▼▼▼▼▼▼ */}
+      <AnalyticsDashboard 
+        consultations={initialAnalyticsData.consultations}
+        users={initialAnalyticsData.users}
+      />
+      {/* ▲▲▲▲▲▲▲▲▲▲ ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */}
+
       <div>
-        <h2 className="text-xl font-bold text-gray-800 mb-4">お知らせ & 開発情報</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-4 mt-12">お知らせ & 開発情報</h2>
         <div className="bg-white rounded-lg shadow">
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-6 px-6" aria-label="Tabs">

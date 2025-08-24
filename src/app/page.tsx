@@ -4,6 +4,7 @@ import Layout from '@/components/Layout'
 import { cookies } from 'next/headers'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import HomeClient from './HomeClient'
+import { Consultation, User } from '@/types/custom' // 型をインポート
 
 export default async function Home() {
   
@@ -18,7 +19,6 @@ export default async function Home() {
           return cookieStore.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          // 【最終修正点】catchの引数をなくし、ESLintエラーを完全に解消
           try {
             cookieStore.set({ name, value, ...options })
           } catch {
@@ -26,7 +26,6 @@ export default async function Home() {
           }
         },
         remove(name: string, options: CookieOptions) {
-          // 【最終修正点】catchの引数をなくし、ESLintエラーを完全に解消
           try {
             cookieStore.set({ name, value: '', ...options })
           } catch {
@@ -39,36 +38,52 @@ export default async function Home() {
 
   const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
 
+  // ▼▼▼▼▼▼▼▼▼▼ データ取得処理を拡張 ▼▼▼▼▼▼▼▼▼▼
   const [
-    // 1. 総登録者数 (usersテーブルの全行)
+    // 1. サマリーデータ
     { count: totalUsers },
-    
-    // 2. 今月の新規登録者数 (usersテーブルでcreated_atが今月以降の行)
     { count: newUsersThisMonth },
-    
-    // 3. 今月の相談件数 (consultationsテーブルでconsultation_dateが今月以降の行)
     { count: consultationsThisMonth },
-    
-    // 4. 今月の作成計画数 (support_plansテーブルでcreation_dateが今月以降の行)
     { count: supportPlansThisMonth },
 
+    // 2. グラフ用データ
+    { data: allConsultationsData, error: consultationsError },
+    { data: allUsersData, error: usersError },
+
   ] = await Promise.all([
+    // サマリーデータ取得 (既存)
     supabase.from('users').select('*', { count: 'exact', head: true }),
     supabase.from('users').select('*', { count: 'exact', head: true }).gte('created_at', firstDayOfMonth),
     supabase.from('consultations').select('*', { count: 'exact', head: true }).gte('consultation_date', firstDayOfMonth),
     supabase.from('support_plans').select('*', { count: 'exact', head: true }).gte('creation_date', firstDayOfMonth),
+    
+    // グラフ用データ取得 (新規追加)
+    // グラフで必要なカラムのみを指定して取得
+    supabase.from('consultations').select('consultation_date, consultation_route_self, consultation_route_family, consultation_route_care_manager, consultation_route_elderly_center, consultation_route_disability_center, consultation_route_government, consultation_route_other, consultation_route_government_other, consultation_route_other_text, attribute_elderly, attribute_disability, attribute_poverty, attribute_single_parent, attribute_childcare, attribute_dv, attribute_foreigner, attribute_low_income, attribute_lgbt, attribute_welfare'), 
+    supabase.from('users').select('created_at')
   ]);
   
+  if (consultationsError || usersError) {
+    console.error("Data fetching error for charts:", consultationsError || usersError);
+  }
+
   const stats = {
     totalUsers: totalUsers ?? 0,
     newUsersThisMonth: newUsersThisMonth ?? 0,
     consultationsThisMonth: consultationsThisMonth ?? 0,
     supportPlansThisMonth: supportPlansThisMonth ?? 0,
   };
+  
+  // グラフ用データをPropsとして渡す準備
+  const analyticsData = {
+    consultations: (allConsultationsData as Consultation[] | null) ?? [],
+    users: (allUsersData as User[] | null) ?? [],
+  };
+  // ▲▲▲▲▲▲▲▲▲▲ データ取得処理ここまで ▲▲▲▲▲▲▲▲▲▲
 
   return (
     <Layout>
-      <HomeClient stats={stats} />
+      <HomeClient stats={stats} initialAnalyticsData={analyticsData} />
     </Layout>
   )
 }
