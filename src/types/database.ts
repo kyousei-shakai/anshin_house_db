@@ -142,6 +142,7 @@ export type Database = {
           stairs_other: boolean | null
           stairs_other_text: string | null
           stairs_partial_assist: boolean | null
+          status: string
           supporter_available: boolean | null
           supporter_text: string | null
           therapy_certificate: boolean | null
@@ -279,6 +280,7 @@ export type Database = {
           stairs_other?: boolean | null
           stairs_other_text?: string | null
           stairs_partial_assist?: boolean | null
+          status?: string
           supporter_available?: boolean | null
           supporter_text?: string | null
           therapy_certificate?: boolean | null
@@ -416,6 +418,7 @@ export type Database = {
           stairs_other?: boolean | null
           stairs_other_text?: string | null
           stairs_partial_assist?: boolean | null
+          status?: string
           supporter_available?: boolean | null
           supporter_text?: string | null
           therapy_certificate?: boolean | null

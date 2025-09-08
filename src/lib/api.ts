@@ -65,11 +65,34 @@ export const usersApi = {
 
 // Consultations API
 export const consultationsApi = {
-  getAll: async (): Promise<Consultation[]> => {
-    const { data, error } = await supabase.from('consultations').select('*').order('consultation_date', { ascending: false })
-    if (error) throw error
-    return data || []
+  // ▼▼▼▼▼▼▼▼▼▼ ここからが9/8修正箇所です ▼▼▼▼▼▼▼▼▼▼
+  getAll: async (filter?: { status?: string | null }): Promise<Consultation[]> => {
+    let query = supabase
+      .from('consultations')
+      .select('*')
+      .order('consultation_date', { ascending: false });
+
+    // フィルターが指定されている場合の処理
+    if (filter && filter.status) {
+      if (filter.status === '利用者登録済み') {
+        // '利用者登録済み' フィルターの場合
+        query = query.not('user_id', 'is', null);
+      } else {
+        // その他のステータスフィルターの場合
+        query = query.eq('status', filter.status);
+      }
+    } else {
+      // フィルターが指定されていない場合（デフォルトの挙動）
+      // '支援終了' と '対象外・辞退' 以外のステータスを取得
+      query = query.not('status', 'in', '("支援終了", "対象外・辞退")');
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data || [];
   },
+  // ▲▲▲▲▲▲▲▲▲▲ ここまでが9/8修正箇所です ▲▲▲▲▲▲▲▲▲▲
 
   getById: async (id: string): Promise<Consultation | null> => {
     const { data, error } = await supabase.from('consultations').select('*').eq('id', id).single()
@@ -94,6 +117,20 @@ export const consultationsApi = {
     if (error) throw error
     return data
   },
+
+  // ▼▼▼▼▼▼▼▼▼▼ ここからが9/8追加箇所です ▼▼▼▼▼▼▼▼▼▼
+  updateStatus: async (id: string, status: string): Promise<Consultation> => {
+    const { data, error } = await supabase
+      .from('consultations')
+      .update({ status: status })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+  // ▲▲▲▲▲▲▲▲▲▲ ここまでが9/8追加箇所です ▲▲▲▲▲▲▲▲▲▲
 
   delete: async (id: string): Promise<void> => {
     const { error } = await supabase.from('consultations').delete().eq('id', id)
