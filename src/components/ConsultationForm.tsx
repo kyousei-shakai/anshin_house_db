@@ -945,7 +945,14 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
               <label className="flex items-center"><input type="radio" name="next_appointment_scheduled" checked={formData.next_appointment_scheduled === true} onChange={() => setFormData(prev => ({...prev, next_appointment_scheduled: true}))} className="mr-1" /><span className="text-gray-700">あり</span></label>
               <label className="flex items-center"><input type="radio" name="next_appointment_scheduled" checked={formData.next_appointment_scheduled === false} onChange={() => setFormData(prev => ({...prev, next_appointment_scheduled: false}))} className="mr-1" /><span className="text-gray-700">なし</span></label>
             </div>
-            {formData.next_appointment_scheduled && (<input type="text" name="next_appointment_details" value={formData.next_appointment_details} onChange={handleChange} placeholder="次回予定の詳細" className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700" />)}
+            {formData.next_appointment_scheduled && (<textarea
+                name="next_appointment_details"
+                value={formData.next_appointment_details}
+                onChange={handleChange}
+                placeholder="次回予定の詳細"
+                rows={4} // 高さを4行分に設定
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700"
+              />)}
           </div>
         </div>
       </div>
