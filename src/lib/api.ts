@@ -65,24 +65,26 @@ export const usersApi = {
 
 // Consultations API
 export const consultationsApi = {
-  // ▼▼▼▼▼▼▼▼▼▼ ここからが9/8修正箇所です ▼▼▼▼▼▼▼▼▼▼
+  // ▼▼▼▼▼▼▼▼▼▼ 9/9 ▼▼▼▼▼▼▼▼▼▼
   getAll: async (filter?: { status?: string | null }): Promise<Consultation[]> => {
     let query = supabase
       .from('consultations')
       .select('*')
       .order('consultation_date', { ascending: false });
 
-    // フィルターが指定されている場合の処理
-    if (filter && filter.status) {
+    // フィルターが指定されているかチェック
+    if (filter) {
       if (filter.status === '利用者登録済み') {
         // '利用者登録済み' フィルターの場合
         query = query.not('user_id', 'is', null);
-      } else {
-        // その他のステータスフィルターの場合
+      } else if (filter.status) {
+        // 'すべて表示' 以外のステータスフィルターの場合 (filter.statusに文字列が入っている)
         query = query.eq('status', filter.status);
       }
+      // もし filter.status が null の場合 (つまり「すべて表示」) は、
+      // ここでは何もせず、絞り込み条件を追加しない。
     } else {
-      // フィルターが指定されていない場合（デフォルトの挙動）
+      // フィルターオブジェクト自体が渡されなかった場合（デフォルトの挙動）
       // '支援終了' と '対象外・辞退' 以外のステータスを取得
       query = query.not('status', 'in', '("支援終了", "対象外・辞退")');
     }
@@ -92,7 +94,7 @@ export const consultationsApi = {
     if (error) throw error;
     return data || [];
   },
-  // ▲▲▲▲▲▲▲▲▲▲ ここまでが9/8修正箇所です ▲▲▲▲▲▲▲▲▲▲
+  // ▲▲▲▲▲▲▲▲▲▲ 9/9修正ここまで ▲▲▲▲▲▲▲▲▲▲     
 
   getById: async (id: string): Promise<Consultation | null> => {
     const { data, error } = await supabase.from('consultations').select('*').eq('id', id).single()
