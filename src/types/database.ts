@@ -57,6 +57,8 @@ export type Database = {
           cooking_support_needed: boolean | null
           cooking_support_text: string | null
           created_at: string
+          current_floor_plan: string | null
+          current_rent: number | null
           dementia: string | null
           dementia_hospital: string | null
           diaper_usage: boolean | null
@@ -72,6 +74,8 @@ export type Database = {
           emergency_contact_phone_mobile: string | null
           emergency_contact_postal_code: string | null
           emergency_contact_relationship: string | null
+          eviction_date: string | null
+          eviction_date_notes: string | null
           excretion_full_assist: boolean | null
           excretion_independent: boolean | null
           excretion_other: boolean | null
@@ -95,6 +99,7 @@ export type Database = {
           income_injury_allowance: number | null
           income_pension: number | null
           income_salary: number | null
+          is_relocation_to_other_city_desired: boolean | null
           medical_history: string | null
           medical_institution_name: string | null
           medical_institution_staff: string | null
@@ -113,6 +118,8 @@ export type Database = {
           next_appointment_details: string | null
           next_appointment_scheduled: boolean | null
           other_notes: string | null
+          pet_details: string | null
+          pet_status: string | null
           phone_home: string | null
           phone_mobile: string | null
           physical_condition: string | null
@@ -120,7 +127,15 @@ export type Database = {
           physical_disability_level: string | null
           postal_code: string | null
           proxy_payment: boolean | null
+          relocation_admin_opinion: string | null
+          relocation_admin_opinion_details: string | null
+          relocation_cost_bearer: string | null
+          relocation_cost_bearer_details: string | null
+          relocation_notes: string | null
           relocation_reason: string | null
+          rent_arrears_details: string | null
+          rent_arrears_duration: string | null
+          rent_arrears_status: string | null
           rent_payment_method: string | null
           savings: number | null
           second_floor_possible: boolean | null
@@ -150,6 +165,10 @@ export type Database = {
           unit_bath_possible: boolean | null
           updated_at: string
           user_id: string | null
+          vehicle_bicycle: boolean
+          vehicle_car: boolean
+          vehicle_motorcycle: boolean
+          vehicle_none: boolean
           welfare_recipient: boolean | null
           welfare_staff: string | null
         }
@@ -195,6 +214,8 @@ export type Database = {
           cooking_support_needed?: boolean | null
           cooking_support_text?: string | null
           created_at?: string
+          current_floor_plan?: string | null
+          current_rent?: number | null
           dementia?: string | null
           dementia_hospital?: string | null
           diaper_usage?: boolean | null
@@ -210,6 +231,8 @@ export type Database = {
           emergency_contact_phone_mobile?: string | null
           emergency_contact_postal_code?: string | null
           emergency_contact_relationship?: string | null
+          eviction_date?: string | null
+          eviction_date_notes?: string | null
           excretion_full_assist?: boolean | null
           excretion_independent?: boolean | null
           excretion_other?: boolean | null
@@ -233,6 +256,7 @@ export type Database = {
           income_injury_allowance?: number | null
           income_pension?: number | null
           income_salary?: number | null
+          is_relocation_to_other_city_desired?: boolean | null
           medical_history?: string | null
           medical_institution_name?: string | null
           medical_institution_staff?: string | null
@@ -251,6 +275,8 @@ export type Database = {
           next_appointment_details?: string | null
           next_appointment_scheduled?: boolean | null
           other_notes?: string | null
+          pet_details?: string | null
+          pet_status?: string | null
           phone_home?: string | null
           phone_mobile?: string | null
           physical_condition?: string | null
@@ -258,7 +284,15 @@ export type Database = {
           physical_disability_level?: string | null
           postal_code?: string | null
           proxy_payment?: boolean | null
+          relocation_admin_opinion?: string | null
+          relocation_admin_opinion_details?: string | null
+          relocation_cost_bearer?: string | null
+          relocation_cost_bearer_details?: string | null
+          relocation_notes?: string | null
           relocation_reason?: string | null
+          rent_arrears_details?: string | null
+          rent_arrears_duration?: string | null
+          rent_arrears_status?: string | null
           rent_payment_method?: string | null
           savings?: number | null
           second_floor_possible?: boolean | null
@@ -288,6 +322,10 @@ export type Database = {
           unit_bath_possible?: boolean | null
           updated_at?: string
           user_id?: string | null
+          vehicle_bicycle?: boolean
+          vehicle_car?: boolean
+          vehicle_motorcycle?: boolean
+          vehicle_none?: boolean
           welfare_recipient?: boolean | null
           welfare_staff?: string | null
         }
@@ -333,6 +371,8 @@ export type Database = {
           cooking_support_needed?: boolean | null
           cooking_support_text?: string | null
           created_at?: string
+          current_floor_plan?: string | null
+          current_rent?: number | null
           dementia?: string | null
           dementia_hospital?: string | null
           diaper_usage?: boolean | null
@@ -348,6 +388,8 @@ export type Database = {
           emergency_contact_phone_mobile?: string | null
           emergency_contact_postal_code?: string | null
           emergency_contact_relationship?: string | null
+          eviction_date?: string | null
+          eviction_date_notes?: string | null
           excretion_full_assist?: boolean | null
           excretion_independent?: boolean | null
           excretion_other?: boolean | null
@@ -371,6 +413,7 @@ export type Database = {
           income_injury_allowance?: number | null
           income_pension?: number | null
           income_salary?: number | null
+          is_relocation_to_other_city_desired?: boolean | null
           medical_history?: string | null
           medical_institution_name?: string | null
           medical_institution_staff?: string | null
@@ -389,6 +432,8 @@ export type Database = {
           next_appointment_details?: string | null
           next_appointment_scheduled?: boolean | null
           other_notes?: string | null
+          pet_details?: string | null
+          pet_status?: string | null
           phone_home?: string | null
           phone_mobile?: string | null
           physical_condition?: string | null
@@ -396,7 +441,15 @@ export type Database = {
           physical_disability_level?: string | null
           postal_code?: string | null
           proxy_payment?: boolean | null
+          relocation_admin_opinion?: string | null
+          relocation_admin_opinion_details?: string | null
+          relocation_cost_bearer?: string | null
+          relocation_cost_bearer_details?: string | null
+          relocation_notes?: string | null
           relocation_reason?: string | null
+          rent_arrears_details?: string | null
+          rent_arrears_duration?: string | null
+          rent_arrears_status?: string | null
           rent_payment_method?: string | null
           savings?: number | null
           second_floor_possible?: boolean | null
@@ -426,6 +479,10 @@ export type Database = {
           unit_bath_possible?: boolean | null
           updated_at?: string
           user_id?: string | null
+          vehicle_bicycle?: boolean
+          vehicle_car?: boolean
+          vehicle_motorcycle?: boolean
+          vehicle_none?: boolean
           welfare_recipient?: boolean | null
           welfare_staff?: string | null
         }

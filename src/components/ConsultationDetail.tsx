@@ -16,9 +16,10 @@ interface ConsultationDetailProps {
   consultationId: string
 }
 
-// ★★ 視認性向上のための小さなコンポーネントを追加 ★★
+// 視認性向上のための小さなコンポーネント
 const DetailItem: React.FC<{ label: string; children: React.ReactNode; fullWidth?: boolean }> = ({ label, children, fullWidth = false }) => {
-  if (!children) return null; // 子要素がなければ何も表示しない
+  // 子要素が null, undefined, 空文字, false の場合に表示しないように厳密化
+  if (children === null || children === undefined || children === '' || children === false) return null;
 
   return (
     <div className={`py-4 sm:py-5 ${fullWidth ? 'sm:col-span-2' : ''}`}>
@@ -190,6 +191,45 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
         default: return method;
     }
   };
+  
+  // ▼▼▼ 追加 ▼▼▼ ここから
+  const getRelocationAdminOpinionLabel = (opinion: string | null | undefined, details: string | null | undefined): string => {
+    if (!opinion) return '未設定';
+    const detailText = details ? ` (${details})` : '';
+    switch (opinion) {
+      case 'possible': return '可';
+      case 'impossible': return '否';
+      case 'pending': return '確認中';
+      case 'other': return `その他${detailText}`;
+      default: return opinion;
+    }
+  };
+
+  const getRelocationCostBearerLabel = (bearer: string | null | undefined, details: string | null | undefined): string => {
+    if (!bearer) return '未設定';
+    const detailText = details ? ` (${details})` : '';
+    switch (bearer) {
+      case 'previous_city': return '転居前の市区町村が負担';
+      case 'next_city': return '転居先の市区町村が負担';
+      case 'self': return '利用者本人の負担';
+      case 'pending': return '確認中';
+      case 'other': return `その他${detailText}`;
+      default: return bearer;
+    }
+  };
+  
+  const getRentArrearsDurationLabel = (duration: string | null | undefined, details: string | null | undefined): string => {
+      if (!duration) return '未設定';
+      const detailText = details ? ` (${details})` : '';
+      switch (duration) {
+          case '1_month': return '1ヶ月';
+          case '2_to_3_months': return '2〜3ヶ月';
+          case 'half_year_or_more': return '半年以上';
+          case 'other': return `その他${detailText}`;
+          default: return duration;
+      }
+  };
+  // ▲▲▲ 追加 ▲▲▲ ここまで
 
   if (loading) {
     return (
@@ -219,7 +259,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
 
   return (
     <div className="space-y-10">
-      {/* ★★ ヘッダー部分のデザインを修正 ★★ */}
       <div className="lg:flex lg:items-center lg:justify-between">
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
@@ -263,7 +302,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
         </div>
       </div>
       
-      {/* ★★ 各セクションを DetailSection と DetailItem で再構築 ★★ */}
       <DetailSection title="1. 基本情報">
         <DetailItem label="相談日">{formatDate(consultation.consultation_date)}</DetailItem>
         <DetailItem label="担当スタッフ">{consultation.staff_name || '未設定'}</DetailItem>
@@ -363,8 +401,27 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
           </div>
         </DetailItem>
       </DetailSection>
+      
+      {/* ▼▼▼ 追加 ▼▼▼ ここから */}
+      {consultation.is_relocation_to_other_city_desired === true && (
+        <DetailSection title="4. 他市区町村への転居">
+          <DetailItem label="転居希望">
+            {consultation.is_relocation_to_other_city_desired === true ? 'はい' : 'いいえ'}
+          </DetailItem>
+          <DetailItem label="行政からの見解">
+            {getRelocationAdminOpinionLabel(consultation.relocation_admin_opinion, consultation.relocation_admin_opinion_details)}
+          </DetailItem>
+          <DetailItem label="費用負担">
+            {getRelocationCostBearerLabel(consultation.relocation_cost_bearer, consultation.relocation_cost_bearer_details)}
+          </DetailItem>
+          <DetailItem label="特記事項・課題" fullWidth>
+            <div className="whitespace-pre-wrap">{consultation.relocation_notes || '記載なし'}</div>
+          </DetailItem>
+        </DetailSection>
+      )}
+      {/* ▲▲▲ 追加 ▲▲▲ ここまで */}
 
-      <DetailSection title="4. ADL/IADL">
+      <DetailSection title="5. ADL/IADL">
         <DetailItem label="認知症">
             {consultation.dementia || '未設定'}
             {consultation.dementia_hospital && ` (病院: ${consultation.dementia_hospital})`}
@@ -385,7 +442,40 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
         <DetailItem label="その他特記事項" fullWidth><div className="whitespace-pre-wrap">{consultation.other_notes || '記載なし'}</div></DetailItem>
       </DetailSection>
 
-      <DetailSection title="5. 相談内容等">
+      {/* ▼▼▼ 追加 ▼▼▼ ここから */}
+      <DetailSection title="6. 現在の住まい">
+        <DetailItem label="家賃滞納">
+          {consultation.rent_arrears_status === 'yes' ? (
+            <div>
+              <span className="font-bold text-red-600">有り</span>
+              <div className="mt-2 pl-4 text-sm space-y-1">
+                {consultation.rent_arrears_duration && <div><strong>期間:</strong> {getRentArrearsDurationLabel(consultation.rent_arrears_duration, null)}</div>}
+                {consultation.rent_arrears_details && <div><strong>状況:</strong> <span className="whitespace-pre-wrap">{consultation.rent_arrears_details}</span></div>}
+              </div>
+            </div>
+          ) : consultation.rent_arrears_status === 'no' ? '無し' : '未設定'}
+        </DetailItem>
+        <DetailItem label="ペット">
+          {consultation.pet_status === 'yes' ? `有り (${consultation.pet_details || '詳細未入力'})` : consultation.pet_status === 'no' ? '無し' : '未設定'}
+        </DetailItem>
+        <DetailItem label="車両" fullWidth>
+          <div className="flex flex-wrap gap-2">
+            {consultation.vehicle_car && <span className="bg-gray-100 text-gray-800 px-2.5 py-1 rounded-full text-xs font-medium">車</span>}
+            {consultation.vehicle_motorcycle && <span className="bg-gray-100 text-gray-800 px-2.5 py-1 rounded-full text-xs font-medium">バイク</span>}
+            {consultation.vehicle_bicycle && <span className="bg-gray-100 text-gray-800 px-2.5 py-1 rounded-full text-xs font-medium">自転車</span>}
+            {consultation.vehicle_none && <span className="bg-gray-100 text-gray-800 px-2.5 py-1 rounded-full text-xs font-medium">なし</span>}
+          </div>
+        </DetailItem>
+        <DetailItem label="間取り">{consultation.current_floor_plan}</DetailItem>
+        <DetailItem label="家賃">{consultation.current_rent ? `${consultation.current_rent.toLocaleString()}円` : ''}</DetailItem>
+        <DetailItem label="退去期限" fullWidth>
+          {formatDate(consultation.eviction_date)}
+          {consultation.eviction_date_notes && <div className="mt-1 text-sm text-gray-600">補足: {consultation.eviction_date_notes}</div>}
+        </DetailItem>
+      </DetailSection>
+      {/* ▲▲▲ 追加 ▲▲▲ ここまで */}
+
+      <DetailSection title="7. 相談内容等">
         <DetailItem label="相談内容（困りごと、何が大変でどうしたいか、等）" fullWidth>
             <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">{consultation.consultation_content || '記載なし'}</div>
         </DetailItem>
