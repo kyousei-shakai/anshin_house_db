@@ -6,10 +6,16 @@ import { Database } from '@/types/database'
 import XlsxPopulate from 'xlsx-populate'
 import path from 'path'
 import fs from 'fs/promises'
+// ▼▼▼ 追加 ▼▼▼ 共通ヘルパー関数をインポート
+import { 
+    getRelocationAdminOpinionLabel, 
+    getRelocationCostBearerLabel, 
+    getRentArrearsDurationLabel 
+} from '@/utils/export'
 
 type Consultation = Database['public']['Tables']['consultations']['Row']
 
-// --- ヘルパー関数群 ---
+// --- このファイルにローカルなヘルパー関数群 ---
 const calculateAgeFromYMD = (year: number | null, month: number | null, day: number | null): number | '' => {
     if (!year || !month || !day) return '';
     try {
@@ -83,6 +89,13 @@ const createReplacements = (consultation: Consultation): Record<string, string |
         return status ? map[status] || '' : '';
     };
 
+    const vehicleText = [
+        consultation.vehicle_car && '車',
+        consultation.vehicle_motorcycle && 'バイク',
+        consultation.vehicle_bicycle && '自転車',
+        consultation.vehicle_none && 'なし'
+    ].filter(Boolean).join('・');
+
     const physicalConditionKey = consultation.physical_condition as PhysicalConditionKey;
 
     return {
@@ -105,9 +118,10 @@ const createReplacements = (consultation: Consultation): Record<string, string |
         '{{household_siblings}}': check(consultation.household_siblings), '{{household_acquaintance}}': check(consultation.household_acquaintance),
         '{{household_other}}': check(consultation.household_other), '{{household_other_text}}': consultation.household_other_text || '',
         '{{postal_code}}': consultation.postal_code || '', '{{address}}': consultation.address || '', '{{phone_home}}': consultation.phone_home || '',
-        '{{phone_mobile}}': consultation.phone_mobile || '', '{{birth_era_or_ad}}': japaneseEra ? japaneseEra.era : '西暦',
-        '{{birth_year}}': japaneseEra ? japaneseEra.year : consultation.birth_year || '', '{{birth_month}}': consultation.birth_month || '',
-        '{{birth_day}}': consultation.birth_day || '', '{{age}}': age,
+        '{{phone_mobile}}': consultation.phone_mobile || '',
+        '{{birth_era_name}}': japaneseEra ? japaneseEra.era : '西暦', // プレースホルダー名を修正
+        '{{birth_year}}': japaneseEra ? japaneseEra.year : consultation.birth_year || '',
+        '{{birth_month}}': consultation.birth_month || '', '{{birth_day}}': consultation.birth_day || '', '{{age}}': age,
         '{{physical_condition}}': consultation.physical_condition ? physicalConditionMap[physicalConditionKey] || '' : '',
         '{{mental_cert}}': check(consultation.mental_disability_certificate), '{{mental_cert_level}}': consultation.mental_disability_level || '',
         '{{physical_cert}}': check(consultation.physical_disability_certificate), '{{physical_cert_level}}': consultation.physical_disability_level || '',
@@ -138,7 +152,26 @@ const createReplacements = (consultation: Consultation): Record<string, string |
         '{{bathing_other_text}}': consultation.bathing_other_text || '',
         '{{money_manager}}': consultation.money_management_supporter || '',
         '{{proxy_payment}}': consultation.proxy_payment ? '有' : '無',
-        '{{rent_payment_method}}': getRentPaymentMethod(consultation.rent_payment_method), '{{other_notes}}': consultation.other_notes || '',
+        '{{rent_payment_method}}': getRentPaymentMethod(consultation.rent_payment_method), 
+        
+        '{{is_relocation_to_other_city_desired}}': consultation.is_relocation_to_other_city_desired === true ? 'はい' : consultation.is_relocation_to_other_city_desired === false ? 'いいえ' : '',
+        '{{relocation_admin_opinion}}': getRelocationAdminOpinionLabel(consultation.relocation_admin_opinion, consultation.relocation_admin_opinion_details),
+        '{{relocation_admin_opinion_details}}': consultation.relocation_admin_opinion_details || '',
+        '{{relocation_cost_bearer}}': getRelocationCostBearerLabel(consultation.relocation_cost_bearer, consultation.relocation_cost_bearer_details),
+        '{{relocation_cost_bearer_details}}': consultation.relocation_cost_bearer_details || '',
+        '{{relocation_notes}}': consultation.relocation_notes || '',
+        '{{rent_arrears_status}}': consultation.rent_arrears_status === 'yes' ? '有り' : consultation.rent_arrears_status === 'no' ? '無し' : '',
+        '{{rent_arrears_duration}}': getRentArrearsDurationLabel(consultation.rent_arrears_duration, null),
+        '{{rent_arrears_details}}': consultation.rent_arrears_details || '',
+        '{{pet_status}}': consultation.pet_status === 'yes' ? '有り' : consultation.pet_status === 'no' ? '無し' : '',
+        '{{pet_details}}': consultation.pet_details || '',
+        '{{vehicle}}': vehicleText,
+        '{{current_floor_plan}}': consultation.current_floor_plan || '',
+        '{{current_rent}}': consultation.current_rent || '',
+        '{{eviction_date}}': consultation.eviction_date ? new Date(consultation.eviction_date).toLocaleDateString('ja-JP') : '',
+        '{{eviction_date_notes}}': consultation.eviction_date_notes || '',
+        
+        '{{other_notes}}': consultation.other_notes || '',
         '{{consultation_content}}': consultation.consultation_content || '', '{{relocation_reason}}': consultation.relocation_reason || '',
         '{{emergency_name}}': consultation.emergency_contact_name || '', '{{emergency_relationship}}': consultation.emergency_contact_relationship || '',
         '{{emergency_postal_code}}': consultation.emergency_contact_postal_code || '', '{{emergency_address}}': consultation.emergency_contact_address || '',
@@ -155,8 +188,12 @@ export async function POST(request: Request) {
       return new NextResponse('Invalid request body', { status: 400 });
     }
     
-    const allConsultations = await consultationsApi.getAll();
-    const consultations = allConsultations.filter(c => consultationIds.includes(c.id));
+    const { data: allConsultations, error: fetchError } = await consultationsApi.getAllWithAllColumns();
+    if (fetchError) throw fetchError;
+
+    // ▼▼▼ 修正 ▼▼▼ NULLチェックを追加
+    const validConsultations = allConsultations || [];
+    const consultations = validConsultations.filter(c => consultationIds.includes(c.id));
 
     const templatePath = path.resolve(process.cwd(), 'public', 'consultation_template.xlsx');
     const templateData = await fs.readFile(templatePath);
@@ -212,6 +249,7 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error("API Error:", error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+    return new NextResponse(JSON.stringify({ message: "Internal Server Error", error: errorMessage }), { status: 500 });
   }
 }

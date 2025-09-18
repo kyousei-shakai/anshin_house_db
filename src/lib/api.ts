@@ -13,7 +13,6 @@ type Staff = Database['public']['Tables']['staff']['Row']
 type StaffInsert = Database['public']['Tables']['staff']['Insert']
 
 // ブラウザ環境で実行されるクライアントコンポーネント用のSupabaseクライアントを生成するヘルパー関数
-// この関数を各APIメソッドの先頭で呼び出すことで、常に認証情報がリクエストに含まれるようになる
 const getSupabaseClient = () => {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -73,6 +72,21 @@ export const usersApi = {
 
 // Consultations API
 export const consultationsApi = {
+   // ▼▼▼ ここが修正箇所です ▼▼▼
+   getAllWithAllColumns: async () => { // Promise<Consultation[]> の型定義を削除
+    const supabase = getSupabaseClient()
+    // Supabaseから返ってきた data と error をそのままオブジェクトとして返す
+    const { data, error } = await supabase.from('consultations').select('*').order('consultation_date', { ascending: false });
+    
+    if (error) {
+      // エラーが発生しても、呼び出し元で処理できるよう、ログ出力に留める
+      console.error("getAllWithAllColumns Error:", error);
+    }
+    
+    return { data, error };
+  },
+  // ▲▲▲ 修正はここまでです ▲▲▲
+
   getAll: async (filter?: { status?: string | null }): Promise<Consultation[]> => {
     const supabase = getSupabaseClient()
     let query = supabase
@@ -157,7 +171,7 @@ export const consultationsApi = {
   }
 }
 
-// Support Plans API
+// Support Plans API (変更なし)
 export const supportPlansApi = {
   getAll: async (): Promise<SupportPlan[]> => {
     const supabase = getSupabaseClient()
@@ -165,35 +179,30 @@ export const supportPlansApi = {
     if (error) throw error
     return data || []
   },
-
   getById: async (id: string): Promise<SupportPlan | null> => {
     const supabase = getSupabaseClient()
     const { data, error } = await supabase.from('support_plans').select('*').eq('id', id).single()
     if (error) throw error
     return data
   },
-
   getByUserId: async (userId: string): Promise<SupportPlan[]> => {
     const supabase = getSupabaseClient()
     const { data, error } = await supabase.from('support_plans').select('*').eq('user_id', userId).order('creation_date', { ascending: false })
     if (error) throw error
     return data || []
   },
-
   create: async (supportPlan: SupportPlanInsert): Promise<SupportPlan> => {
     const supabase = getSupabaseClient()
     const { data, error } = await supabase.from('support_plans').insert([supportPlan]).select().single()
     if (error) throw error
     return data
   },
-
   update: async (id: string, supportPlan: Partial<SupportPlan>): Promise<SupportPlan> => {
     const supabase = getSupabaseClient()
     const { data, error } = await supabase.from('support_plans').update(supportPlan).eq('id', id).select().single()
     if (error) throw error
     return data
   },
-
   delete: async (id: string): Promise<void> => {
     const supabase = getSupabaseClient()
     const { error } = await supabase.from('support_plans').delete().eq('id', id)
@@ -201,7 +210,7 @@ export const supportPlansApi = {
   }
 }
 
-// Staff API
+// Staff API (変更なし)
 export const staffApi = {
   getAll: async (): Promise<Staff[]> => {
     const supabase = getSupabaseClient()
@@ -209,7 +218,6 @@ export const staffApi = {
     if (error) throw error
     return data || []
   },
-  
   create: async (staff: StaffInsert): Promise<Staff> => {
     const supabase = getSupabaseClient()
     const { data, error } = await supabase.from('staff').insert([staff]).select().single()

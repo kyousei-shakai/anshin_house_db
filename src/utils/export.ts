@@ -8,6 +8,7 @@ type User = Database['public']['Tables']['users']['Row']
 type Consultation = Database['public']['Tables']['consultations']['Row']
 type SupportPlan = Database['public']['Tables']['support_plans']['Row']
 
+// --- ヘルパー関数群 ---
 const calculateAgeFromDate = (birthDate: string | null): number | '' => {
   if (!birthDate) return '';
   try {
@@ -34,23 +35,54 @@ const calculateAgeFromYMD = (year: number | null, month: number | null, day: num
     }
 }
 
+// ▼▼▼ 追加 ▼▼▼ 共通ヘルパー関数として集約・エクスポート
+export const getRelocationAdminOpinionLabel = (opinion: string | null, details: string | null | undefined): string => {
+  if (!opinion) return '未設定';
+  const detailText = details ? ` (${details})` : '';
+  switch (opinion) {
+    case 'possible': return '可';
+    case 'impossible': return '否';
+    case 'pending': return '確認中';
+    case 'other': return `その他${detailText}`;
+    default: return opinion;
+  }
+};
+
+export const getRelocationCostBearerLabel = (bearer: string | null, details: string | null | undefined): string => {
+  if (!bearer) return '未設定';
+  const detailText = details ? ` (${details})` : '';
+  switch (bearer) {
+    case 'previous_city': return '転居前の市区町村が負担';
+    case 'next_city': return '転居先の市区町村が負担';
+    case 'self': return '利用者本人の負担';
+    case 'pending': return '確認中';
+    case 'other': return `その他${detailText}`;
+    default: return bearer;
+  }
+};
+
+export const getRentArrearsDurationLabel = (duration: string | null, details: string | null | undefined): string => {
+    if (!duration) return '未設定';
+    const detailText = details ? ` (${details})` : '';
+    switch (duration) {
+        case '1_month': return '1ヶ月';
+        case '2_to_3_months': return '2〜3ヶ月';
+        case 'half_year_or_more': return '半年以上';
+        case 'other': return `その他${detailText}`;
+        default: return duration;
+    }
+};
+// ▲▲▲ 追加ここまで ▲▲▲
+
 // --- 既存のDB形式エクスポートやレポート機能 ---
 export const exportUsersToExcel = (users: User[], filename: string = 'users.xlsx') => {
   const worksheet = XLSX.utils.json_to_sheet(
     users.map(user => ({
-      'UID': user.uid,
-      '氏名': user.name,
-      '生年月日': user.birth_date ? new Date(user.birth_date).toLocaleDateString('ja-JP') : '',
+      'UID': user.uid, '氏名': user.name, '生年月日': user.birth_date ? new Date(user.birth_date).toLocaleDateString('ja-JP') : '',
       '性別': user.gender === 'male' ? '男性' : user.gender === 'female' ? '女性' : user.gender === 'other' ? 'その他' : '',
-      '年齢': calculateAgeFromDate(user.birth_date),
-      '物件住所': user.property_address || '',
-      '物件名': user.property_name || '',
-      '部屋番号': user.room_number || '',
-      '入居者連絡先': user.resident_contact || '',
-      '緊急連絡先': user.emergency_contact || '',
-      '家賃': user.rent ?? '',
-      '作成日': new Date(user.created_at).toLocaleDateString('ja-JP'),
-      '更新日': new Date(user.updated_at).toLocaleDateString('ja-JP')
+      '年齢': calculateAgeFromDate(user.birth_date), '物件住所': user.property_address || '', '物件名': user.property_name || '',
+      '部屋番号': user.room_number || '', '入居者連絡先': user.resident_contact || '', '緊急連絡先': user.emergency_contact || '',
+      '家賃': user.rent ?? '', '作成日': new Date(user.created_at).toLocaleDateString('ja-JP'), '更新日': new Date(user.updated_at).toLocaleDateString('ja-JP')
     }))
   )
   const workbook = XLSX.utils.book_new()
@@ -63,19 +95,11 @@ export const exportUsersToExcel = (users: User[], filename: string = 'users.xlsx
 export const exportUsersToCSV = (users: User[], filename: string = 'users.csv') => {
   const worksheet = XLSX.utils.json_to_sheet(
     users.map(user => ({
-      'UID': user.uid,
-      '氏名': user.name,
-      '生年月日': user.birth_date ? new Date(user.birth_date).toLocaleDateString('ja-JP') : '',
+      'UID': user.uid, '氏名': user.name, '生年月日': user.birth_date ? new Date(user.birth_date).toLocaleDateString('ja-JP') : '',
       '性別': user.gender === 'male' ? '男性' : user.gender === 'female' ? '女性' : user.gender === 'other' ? 'その他' : '',
-      '年齢': calculateAgeFromDate(user.birth_date),
-      '物件住所': user.property_address || '',
-      '物件名': user.property_name || '',
-      '部屋番号': user.room_number || '',
-      '入居者連絡先': user.resident_contact || '',
-      '緊急連絡先': user.emergency_contact || '',
-      '家賃': user.rent ?? '',
-      '作成日': new Date(user.created_at).toLocaleDateString('ja-JP'),
-      '更新日': new Date(user.updated_at).toLocaleDateString('ja-JP')
+      '年齢': calculateAgeFromDate(user.birth_date), '物件住所': user.property_address || '', '物件名': user.property_name || '',
+      '部屋番号': user.room_number || '', '入居者連絡先': user.resident_contact || '', '緊急連絡先': user.emergency_contact || '',
+      '家賃': user.rent ?? '', '作成日': new Date(user.created_at).toLocaleDateString('ja-JP'), '更新日': new Date(user.updated_at).toLocaleDateString('ja-JP')
     }))
   )
   const csvData = XLSX.utils.sheet_to_csv(worksheet)
@@ -107,7 +131,20 @@ export const exportConsultationsToExcel = (consultations: Consultation[], filena
         '年齢': calculateAgeFromYMD(c.birth_year, c.birth_month, c.birth_day), '性別': c.gender === 'male' ? '男性' : c.gender === 'female' ? '女性' : c.gender === 'other' ? 'その他' : '',
         '相談ルート': consultation_route, '属性': attributes, '世帯構成': household_composition, '住所': c.address || '',
         '電話番号': c.phone_mobile || c.phone_home || '', '身体状況': c.physical_condition || '', '相談内容': c.consultation_content || '',
-        '転居理由': c.relocation_reason || '', '相談結果': c.consultation_result || '', '作成日': new Date(c.created_at).toLocaleDateString('ja-JP'), '更新日': new Date(c.updated_at).toLocaleDateString('ja-JP')
+        '転居理由': c.relocation_reason || '', '相談結果': c.consultation_result || '',
+        
+        '転居希望': c.is_relocation_to_other_city_desired === true ? 'はい' : c.is_relocation_to_other_city_desired === false ? 'いいえ' : '',
+        '行政見解': getRelocationAdminOpinionLabel(c.relocation_admin_opinion, c.relocation_admin_opinion_details),
+        '費用負担': getRelocationCostBearerLabel(c.relocation_cost_bearer, c.relocation_cost_bearer_details),
+        '転居メモ': c.relocation_notes || '',
+        '家賃滞納': c.rent_arrears_status === 'yes' ? `有り (${getRentArrearsDurationLabel(c.rent_arrears_duration, null)})` : c.rent_arrears_status === 'no' ? '無し' : '',
+        'ペット': c.pet_status === 'yes' ? `有り (${c.pet_details || '詳細未入力'})` : c.pet_status === 'no' ? '無し' : '',
+        '車両': [c.vehicle_car && '車', c.vehicle_motorcycle && 'バイク', c.vehicle_bicycle && '自転車', c.vehicle_none && 'なし'].filter(Boolean).join('・'),
+        '現間取り': c.current_floor_plan || '',
+        '現家賃': c.current_rent ? `${c.current_rent.toLocaleString()}円` : '',
+        '退去期限': c.eviction_date ? new Date(c.eviction_date).toLocaleDateString('ja-JP') : '',
+
+        '作成日': new Date(c.created_at).toLocaleDateString('ja-JP'), '更新日': new Date(c.updated_at).toLocaleDateString('ja-JP')
       }
     })
   )
@@ -142,7 +179,20 @@ export const exportConsultationsToCSV = (consultations: Consultation[], filename
         '年齢': calculateAgeFromYMD(c.birth_year, c.birth_month, c.birth_day), '性別': c.gender === 'male' ? '男性' : c.gender === 'female' ? '女性' : c.gender === 'other' ? 'その他' : '',
         '相談ルート': consultation_route, '属性': attributes, '世帯構成': household_composition, '住所': c.address || '',
         '電話番号': c.phone_mobile || c.phone_home || '', '身体状況': c.physical_condition || '', '相談内容': c.consultation_content || '',
-        '転居理由': c.relocation_reason || '', '相談結果': c.consultation_result || '', '作成日': new Date(c.created_at).toLocaleDateString('ja-JP'), '更新日': new Date(c.updated_at).toLocaleDateString('ja-JP')
+        '転居理由': c.relocation_reason || '', '相談結果': c.consultation_result || '',
+        
+        '転居希望': c.is_relocation_to_other_city_desired === true ? 'はい' : c.is_relocation_to_other_city_desired === false ? 'いいえ' : '',
+        '行政見解': getRelocationAdminOpinionLabel(c.relocation_admin_opinion, c.relocation_admin_opinion_details),
+        '費用負担': getRelocationCostBearerLabel(c.relocation_cost_bearer, c.relocation_cost_bearer_details),
+        '転居メモ': c.relocation_notes || '',
+        '家賃滞納': c.rent_arrears_status === 'yes' ? `有り (${getRentArrearsDurationLabel(c.rent_arrears_duration, null)})` : c.rent_arrears_status === 'no' ? '無し' : '',
+        'ペット': c.pet_status === 'yes' ? `有り (${c.pet_details || '詳細未入力'})` : c.pet_status === 'no' ? '無し' : '',
+        '車両': [c.vehicle_car && '車', c.vehicle_motorcycle && 'バイク', c.vehicle_bicycle && '自転車', c.vehicle_none && 'なし'].filter(Boolean).join('・'),
+        '現間取り': c.current_floor_plan || '',
+        '現家賃': c.current_rent ? `${c.current_rent.toLocaleString()}円` : '',
+        '退去期限': c.eviction_date ? new Date(c.eviction_date).toLocaleDateString('ja-JP') : '',
+
+        '作成日': new Date(c.created_at).toLocaleDateString('ja-JP'), '更新日': new Date(c.updated_at).toLocaleDateString('ja-JP')
       }
     })
   )
@@ -216,9 +266,6 @@ export const exportConsultationReport = (consultations: Consultation[], startDat
   saveAs(data, filename);
 }
 
-/**
- * サーバーサイドAPIを呼び出し、整形済みExcelファイルをダウンロードする
- */
 export const exportFormattedConsultationsToExcel = async (consultations: Consultation[], filename: string) => {
   if (!consultations || consultations.length === 0) {
     alert('エクスポート対象のデータがありません。');
