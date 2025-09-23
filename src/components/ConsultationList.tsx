@@ -12,26 +12,22 @@ type Consultation = Database['public']['Tables']['consultations']['Row']
 type UserInsert = Database['public']['Tables']['users']['Insert']
 
 const ConsultationList: React.FC = () => {
-  // ★ 変更点: 全相談データを保持するためのstateを追加
   const [allConsultations, setAllConsultations] = useState<Consultation[]>([]);
-  const [consultations, setConsultations] = useState<Consultation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [activeFilter, setActiveFilter] = useState<StatusFilter>(null);
 
-  // ★ 変更点: データ取得ロジックを分離
   const fetchAllData = async () => {
     try {
       setLoading(true);
       setError(null);
-      // 'すべて表示' に相当するフィルタで全件取得
       const data = await consultationsApi.getAll({ status: null });
       setAllConsultations(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
-      setAllConsultations([]); // エラー時は空にする
+      setAllConsultations([]);
     } finally {
       setLoading(false);
     }
@@ -41,33 +37,28 @@ const ConsultationList: React.FC = () => {
     fetchAllData();
   }, []);
 
-  // ★ 変更点: フィルタリングロジックを allConsultations を元に行う
   const filteredConsultations = useMemo(() => {
     let filtered = allConsultations;
 
-    // ステータスフィルター
     if (activeFilter && activeFilter !== 'すべて表示') {
       if (activeFilter === '利用者登録済み') {
         filtered = filtered.filter(c => !!c.user_id);
       } else {
         filtered = filtered.filter(c => c.status === activeFilter && !c.user_id);
       }
-    } else if (activeFilter === null) { // デフォルトのフィルタ（アクティブなもの）
-       const inactiveStatuses = ["支援終了", "対象外・辞退"];
+    } else if (activeFilter === null) { 
+       const inactiveStatuses: (string | null)[] = ["支援終了", "対象外・辞退"];
        filtered = filtered.filter(c => !inactiveStatuses.includes(c.status) && !c.user_id);
     }
 
-    // キーワードフィルター
     if (searchTerm) {
       filtered = filtered.filter(consultation =>
         consultation.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         consultation.staff_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        consultation.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        consultation.consultation_content?.toLowerCase().includes(searchTerm.toLowerCase())
+        consultation.id.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    // 日付フィルター
     if (dateFilter) {
       filtered = filtered.filter(consultation =>
         consultation.consultation_date && consultation.consultation_date.startsWith(dateFilter)
@@ -77,9 +68,14 @@ const ConsultationList: React.FC = () => {
     return filtered;
   }, [allConsultations, activeFilter, searchTerm, dateFilter]);
 
-  // ★ 変更点: 各ステータスの件数を計算するロジック
+  // ★★★ 型エラー修正箇所 ★★★
   const statusCounts = useMemo(() => {
-    const counts: { [key in StatusFilter]?: number } = {};
+    const counts: { [key: string]: number } = {};
+    const defaultInactiveStatuses: (string | null)[] = ["支援終了", "対象外・辞退"];
+
+    // 'null' の代わりに 'active' というキーを使用
+    counts['active'] = allConsultations.filter(c => !defaultInactiveStatuses.includes(c.status) && !c.user_id).length;
+
     for (const filter of STATUS_FILTERS) {
       if (filter === 'すべて表示') {
         counts[filter] = allConsultations.length;
@@ -95,17 +91,15 @@ const ConsultationList: React.FC = () => {
 
   const handleStatusChange = async (consultationId: string, newStatus: string) => {
     if (!confirm(`ステータスを「${newStatus}」に変更しますか？`)) {
-      // stateを再フェッチするのが最も安全なロールバック方法
-      fetchAllData();
       return;
     }
     try {
       const updatedConsultation = await consultationsApi.updateStatus(consultationId, newStatus);
-      // allConsultations と consultations の両方を更新
       setAllConsultations(prev => prev.map(c => c.id === consultationId ? updatedConsultation : c));
     } catch (err) {
       console.error('ステータス更新エラー:', err);
       alert('ステータスの更新に失敗しました。');
+      fetchAllData();
     }
   };
 
@@ -137,6 +131,10 @@ const ConsultationList: React.FC = () => {
       alert('利用者として登録しました')
     } catch (err) {
       console.error('利用者登録エラー:', err)
+      if (err instanceof Error) {
+        console.error('エラーメッセージ:', err.message)
+        console.error('エラースタック:', err.stack)
+      }
       alert('利用者登録に失敗しました')
     }
   }
@@ -169,7 +167,7 @@ const ConsultationList: React.FC = () => {
           <div className="flex flex-wrap gap-2">
             {STATUS_FILTERS.map(filter => (
               <button
-                key={filter}
+                key={filter || 'active'}
                 onClick={() => setActiveFilter(filter)}
                 className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex items-center gap-x-2 ${
                   activeFilter === filter
@@ -177,16 +175,14 @@ const ConsultationList: React.FC = () => {
                     : 'bg-white text-gray-700 hover:bg-gray-200 ring-1 ring-inset ring-gray-300'
                 }`}
               >
-                {filter}
-                {/* ★★★ ここからが件数表示のUIです ★★★ */}
+                {filter || 'アクティブ'}
                 <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
                   activeFilter === filter
                     ? 'bg-blue-700 text-white'
                     : 'bg-gray-200 text-gray-600'
                 }`}>
-                  {statusCounts[filter] ?? 0}
+                  {statusCounts[filter || 'active'] ?? 0}
                 </span>
-                {/* ★★★ ここまで ★★★ */}
               </button>
             ))}
           </div>
@@ -291,7 +287,6 @@ const ConsultationList: React.FC = () => {
                         </p>
                     )}
                     
-                    {/* ▼▼▼▼▼ ここからが追加箇所です ▼▼▼▼▼ */}
                     {consultation.next_appointment_scheduled === true && (
                       <div className="mt-2 flex items-center gap-x-2 text-sm text-sky-600">
                         <svg className="h-4 w-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -301,7 +296,6 @@ const ConsultationList: React.FC = () => {
                         <p>{consultation.next_appointment_details}</p>
                       </div>
                     )}
-                    {/* ▲▲▲▲▲ ここまでが追加箇所です ▲▲▲▲▲ */}
 
                   </div>
                   <div className="mt-4 sm:mt-0 sm:ml-4 flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
