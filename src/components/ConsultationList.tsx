@@ -51,11 +51,16 @@ const ConsultationList: React.FC = () => {
        filtered = filtered.filter(c => !inactiveStatuses.includes(c.status) && !c.user_id);
     }
 
+    // キーワードフィルター
     if (searchTerm) {
+      const lowercasedFilter = searchTerm.toLowerCase();
       filtered = filtered.filter(consultation =>
-        consultation.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        consultation.staff_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        consultation.id.toLowerCase().includes(searchTerm.toLowerCase())
+        consultation.name?.toLowerCase().includes(lowercasedFilter) ||
+        consultation.staff_name?.toLowerCase().includes(lowercasedFilter) ||
+        consultation.id.toLowerCase().includes(lowercasedFilter) ||
+        consultation.consultation_content?.toLowerCase().includes(lowercasedFilter) ||
+        consultation.consultation_result?.toLowerCase().includes(lowercasedFilter) ||
+        consultation.next_appointment_details?.toLowerCase().includes(lowercasedFilter)
       );
     }
 
