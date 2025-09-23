@@ -30,9 +30,6 @@ export default function ConsultationsPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">相談履歴管理</h1>
-              <p className="text-gray-600">
-                全ての相談記録を管理します。検索・フィルタリング機能で必要な情報を見つけられます。
-              </p>
             </div>
             <Link
               href="/consultations/new"

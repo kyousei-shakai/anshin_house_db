@@ -12,6 +12,8 @@ type Consultation = Database['public']['Tables']['consultations']['Row']
 type UserInsert = Database['public']['Tables']['users']['Insert']
 
 const ConsultationList: React.FC = () => {
+  // ★ 変更点: 全相談データを保持するためのstateを追加
+  const [allConsultations, setAllConsultations] = useState<Consultation[]>([]);
   const [consultations, setConsultations] = useState<Consultation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -19,69 +21,93 @@ const ConsultationList: React.FC = () => {
   const [dateFilter, setDateFilter] = useState('')
   const [activeFilter, setActiveFilter] = useState<StatusFilter>(null);
 
-  const fetchConsultations = async (filter: StatusFilter) => {
+  // ★ 変更点: データ取得ロジックを分離
+  const fetchAllData = async () => {
     try {
-      setLoading(true)
-      setError(null)
-      let apiFilter: { status?: string | null } = {};
-
-      if (filter === null) {
-        apiFilter = {};
-      } else if (filter === 'すべて表示') {
-        apiFilter = { status: null }; 
-      } else {
-        apiFilter = { status: filter };
-      }
-
-      const data = await consultationsApi.getAll(apiFilter)
-      setConsultations(data)
+      setLoading(true);
+      setError(null);
+      // 'すべて表示' に相当するフィルタで全件取得
+      const data = await consultationsApi.getAll({ status: null });
+      setAllConsultations(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました')
+      setError(err instanceof Error ? err.message : 'エラーが発生しました');
+      setAllConsultations([]); // エラー時は空にする
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    fetchConsultations(activeFilter)
-  }, [activeFilter])
+    fetchAllData();
+  }, []);
+
+  // ★ 変更点: フィルタリングロジックを allConsultations を元に行う
+  const filteredConsultations = useMemo(() => {
+    let filtered = allConsultations;
+
+    // ステータスフィルター
+    if (activeFilter && activeFilter !== 'すべて表示') {
+      if (activeFilter === '利用者登録済み') {
+        filtered = filtered.filter(c => !!c.user_id);
+      } else {
+        filtered = filtered.filter(c => c.status === activeFilter && !c.user_id);
+      }
+    } else if (activeFilter === null) { // デフォルトのフィルタ（アクティブなもの）
+       const inactiveStatuses = ["支援終了", "対象外・辞退"];
+       filtered = filtered.filter(c => !inactiveStatuses.includes(c.status) && !c.user_id);
+    }
+
+    // キーワードフィルター
+    if (searchTerm) {
+      filtered = filtered.filter(consultation =>
+        consultation.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        consultation.staff_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        consultation.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        consultation.consultation_content?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // 日付フィルター
+    if (dateFilter) {
+      filtered = filtered.filter(consultation =>
+        consultation.consultation_date && consultation.consultation_date.startsWith(dateFilter)
+      );
+    }
+    
+    return filtered;
+  }, [allConsultations, activeFilter, searchTerm, dateFilter]);
+
+  // ★ 変更点: 各ステータスの件数を計算するロジック
+  const statusCounts = useMemo(() => {
+    const counts: { [key in StatusFilter]?: number } = {};
+    for (const filter of STATUS_FILTERS) {
+      if (filter === 'すべて表示') {
+        counts[filter] = allConsultations.length;
+      } else if (filter === '利用者登録済み') {
+        counts[filter] = allConsultations.filter(c => !!c.user_id).length;
+      } else {
+        counts[filter] = allConsultations.filter(c => c.status === filter && !c.user_id).length;
+      }
+    }
+    return counts;
+  }, [allConsultations]);
+
 
   const handleStatusChange = async (consultationId: string, newStatus: string) => {
     if (!confirm(`ステータスを「${newStatus}」に変更しますか？`)) {
-        // ユーザーがキャンセルした場合、セレクトボックスの表示を元に戻す
-        const selectElement = document.querySelector(`select[data-id="${consultationId}"]`) as HTMLSelectElement | null;
-        if (selectElement) {
-            const originalStatus = consultations.find(c => c.id === consultationId)?.status;
-            if (originalStatus) {
-                selectElement.value = originalStatus;
-            }
-        }
-        return;
+      // stateを再フェッチするのが最も安全なロールバック方法
+      fetchAllData();
+      return;
     }
     try {
       const updatedConsultation = await consultationsApi.updateStatus(consultationId, newStatus);
-      setConsultations(prev => 
-        prev.map(c => c.id === consultationId ? updatedConsultation : c)
-      );
+      // allConsultations と consultations の両方を更新
+      setAllConsultations(prev => prev.map(c => c.id === consultationId ? updatedConsultation : c));
     } catch (err) {
       console.error('ステータス更新エラー:', err);
       alert('ステータスの更新に失敗しました。');
     }
   };
-  
-  const filteredConsultations = useMemo(() => {
-    return consultations.filter(consultation => {
-      const matchesSearch = !searchTerm ||
-        consultation.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        consultation.staff_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        consultation.id.toLowerCase().includes(searchTerm.toLowerCase())
-
-      const matchesDate = !dateFilter ||
-        (consultation.consultation_date && consultation.consultation_date.startsWith(dateFilter))
-
-      return matchesSearch && matchesDate
-    })
-  }, [consultations, searchTerm, dateFilter]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return ''
@@ -95,31 +121,22 @@ const ConsultationList: React.FC = () => {
     try {
       const newUID = await generateNewUID()
       const userData: UserInsert = {
-        uid: newUID,
-        name: consultation.name || '匿名利用者',
+        uid: newUID, name: consultation.name || '匿名利用者',
         birth_date: consultation.birth_year && consultation.birth_month && consultation.birth_day
-          ? `${consultation.birth_year}-${String(consultation.birth_month).padStart(2, '0')}-${String(consultation.birth_day).padStart(2, '0')}`
-          : undefined,
-        gender: consultation.gender,
-        property_address: consultation.address,
+          ? `${consultation.birth_year}-${String(consultation.birth_month).padStart(2, '0')}-${String(consultation.birth_day).padStart(2, '0')}` : undefined,
+        gender: consultation.gender, property_address: consultation.address,
         resident_contact: consultation.phone_mobile || consultation.phone_home,
-        line_available: false,
-        proxy_payment_eligible: consultation.proxy_payment,
-        welfare_recipient: consultation.welfare_recipient,
-        posthumous_affairs: false,
+        line_available: false, proxy_payment_eligible: consultation.proxy_payment,
+        welfare_recipient: consultation.welfare_recipient, posthumous_affairs: false,
       }
       const newUser = await usersApi.create(userData)
-      await consultationsApi.update(consultation.id, { user_id: newUser.id })
-      setConsultations(prev => 
-        prev.map(c => c.id === consultation.id ? { ...c, user_id: newUser.id } : c)
+      const updatedConsultation = await consultationsApi.update(consultation.id, { user_id: newUser.id })
+      setAllConsultations(prev => 
+        prev.map(c => c.id === consultation.id ? updatedConsultation : c)
       );
       alert('利用者として登録しました')
     } catch (err) {
       console.error('利用者登録エラー:', err)
-      if (err instanceof Error) {
-        console.error('エラーメッセージ:', err.message)
-        console.error('エラースタック:', err.stack)
-      }
       alert('利用者登録に失敗しました')
     }
   }
@@ -154,13 +171,22 @@ const ConsultationList: React.FC = () => {
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
-                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex items-center gap-x-2 ${
                   activeFilter === filter
                     ? 'bg-blue-600 text-white shadow-sm'
                     : 'bg-white text-gray-700 hover:bg-gray-200 ring-1 ring-inset ring-gray-300'
                 }`}
               >
                 {filter}
+                {/* ★★★ ここからが件数表示のUIです ★★★ */}
+                <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                  activeFilter === filter
+                    ? 'bg-blue-700 text-white'
+                    : 'bg-gray-200 text-gray-600'
+                }`}>
+                  {statusCounts[filter] ?? 0}
+                </span>
+                {/* ★★★ ここまで ★★★ */}
               </button>
             ))}
           </div>
@@ -264,16 +290,27 @@ const ConsultationList: React.FC = () => {
                             {consultation.consultation_content}
                         </p>
                     )}
+                    
+                    {/* ▼▼▼▼▼ ここからが追加箇所です ▼▼▼▼▼ */}
+                    {consultation.next_appointment_scheduled === true && (
+                      <div className="mt-2 flex items-center gap-x-2 text-sm text-sky-600">
+                        <svg className="h-4 w-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                          <path fillRule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zM4.5 6.5A1.25 1.25 0 015.75 5.25h8.5A1.25 1.25 0 0115.5 6.5v1.75H4.5V6.5zM4.5 9.75v5.5A1.25 1.25 0 005.75 16.5h8.5A1.25 1.25 0 0015.5 15.25v-5.5H4.5z" clipRule="evenodd" />
+                        </svg>
+                        <p className="font-medium">次回予定:</p>
+                        <p>{consultation.next_appointment_details}</p>
+                      </div>
+                    )}
+                    {/* ▲▲▲▲▲ ここまでが追加箇所です ▲▲▲▲▲ */}
+
                   </div>
                   <div className="mt-4 sm:mt-0 sm:ml-4 flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <div>
                         <select
                           value={consultation.status}
                           onChange={(e) => handleStatusChange(consultation.id, e.target.value)}
-                          data-id={consultation.id} // キャンセル時のためにIDを付与
-                          // ▼▼▼▼▼▼▼▼▼▼ この行のクラス名を修正 ▼▼▼▼▼▼▼▼▼▼
+                          data-id={consultation.id}
                           className="w-full sm:w-auto rounded-md bg-white px-2.5 py-1.5 text-sm text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:bg-gray-100 disabled:opacity-75"
-                          // ▲▲▲▲▲▲▲▲▲▲ ここまでが修正点 ▲▲▲▲▲▲▲▲▲▲
                           disabled={!!consultation.user_id}
                         >
                           {CONSULTATION_STATUSES.map(status => (
