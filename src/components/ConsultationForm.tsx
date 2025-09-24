@@ -118,8 +118,6 @@ type ConsultationFormData = {
   // --- 現在の住まい ---
   rent_arrears_status: 'yes' | 'no' | '',
   rent_arrears_duration: '1_month' | '2_to_3_months' | 'half_year_or_more' | 'other' | '',
-  // ▼▼▼ 修正 ▼▼▼ 存在しないプロパティを削除
-  // rent_arrears_duration_details: string, 
   rent_arrears_details: string,
   pet_status: 'yes' | 'no' | '',
   pet_details: string,
@@ -250,8 +248,6 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
     relocation_notes: '',
     rent_arrears_status: '',
     rent_arrears_duration: '',
-    // ▼▼▼ 修正 ▼▼▼ 存在しないプロパティを削除
-    // rent_arrears_duration_details: '',
     rent_arrears_details: '',
     pet_status: '',
     pet_details: '',
@@ -397,8 +393,6 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
               // --- 現在の住まい ---
               rent_arrears_status: data.rent_arrears_status as ConsultationFormData['rent_arrears_status'] || '',
               rent_arrears_duration: data.rent_arrears_duration as ConsultationFormData['rent_arrears_duration'] || '',
-              // ▼▼▼ 修正 ▼▼▼ 存在しないプロパティを削除
-              // rent_arrears_duration_details: data.rent_arrears_duration_details || '',
               rent_arrears_details: data.rent_arrears_details || '',
               pet_status: data.pet_status as ConsultationFormData['pet_status'] || '',
               pet_details: data.pet_details || '',
@@ -571,8 +565,6 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
         // --- 現在の住まい ---
         rent_arrears_status: formData.rent_arrears_status || null,
         rent_arrears_duration: formData.rent_arrears_status === 'yes' ? formData.rent_arrears_duration || null : null,
-        // ▼▼▼ 修正 ▼▼▼ 存在しないプロパティを削除
-        // rent_arrears_duration_details: formData.rent_arrears_status === 'yes' && formData.rent_arrears_duration === 'other' ? formData.rent_arrears_duration_details || null : null,
         rent_arrears_details: formData.rent_arrears_status === 'yes' ? formData.rent_arrears_details || null : null,
         pet_status: formData.pet_status || null,
         pet_details: formData.pet_status === 'yes' ? formData.pet_details || null : null,
@@ -860,31 +852,31 @@ const ConsultationForm: React.FC<ConsultationFormProps> = ({ editMode = false, c
               </div>
 
               <div className="space-y-2">
-                <label className={`block text-sm font-medium ${formData.relocation_admin_opinion === 'impossible' ? 'text-gray-400' : 'text-gray-700'}`}>転居に伴う費用負担</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">転居に伴う費用負担</label>
                 <div className="flex flex-wrap gap-x-4 gap-y-2">
                   <label className="flex items-center">
-                    <input type="radio" name="relocation_cost_bearer" value="previous_city" checked={formData.relocation_cost_bearer === 'previous_city'} onChange={(e) => handleRadioChange('relocation_cost_bearer', e.target.value)} disabled={formData.relocation_admin_opinion === 'impossible'} className="mr-1" />
-                    <span className={`text-gray-700 ${formData.relocation_admin_opinion === 'impossible' ? 'text-gray-400' : ''}`}>転居前の市区町村が負担</span>
+                    <input type="radio" name="relocation_cost_bearer" value="previous_city" checked={formData.relocation_cost_bearer === 'previous_city'} onChange={(e) => handleRadioChange('relocation_cost_bearer', e.target.value)} className="mr-1" />
+                    <span className="text-gray-700">転居前の市区町村が負担</span>
                   </label>
                   <label className="flex items-center">
-                    <input type="radio" name="relocation_cost_bearer" value="next_city" checked={formData.relocation_cost_bearer === 'next_city'} onChange={(e) => handleRadioChange('relocation_cost_bearer', e.target.value)} disabled={formData.relocation_admin_opinion === 'impossible'} className="mr-1" />
-                    <span className={`text-gray-700 ${formData.relocation_admin_opinion === 'impossible' ? 'text-gray-400' : ''}`}>転居先の市区町村が負担</span>
+                    <input type="radio" name="relocation_cost_bearer" value="next_city" checked={formData.relocation_cost_bearer === 'next_city'} onChange={(e) => handleRadioChange('relocation_cost_bearer', e.target.value)} className="mr-1" />
+                    <span className="text-gray-700">転居先の市区町村が負担</span>
                   </label>
                   <label className="flex items-center">
-                    <input type="radio" name="relocation_cost_bearer" value="self" checked={formData.relocation_cost_bearer === 'self'} onChange={(e) => handleRadioChange('relocation_cost_bearer', e.target.value)} disabled={formData.relocation_admin_opinion === 'impossible'} className="mr-1" />
-                    <span className={`text-gray-700 ${formData.relocation_admin_opinion === 'impossible' ? 'text-gray-400' : ''}`}>利用者本人の負担</span>
+                    <input type="radio" name="relocation_cost_bearer" value="self" checked={formData.relocation_cost_bearer === 'self'} onChange={(e) => handleRadioChange('relocation_cost_bearer', e.target.value)} className="mr-1" />
+                    <span className="text-gray-700">利用者本人の負担</span>
                   </label>
                   <label className="flex items-center">
-                    <input type="radio" name="relocation_cost_bearer" value="pending" checked={formData.relocation_cost_bearer === 'pending'} onChange={(e) => handleRadioChange('relocation_cost_bearer', e.target.value)} disabled={formData.relocation_admin_opinion === 'impossible'} className="mr-1" />
-                    <span className={`text-gray-700 ${formData.relocation_admin_opinion === 'impossible' ? 'text-gray-400' : ''}`}>確認中</span>
+                    <input type="radio" name="relocation_cost_bearer" value="pending" checked={formData.relocation_cost_bearer === 'pending'} onChange={(e) => handleRadioChange('relocation_cost_bearer', e.target.value)} className="mr-1" />
+                    <span className="text-gray-700">確認中</span>
                   </label>
                   <label className="flex items-center">
-                    <input type="radio" name="relocation_cost_bearer" value="other" checked={formData.relocation_cost_bearer === 'other'} onChange={(e) => handleRadioChange('relocation_cost_bearer', e.target.value)} disabled={formData.relocation_admin_opinion === 'impossible'} className="mr-1" />
-                    <span className={`text-gray-700 ${formData.relocation_admin_opinion === 'impossible' ? 'text-gray-400' : ''}`}>その他</span>
+                    <input type="radio" name="relocation_cost_bearer" value="other" checked={formData.relocation_cost_bearer === 'other'} onChange={(e) => handleRadioChange('relocation_cost_bearer', e.target.value)} className="mr-1" />
+                    <span className="text-gray-700">その他</span>
                   </label>
                 </div>
                 {formData.relocation_cost_bearer === 'other' && (
-                  <textarea name="relocation_cost_bearer_details" value={formData.relocation_cost_bearer_details} onChange={handleChange} disabled={formData.relocation_admin_opinion === 'impossible'} rows={3} className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 text-sm" placeholder="その他の詳細" />
+                 <textarea name="relocation_cost_bearer_details" value={formData.relocation_cost_bearer_details} onChange={handleChange} rows={3} className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-700 text-sm" placeholder="その他の詳細" />
                 )}
               </div>
 
