@@ -11,7 +11,6 @@ const NewUserPage: React.FC = () => {
     name: '',
     birth_date: '',
     gender: '' as 'male' | 'female' | 'other' | '',
-    age: '',
     property_address: '',
     property_name: '',
     room_number: '',
@@ -61,7 +60,6 @@ const NewUserPage: React.FC = () => {
         name: formData.name.trim(),
         birth_date: formData.birth_date || undefined,
         gender: formData.gender || undefined,
-        age: formData.age ? parseInt(formData.age) : undefined,
         property_address: formData.property_address.trim() || undefined,
         property_name: formData.property_name.trim() || undefined,
         room_number: formData.room_number.trim() || undefined,
@@ -92,7 +90,7 @@ const NewUserPage: React.FC = () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const newUser = await usersApi.create(userData as any)
-      router.push(`/users/${newUser.id}`)
+      router.push(`/users/${newUser.uid}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'エラーが発生しました')
     } finally {
@@ -205,19 +203,6 @@ const NewUserPage: React.FC = () => {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  年齢
-                </label>
-                <input
-                  type="number"
-                  name="age"
-                  value={formData.age}
-                  onChange={handleChange}
-                  min="0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
             </div>
           </div>
 
