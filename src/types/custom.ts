@@ -24,9 +24,10 @@ export type Consultation = Pick<
   | 'attribute_low_income'
   | 'attribute_lgbt'
   | 'attribute_welfare'
+  
 >;
 
 export type User = Pick<
   Database['public']['Tables']['users']['Row'],
-  'created_at'
+  'registered_at'
 >;

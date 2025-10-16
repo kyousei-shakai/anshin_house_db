@@ -147,7 +147,7 @@ const UserBasicInfo: React.FC<UserBasicInfoProps> = ({ user }) => {
       <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
         <h2 className="text-lg font-semibold leading-7 text-gray-900">システム情報</h2>
         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
-          <InfoItem label="登録日時">{formatDate(user.created_at)}</InfoItem>
+          <InfoItem label="登録日時">{formatDate(user.registered_at)}</InfoItem>
           <InfoItem label="最終更新日時">{formatDate(user.updated_at)}</InfoItem>
         </div>
       </div>

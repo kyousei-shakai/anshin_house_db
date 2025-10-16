@@ -51,7 +51,8 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userUid }) => {
     notes: '',
     proxy_payment_eligible: false,
     welfare_recipient: false,
-    posthumous_affairs: false
+    posthumous_affairs: false,
+    registered_at: ''
   })
 
   // フォームデータへの初期値設定ロジックは変更なし
@@ -86,7 +87,9 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userUid }) => {
         notes: user.notes || '',
         proxy_payment_eligible: user.proxy_payment_eligible || false,
         welfare_recipient: user.welfare_recipient || false,
-        posthumous_affairs: user.posthumous_affairs || false
+        posthumous_affairs: user.posthumous_affairs || false,
+        // ↓ これを追加
+        registered_at: user.registered_at?.split('T')[0] || ''
       })
     }
   }, [user])
@@ -140,7 +143,8 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userUid }) => {
         notes: formData.notes.trim() || null,
         proxy_payment_eligible: formData.proxy_payment_eligible,
         welfare_recipient: formData.welfare_recipient,
-        posthumous_affairs: formData.posthumous_affairs
+        posthumous_affairs: formData.posthumous_affairs,
+        registered_at: formData.registered_at || undefined 
       }
       
       // 4. usersApi.update には、主キーである `user.id` (UUID) を渡す
@@ -294,6 +298,38 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userUid }) => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">備考</h3>
           <div><textarea name="notes" value={formData.notes} onChange={handleChange} rows={4} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="その他の備考事項があれば記入してください" /></div>
         </div>
+
+                {/* ===== ▼▼▼ ここから追加 ▼▼▼ ===== */}
+        {/* システム情報 */}
+        <div className="bg-gray-50 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">システム情報</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        登録日
+                    </label>
+                    <input
+                        type="date"
+                        name="registered_at"
+                        value={formData.registered_at}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        最終更新日時
+                    </label>
+                    <input 
+                        type="text" 
+                        value={user?.updated_at ? new Date(user.updated_at).toLocaleString('ja-JP') : '-'} 
+                        readOnly 
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-gray-100 focus:outline-none"
+                    />
+                </div>
+            </div>
+        </div>
+        {/* ===== ▲▲▲ ここまで追加 ▲▲▲ ===== */}
 
         {/* ボタン */}
         <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3">

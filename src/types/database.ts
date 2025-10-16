@@ -737,6 +737,7 @@ export type Database = {
           property_address: string | null
           property_name: string | null
           proxy_payment_eligible: boolean | null
+          registered_at: string
           relationship: string | null
           renewal_count: number | null
           rent: number | null
@@ -772,6 +773,7 @@ export type Database = {
           property_address?: string | null
           property_name?: string | null
           proxy_payment_eligible?: boolean | null
+          registered_at?: string
           relationship?: string | null
           renewal_count?: number | null
           rent?: number | null
@@ -807,6 +809,7 @@ export type Database = {
           property_address?: string | null
           property_name?: string | null
           proxy_payment_eligible?: boolean | null
+          registered_at?: string
           relationship?: string | null
           renewal_count?: number | null
           rent?: number | null

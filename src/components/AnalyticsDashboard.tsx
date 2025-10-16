@@ -81,8 +81,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
     });
 
     const filteredUsers = users.filter(u => {
-      if (!u.created_at) return false;
-      const uDate = new Date(u.created_at);
+      if (!u.registered_at) return false;
+      const uDate = new Date(u.registered_at);
       return uDate >= startDate && uDate <= endDate;
     });
 
@@ -174,7 +174,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
     });
 
     filteredData.users.forEach(u => {
-      const month = format(new Date(u.created_at!), 'yyyy/MM');
+      const month = format(new Date(u.registered_at!), 'yyyy/MM');
       if (userCounts[month] !== undefined) userCounts[month]++;
     });
 
