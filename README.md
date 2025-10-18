@@ -69,13 +69,63 @@ NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-### 3. データベースの設定
-Supabaseで新しいプロジェクトを作成し、`supabase/migrations/001_initial_schema.sql`を実行してテーブルを作成してください。
+### 3.  ローカル開発環境の起動
+このプロジェクトは、データベースの構造をコードで管理するためにSupabaseのマイグレーション機能を利用しています。以下のコマンドを実行するだけで、必要なテーブルが全てセットアップされたローカル開発環境が起動します。
 
-### 4. 開発サーバーの起動
-```bash
-pnpm run dev
-```
+**前提:**
+- [Supabase CLI](https://supabase.com/docs/guides/cli)がインストールされていること。
+- [Docker](https://www.docker.com/)が起動していること。
+
+**手順:**
+1. Supabaseの各種サービス（DB、Authなど）をローカルで起動します。
+   ```bash
+   supabase start
+   ```
+2. アプリケーションの開発サーバーを起動します。
+   ```bash
+   pnpm run dev
+   ```
+
+アプリケーションは [http://localhost:3000](http://localhost:3000) で、ローカルのSupabase Studio（DB管理画面）は `supabase start` 実行時にターミナルに表示されるURL（通常は `http://localhost:54323`）でアクセスできます。
+
+## データベース開発ルール
+
+本プロジェクトでは、データベースのスキーマ（テーブル定義など）への全ての変更を、Supabaseのマイグレーション機能を用いて管理します。**Supabase管理画面のSQL Editorを直接編集することは原則禁止です。**
+
+### スキーマ変更の基本フロー
+
+データベースのテーブル定義等を変更する場合は、必ず以下の手順に従ってください。
+
+1.  **マイグレーションファイルの作成:**
+    変更内容を示す分かりやすい名前で、新しいマイグレーションファイルを作成します。
+    ```bash
+    # 例: staffテーブルに memo カラムを追加する場合
+    supabase migration new add_memo_to_staff_table
+    ```
+
+2.  **SQLの記述:**
+    `supabase/migrations/` ディレクトリに生成されたSQLファイルを開き、変更内容のSQL（例: `ALTER TABLE ... ADD COLUMN ...`）を記述します。
+
+3.  **ローカルでの動作確認（必須）:**
+    ローカルデータベースを一度リセットし、全てのマイグレーションがエラーなく正しく適用されることを確認します。
+    ```bash
+    supabase db reset
+    ```
+    その後、ローカルのSupabase Studio (`http://localhost:54323`) で、意図した通りにテーブル構造が変更されているかを目視で確認してください。
+
+4.  **Gitへのコミット:**
+    安全性が確認できたマイグレーションファイルをGitにコミットし、pushします。
+    ```bash
+    git add supabase/migrations/
+    git commit -m "feat: Add memo column to staff table"
+    git push
+    ```
+
+5.  **本番環境への適用:**
+    mainブランチにマージされた後、以下のコマンドで本番データベースに変更を安全に適用します。このコマンドは、未適用のマイグレーションのみを実行します。
+    ```bash
+    supabase db push
+    ```
 
 アプリケーションは [http://localhost:3000](http://localhost:3000) でアクセスできます。
 
