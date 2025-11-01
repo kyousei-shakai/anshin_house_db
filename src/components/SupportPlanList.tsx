@@ -1,37 +1,32 @@
+// src/components/SupportPlanList.tsx 
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
-import { supportPlansApi } from '@/lib/api'
 import { Database } from '@/types/database'
 import { calculateAge } from '@/utils/date'
 
-// 型エイリアス
-type SupportPlan = Database['public']['Tables']['support_plans']['Row']
+type SupportPlanWithUserAndStaff = Database['public']['Tables']['support_plans']['Row'] & {
+  users: {
+    uid: string
+  } | null
+  staff: {
+    name: string | null
+  } | null
+}
 
-const SupportPlanList: React.FC = () => {
-  const [supportPlans, setSupportPlans] = useState<SupportPlan[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface SupportPlanListProps {
+  initialSupportPlans: SupportPlanWithUserAndStaff[]
+  fetchError: string | null
+}
+
+const SupportPlanList: React.FC<SupportPlanListProps> = ({ initialSupportPlans, fetchError }) => {
+  // ★ 変更点 1: useState をやめ、propsを直接定数に代入
+  const supportPlans = initialSupportPlans
+  const error = fetchError
+  
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('')
-
-  useEffect(() => {
-    const fetchSupportPlans = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const data = await supportPlansApi.getAll()
-        setSupportPlans(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'エラーが発生しました')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchSupportPlans()
-  }, [])
 
   const formatDate = (dateString: string) => {
     if (!dateString) return ''
@@ -41,7 +36,7 @@ const SupportPlanList: React.FC = () => {
   const filteredSupportPlans = supportPlans.filter(plan => {
     const matchesSearch = !searchTerm || 
       plan.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      plan.staff_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (plan.staff?.name && plan.staff.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       plan.goals?.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesDate = !dateFilter || 
@@ -49,14 +44,6 @@ const SupportPlanList: React.FC = () => {
 
     return matchesSearch && matchesDate
   })
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-      </div>
-    )
-  }
 
   if (error) {
     return (
@@ -81,7 +68,7 @@ const SupportPlanList: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="利用者名、担当者名、目標で検索..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 text-gray-800"
             />
           </div>
           
@@ -93,7 +80,7 @@ const SupportPlanList: React.FC = () => {
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 text-gray-800"
             />
           </div>
         </div>
@@ -154,7 +141,7 @@ const SupportPlanList: React.FC = () => {
                     <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 text-xs leading-5 text-gray-500">
                       <p className="flex items-center gap-x-1.5">
                         <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fillRule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zM4.5 6.75A1.25 1.25 0 015.75 8h8.5a1.25 1.25 0 011.25 1.25v5.5a1.25 1.25 0 01-1.25 1.25h-8.5a1.25 1.25 0 01-1.25-1.25v-5.5z" clipRule="evenodd" />
+                            <path fillRule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zM4.5 6.75A1.25 1.25 0 015.75 8h8.5a1.25 1.25 0 011.25 1.25v5.5a1.25 1.25 0 01-1.25-1.25h-8.5a1.25 1.25 0 01-1.25-1.25v-5.5z" clipRule="evenodd" />
                         </svg>
                         作成日: {formatDate(plan.creation_date)}
                       </p>
@@ -162,7 +149,8 @@ const SupportPlanList: React.FC = () => {
                         <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-5.5-2.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM10 12a5.99 5.99 0 00-4.793 2.39A6.483 6.483 0 0010 16.5a6.483 6.483 0 004.793-2.11A5.99 5.99 0 0010 12z" clipRule="evenodd" />
                         </svg>
-                        担当: {plan.staff_name}
+                        {/* ★ 変更点: plan.staff_name を plan.staff?.name に変更 */}
+                        担当: {plan.staff?.name || '未設定'}
                       </p>
                     </div>
                      {plan.goals && (

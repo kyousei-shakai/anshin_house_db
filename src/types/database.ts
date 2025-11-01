@@ -7,13 +7,78 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
+      consultation_events: {
+        Row: {
+          consultation_id: string
+          created_at: string
+          event_note: string | null
+          id: string
+          next_action_date: string | null
+          staff_id: string | null
+          status: Database["public"]["Enums"]["consultation_status"]
+        }
+        Insert: {
+          consultation_id: string
+          created_at?: string
+          event_note?: string | null
+          id?: string
+          next_action_date?: string | null
+          staff_id?: string | null
+          status: Database["public"]["Enums"]["consultation_status"]
+        }
+        Update: {
+          consultation_id?: string
+          created_at?: string
+          event_note?: string | null
+          id?: string
+          next_action_date?: string | null
+          staff_id?: string | null
+          status?: Database["public"]["Enums"]["consultation_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultation_events_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultation_events_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consultations: {
         Row: {
           address: string | null
@@ -151,7 +216,6 @@ export type Database = {
           shopping_support_needed: boolean | null
           shopping_support_text: string | null
           staff_id: string | null
-          staff_name: string | null
           stairs_full_assist: boolean | null
           stairs_independent: boolean | null
           stairs_other: boolean | null
@@ -308,7 +372,6 @@ export type Database = {
           shopping_support_needed?: boolean | null
           shopping_support_text?: string | null
           staff_id?: string | null
-          staff_name?: string | null
           stairs_full_assist?: boolean | null
           stairs_independent?: boolean | null
           stairs_other?: boolean | null
@@ -465,7 +528,6 @@ export type Database = {
           shopping_support_needed?: boolean | null
           shopping_support_text?: string | null
           staff_id?: string | null
-          staff_name?: string | null
           stairs_full_assist?: boolean | null
           stairs_independent?: boolean | null
           stairs_other?: boolean | null
@@ -573,7 +635,7 @@ export type Database = {
           phone_mobile: string | null
           physical_disability_level: string | null
           residence: string
-          staff_name: string
+          staff_id: string | null
           support_bank_visit: boolean | null
           support_bulb_change: boolean | null
           support_cleaning: boolean | null
@@ -630,7 +692,7 @@ export type Database = {
           phone_mobile?: string | null
           physical_disability_level?: string | null
           residence: string
-          staff_name: string
+          staff_id?: string | null
           support_bank_visit?: boolean | null
           support_bulb_change?: boolean | null
           support_cleaning?: boolean | null
@@ -687,7 +749,7 @@ export type Database = {
           phone_mobile?: string | null
           physical_disability_level?: string | null
           residence?: string
-          staff_name?: string
+          staff_id?: string | null
           support_bank_visit?: boolean | null
           support_bulb_change?: boolean | null
           support_cleaning?: boolean | null
@@ -703,6 +765,13 @@ export type Database = {
           welfare_worker?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "support_plans_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "support_plans_user_id_fkey"
             columns: ["user_id"]
@@ -834,7 +903,15 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      consultation_status:
+        | "進行中"
+        | "初回面談"
+        | "支援検討中"
+        | "物件探し中"
+        | "申込・審査中"
+        | "入居後フォロー中"
+        | "支援終了"
+        | "対象外・辞退"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -960,7 +1037,22 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  public: {
+  graphql_public: {
     Enums: {},
   },
+  public: {
+    Enums: {
+      consultation_status: [
+        "進行中",
+        "初回面談",
+        "支援検討中",
+        "物件探し中",
+        "申込・審査中",
+        "入居後フォロー中",
+        "支援終了",
+        "対象外・辞退",
+      ],
+    },
+  },
 } as const
+

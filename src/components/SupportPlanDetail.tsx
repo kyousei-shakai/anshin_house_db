@@ -1,49 +1,33 @@
+// src/components/SupportPlanDetail.tsx
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
-import { supportPlansApi } from '@/lib/api'
+import React, { useState, useMemo } from 'react'
+// import { useRouter } from 'next/navigation' // ★ 修正済
+import Link from 'next/link'
+import { deleteSupportPlan } from '@/app/actions/supportPlans'
 import { Database } from '@/types/database'
 import { calculateAge } from '@/utils/date'
 
-// 型エイリアス
-type SupportPlan = Database['public']['Tables']['support_plans']['Row']
-
-interface SupportPlanDetailProps {
-  supportPlanId: string
+type SupportPlan = Database['public']['Tables']['support_plans']['Row'] & {
+  staff: {
+    name: string | null
+  } | null
 }
 
-const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) => {
-  const router = useRouter()
-  const [supportPlan, setSupportPlan] = useState<SupportPlan | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface SupportPlanDetailProps {
+  supportPlan: SupportPlan
+}
+
+const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlan }) => {
+  // const router = useRouter() // ★ 修正済
   const [isDeleting, setIsDeleting] = useState(false)
-
-  useEffect(() => {
-    const fetchSupportPlan = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const data = await supportPlansApi.getById(supportPlanId)
-        setSupportPlan(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'エラーが発生しました')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchSupportPlan()
-  }, [supportPlanId])
 
   const calculatedAge = useMemo(() => {
     if (supportPlan?.birth_date) {
       try {
         return calculateAge(supportPlan.birth_date)
       } 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      catch (e) {
+      catch { // ★ 修正点: (e) を削除
         return null
       }
     }
@@ -62,14 +46,14 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
 
     setIsDeleting(true);
     try {
-      await supportPlansApi.delete(supportPlanId);
-      alert('支援計画を削除しました。');
-      router.push('/support-plans'); // 支援計画一覧ページへ遷移
-      router.refresh();
+      const result = await deleteSupportPlan(supportPlan.id);
+      if (result && !result.success) {
+        throw new Error(result.error || '削除に失敗しました。')
+      }
+      // 成功時はServer Action内でredirectされる
     } catch (err) {
       console.error('支援計画の削除エラー:', err);
-      alert('支援計画の削除に失敗しました。');
-    } finally {
+      alert(err instanceof Error ? err.message : '支援計画の削除に失敗しました。');
       setIsDeleting(false);
     }
   };
@@ -77,34 +61,6 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
   const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return ''
     return new Date(dateString).toLocaleDateString('ja-JP')
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <div className="text-red-500 text-sm">
-          エラーが発生しました: {error}
-        </div>
-      </div>
-    )
-  }
-
-  if (!supportPlan) {
-    return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <div className="text-yellow-700 text-sm">
-          支援計画が見つかりません
-        </div>
-      </div>
-    )
   }
   
   const getCareLevel = () => {
@@ -150,19 +106,20 @@ const SupportPlanDetail: React.FC<SupportPlanDetailProps> = ({ supportPlanId }) 
               支援計画 - {supportPlan.name}
             </h1>
             <p className="text-sm text-gray-600 mt-1">
-              作成日: {formatDate(supportPlan.creation_date)} | 担当: {supportPlan.staff_name}
+              {/* ★ 変更点: supportPlan.staff_name を supportPlan.staff?.name に変更 */}
+              作成日: {formatDate(supportPlan.creation_date)} | 担当: {supportPlan.staff?.name || '未設定'}
             </p>
           </div>
           <div className="flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <button
-              onClick={() => router.push(`/support-plans/${supportPlan.id}/edit`)}
+            <Link
+              href={`/support-plans/${supportPlan.id}/edit`}
               className="inline-flex items-center justify-center gap-x-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
               </svg>
               編集
-            </button>
+            </Link>
             <button
                 onClick={handleDelete}
                 disabled={isDeleting}

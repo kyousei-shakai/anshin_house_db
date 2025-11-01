@@ -1,46 +1,29 @@
+// src/components/UserSupportPlans.tsx (完全版・修正後)
+
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import Link from 'next/link'
-import { supportPlansApi } from '@/lib/api'
-// 👇 1. インポートを 'Database' 型に変更
 import { Database } from '@/types/database'
 
-// 👇 2. 新しい型定義から型エイリアスを作成
 type SupportPlan = Database['public']['Tables']['support_plans']['Row']
 
 interface UserSupportPlansProps {
-  userId: string
+  supportPlans: SupportPlan[] // ★ userIdではなく、supportPlans配列を直接受け取る
 }
 
-const UserSupportPlans: React.FC<UserSupportPlansProps> = ({ userId }) => {
-  const [supportPlans, setSupportPlans] = useState<SupportPlan[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+const UserSupportPlans: React.FC<UserSupportPlansProps> = ({ supportPlans }) => {
+  // ▼▼▼ データ取得関連のstateとuseEffectを全て削除 ▼▼▼
+  // const [supportPlans, setSupportPlans] = useState<SupportPlan[]>([])
+  // const [loading, setLoading] = useState(true)
+  // const [error, setError] = useState<string | null>(null)
+  // useEffect(() => { ... }, [userId])
 
-  useEffect(() => {
-    const fetchSupportPlans = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const data = await supportPlansApi.getByUserId(userId)
-        setSupportPlans(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'エラーが発生しました')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchSupportPlans()
-  }, [userId])
-
-  const formatDate = (dateString: string | null | undefined) => {
+  const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return '日付不明'
     return new Date(dateString).toLocaleDateString('ja-JP')
   }
 
-  // 介護レベルを整形するヘルパー関数
   const getCareLevels = (plan: SupportPlan): string => {
     const levels: string[] = []
     if (plan.care_level_independent) levels.push('自立')
@@ -54,23 +37,11 @@ const UserSupportPlans: React.FC<UserSupportPlansProps> = ({ userId }) => {
     return levels.join(', ')
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <div className="text-red-500 text-sm">
-          エラーが発生しました: {error}
-        </div>
-      </div>
-    )
-  }
+  // ▼▼▼ ローディングとエラー表示は不要に ▼▼▼
+  /*
+  if (loading) { ... }
+  if (error) { ... }
+  */
 
   return (
     <div className="space-y-6">

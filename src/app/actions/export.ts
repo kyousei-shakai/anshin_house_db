@@ -1,21 +1,27 @@
-// src/app/api/export/consultations/route.ts
+// src/app/actions/export.ts
 
-import { NextResponse } from 'next/server'
-import { consultationsApi } from '@/lib/api'
+'use server'
+
+import { createClient } from '@/utils/supabase/server'
 import { Database } from '@/types/database'
-import XlsxPopulate from 'xlsx-populate'
+// ★ 変更点 1: ライブラリから Workbook 型をインポートします
+import XlsxPopulate, { Workbook } from 'xlsx-populate'
 import path from 'path'
 import fs from 'fs/promises'
-// ▼▼▼ 追加 ▼▼▼ 共通ヘルパー関数をインポート
-import { 
-    getRelocationAdminOpinionLabel, 
-    getRelocationCostBearerLabel, 
-    getRentArrearsDurationLabel 
-} from '@/utils/export'
 
-type Consultation = Database['public']['Tables']['consultations']['Row']
+// ★ 変更点 2: valueの返り値を 'any' から 'unknown' に変更します
+// XlsxPopulateのCellオブジェクトで実際に使用するメソッドだけを型定義
+interface XlsxCell {
+  value: (newValue?: string | number | boolean | Date | null) => unknown;
+}
 
-// --- このファイルにローカルなヘルパー関数群 ---
+// ★ 変更点: staffオブジェクトを含む型に拡張
+type Consultation = Database['public']['Tables']['consultations']['Row'] & {
+  staff: { name: string | null } | null
+}
+
+// --- ヘルパー関数群 ---
+
 const calculateAgeFromYMD = (year: number | null, month: number | null, day: number | null): number | '' => {
     if (!year || !month || !day) return '';
     try {
@@ -28,6 +34,7 @@ const calculateAgeFromYMD = (year: number | null, month: number | null, day: num
         return age;
     } catch { return ''; }
 }
+
 const toJapaneseEra = (year: number, month: number, day: number): { era: string; year: number } | null => {
     const date = new Date(year, month - 1, day);
     if (isNaN(date.getTime())) return null;
@@ -38,10 +45,48 @@ const toJapaneseEra = (year: number, month: number, day: number): { era: string;
     if (date >= new Date(1868, 0, 25)) return { era: '明治', year: year - 1867 };
     return null;
 };
+
 const sanitizeSheetName = (name: string): string => {
   if (!name) return '無題';
   const sanitized = name.replace(/[:\\/?*[\]]/g, '_');
   return sanitized.substring(0, 31);
+};
+
+const getRelocationAdminOpinionLabel = (opinion: string | null | undefined, details: string | null | undefined): string => {
+    if (!opinion) return '未設定';
+    const detailText = details ? ` (${details})` : '';
+    switch (opinion) {
+      case 'possible': return '可';
+      case 'impossible': return '否';
+      case 'pending': return '確認中';
+      case 'other': return `その他${detailText}`;
+      default: return opinion;
+    }
+};
+
+const getRelocationCostBearerLabel = (bearer: string | null | undefined, details: string | null | undefined): string => {
+    if (!bearer) return '未設定';
+    const detailText = details ? ` (${details})` : '';
+    switch (bearer) {
+      case 'previous_city': return '転居前の市区町村が負担';
+      case 'next_city': return '転居先の市区町村が負担';
+      case 'self': return '利用者本人の負担';
+      case 'pending': return '確認中';
+      case 'other': return `その他${detailText}`;
+      default: return bearer;
+    }
+};
+  
+const getRentArrearsDurationLabel = (duration: string | null | undefined, details: string | null | undefined): string => {
+      if (!duration) return '未設定';
+      const detailText = details ? ` (${details})` : '';
+      switch (duration) {
+          case '1_month': return '1ヶ月';
+          case '2_to_3_months': return '2〜3ヶ月';
+          case 'half_year_or_more': return '半年以上';
+          case 'other': return `その他${detailText}`;
+          default: return duration;
+      }
 };
 
 const createReplacements = (consultation: Consultation): Record<string, string | number> => {
@@ -100,7 +145,9 @@ const createReplacements = (consultation: Consultation): Record<string, string |
 
     return {
         '{{consultation_date_year}}': cDate.getFullYear(), '{{consultation_date_month}}': cDate.getMonth() + 1, '{{consultation_date_day}}': cDate.getDate(),
-        '{{staff_name}}': consultation.staff_name || '', '{{route_self}}': check(consultation.consultation_route_self),
+        // ★ 変更点: consultation.staff_name を consultation.staff?.name に変更
+        '{{staff_name}}': consultation.staff?.name || '', 
+        '{{route_self}}': check(consultation.consultation_route_self),
         '{{route_family}}': check(consultation.consultation_route_family), '{{route_care_manager}}': check(consultation.consultation_route_care_manager),
         '{{route_elderly_center}}': check(consultation.consultation_route_elderly_center), '{{route_disability_center}}': check(consultation.consultation_route_disability_center),
         '{{route_government}}': check(consultation.consultation_route_government), '{{route_government_other}}': consultation.consultation_route_government_other || '',
@@ -119,7 +166,7 @@ const createReplacements = (consultation: Consultation): Record<string, string |
         '{{household_other}}': check(consultation.household_other), '{{household_other_text}}': consultation.household_other_text || '',
         '{{postal_code}}': consultation.postal_code || '', '{{address}}': consultation.address || '', '{{phone_home}}': consultation.phone_home || '',
         '{{phone_mobile}}': consultation.phone_mobile || '',
-        '{{birth_era_name}}': japaneseEra ? japaneseEra.era : '西暦', // プレースホルダー名を修正
+        '{{birth_era_name}}': japaneseEra ? japaneseEra.era : '西暦',
         '{{birth_year}}': japaneseEra ? japaneseEra.year : consultation.birth_year || '',
         '{{birth_month}}': consultation.birth_month || '', '{{birth_day}}': consultation.birth_day || '', '{{age}}': age,
         '{{physical_condition}}': consultation.physical_condition ? physicalConditionMap[physicalConditionKey] || '' : '',
@@ -153,7 +200,6 @@ const createReplacements = (consultation: Consultation): Record<string, string |
         '{{money_manager}}': consultation.money_management_supporter || '',
         '{{proxy_payment}}': consultation.proxy_payment ? '有' : '無',
         '{{rent_payment_method}}': getRentPaymentMethod(consultation.rent_payment_method), 
-        
         '{{is_relocation_to_other_city_desired}}': consultation.is_relocation_to_other_city_desired === true ? 'はい' : consultation.is_relocation_to_other_city_desired === false ? 'いいえ' : '',
         '{{relocation_admin_opinion}}': getRelocationAdminOpinionLabel(consultation.relocation_admin_opinion, consultation.relocation_admin_opinion_details),
         '{{relocation_admin_opinion_details}}': consultation.relocation_admin_opinion_details || '',
@@ -170,7 +216,6 @@ const createReplacements = (consultation: Consultation): Record<string, string |
         '{{current_rent}}': consultation.current_rent || '',
         '{{eviction_date}}': consultation.eviction_date ? new Date(consultation.eviction_date).toLocaleDateString('ja-JP') : '',
         '{{eviction_date_notes}}': consultation.eviction_date_notes || '',
-        
         '{{other_notes}}': consultation.other_notes || '',
         '{{consultation_content}}': consultation.consultation_content || '', '{{relocation_reason}}': consultation.relocation_reason || '',
         '{{emergency_name}}': consultation.emergency_contact_name || '', '{{emergency_relationship}}': consultation.emergency_contact_relationship || '',
@@ -181,75 +226,82 @@ const createReplacements = (consultation: Consultation): Record<string, string |
     };
 };
 
-export async function POST(request: Request) {
-  try {
-    const { consultationIds } = await request.json();
-    if (!consultationIds || !Array.isArray(consultationIds)) {
-      return new NextResponse('Invalid request body', { status: 400 });
-    }
-    
-    const { data: allConsultations, error: fetchError } = await consultationsApi.getAllWithAllColumns();
-    if (fetchError) throw fetchError;
+export async function generateFormattedConsultationsExcel(consultationIds: string[]) {
+  if (!consultationIds || !Array.isArray(consultationIds)) {
+    return { success: false, error: '無効なリクエストです。' };
+  }
 
-    // ▼▼▼ 修正 ▼▼▼ NULLチェックを追加
-    const validConsultations = allConsultations || [];
-    const consultations = validConsultations.filter(c => consultationIds.includes(c.id));
+  const supabase = await createClient(); // ★ 変更点: await を追加
+  
+  try {
+    // ★ 変更点: staffテーブルをJOINして、staff.nameを取得する
+    const { data: allConsultations, error: fetchError } = await supabase
+      .from('consultations')
+      .select('*, staff:staff_id(name)')
+      .in('id', consultationIds);
+
+    if (fetchError) throw fetchError;
 
     const templatePath = path.resolve(process.cwd(), 'public', 'consultation_template.xlsx');
     const templateData = await fs.readFile(templatePath);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const workbook: any = await XlsxPopulate.fromDataAsync(templateData);
+   // ★ 変更点 3: 'workbook: any' を 'workbook: Workbook' に変更します
+    const workbook: Workbook = await XlsxPopulate.fromDataAsync(templateData);
     const templateSheet = workbook.sheet("テンプレート");
     
     if (!templateSheet) {
-      throw new Error("Template sheet named 'テンプレート' not found.");
+      throw new Error("テンプレートシート 'テンプレート' が見つかりません。");
     }
 
-    for (const [index, consultation] of consultations.entries()) {
-        const newSheetName = sanitizeSheetName(consultation.name || `無名_${index + 1}`);
-        let finalSheetName = newSheetName;
-        let count = 2;
-        while(workbook.sheet(finalSheetName)) {
-            finalSheetName = `${newSheetName.substring(0, 31 - `(${count})`.length)}(${count})`;
-            count++;
-        }
-        
-        workbook.cloneSheet(templateSheet, finalSheetName);
-        const newSheet = workbook.sheet(finalSheetName);
-        const replacements = createReplacements(consultation);
-        
-        if (newSheet.usedRange()) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            newSheet.usedRange().forEach((cell: any) => {
-                let cellValue = cell.value();
-                if (typeof cellValue === 'string') {
-                    for (const key in replacements) {
-                        const placeholder = new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
-                        if (placeholder.test(cellValue)) {
-                            const replacementValue = (replacements as Record<string, string | number>)[key];
-                            cellValue = cellValue.replace(placeholder, String(replacementValue));
-                        }
-                    }
-                    cell.value(cellValue);
-                }
-            });
-        }
+        if (allConsultations.length > 0) {
+      for (const [index, consultation] of allConsultations.entries()) {
+          const newSheetName = sanitizeSheetName(consultation.name || `無名_${index + 1}`);
+          let finalSheetName = newSheetName;
+          let count = 2;
+          while(workbook.sheet(finalSheetName)) {
+              finalSheetName = `${newSheetName.substring(0, 31 - `(${count})`.length)}(${count})`;
+              count++;
+          }
+          
+          workbook.cloneSheet(templateSheet, finalSheetName);
+          const newSheet = workbook.sheet(finalSheetName);
+
+          // ▼▼▼ 修正点 ▼▼▼
+          // @ts-expect-error: allConsultationsの型をConsultationにキャスト
+          const replacements = createReplacements(consultation as Consultation);
+          
+          if (newSheet.usedRange()) {
+              // ★ 変更点 2: (cell: any) を (cell: XlsxCell) に変更します
+              newSheet.usedRange().forEach((cell: XlsxCell) => {
+                  let cellValue = cell.value();
+                  if (typeof cellValue === 'string') {
+                      for (const key in replacements) {
+                          const placeholder = new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
+                          if (placeholder.test(cellValue)) {
+                              const replacementValue = (replacements as Record<string, string | number>)[key];
+                              cellValue = cellValue.replace(placeholder, String(replacementValue));
+                          }
+                      }
+                      cell.value(cellValue);
+                  }
+              });
+          }
+      }
+      
+      if (workbook.sheets().length > 1) {
+        templateSheet.delete();
+      }
+    } else {
+        templateSheet.name("データなし");
     }
 
-    templateSheet.delete();
     const buffer = await workbook.outputAsync();
+    const fileBuffer = Buffer.from(buffer).toString('base64');
 
-    return new NextResponse(buffer, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="consultations.xlsx"`,
-      },
-    });
+    return { success: true, fileBuffer };
 
   } catch (error) {
-    console.error("API Error:", error);
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-    return new NextResponse(JSON.stringify({ message: "Internal Server Error", error: errorMessage }), { status: 500 });
+    console.error("generateFormattedConsultationsExcel Error:", error);
+    const errorMessage = error instanceof Error ? error.message : "不明なエラーが発生しました";
+    return { success: false, error: errorMessage, fileBuffer: null };
   }
 }

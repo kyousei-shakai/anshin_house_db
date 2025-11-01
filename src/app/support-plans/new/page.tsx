@@ -1,8 +1,25 @@
+// src/app/support-plans/new/page.tsx (修正後)
+
 import Link from 'next/link'
 import Layout from '@/components/Layout'
 import SupportPlanForm from '@/components/SupportPlanForm'
+import { getUsers } from '@/app/actions/users' // ★ 利用者一覧を取得するServer Actionをインポート
 
-export default function NewSupportPlanPage() {
+export default async function NewSupportPlanPage() {
+  // ▼▼▼ サーバーサイドで安全に利用者一覧を取得 ▼▼▼
+  const { data: users, error } = await getUsers()
+
+  if (error) {
+    // データ取得に失敗した場合のエラー表示
+    return (
+      <Layout>
+        <div className="max-w-4xl mx-auto p-4 bg-red-100 text-red-700 rounded">
+          利用者一覧の読み込みに失敗しました: {error}
+        </div>
+      </Layout>
+    )
+  }
+
   return (
     <Layout>
       <div className="max-w-4xl mx-auto">
@@ -44,7 +61,8 @@ export default function NewSupportPlanPage() {
             </p>
           </div>
 
-          <SupportPlanForm />
+          {/* ▼▼▼ 取得した利用者一覧をpropsでフォームに渡す ▼▼▼ */}
+          <SupportPlanForm users={users || []} />
         </div>
       </div>
     </Layout>

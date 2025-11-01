@@ -1,31 +1,37 @@
+//src/components/SupportPlanForm.tsx
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { supportPlansApi, usersApi } from '@/lib/api'
+import { createSupportPlan, updateSupportPlan } from '@/app/actions/supportPlans'
+import { getStaffForSelection } from '@/app/actions/staff' // ★ 変更点: スタッフ取得用のServer Actionをインポート
 import { Database } from '@/types/database'
 import { calculateAge } from '@/utils/date'
 
 // 型エイリアス
 type User = Database['public']['Tables']['users']['Row']
+type SupportPlan = Database['public']['Tables']['support_plans']['Row']
 type SupportPlanInsert = Database['public']['Tables']['support_plans']['Insert']
 type SupportPlanUpdate = Partial<Database['public']['Tables']['support_plans']['Update']>
+type Staff = { id: string; name: string | null } // ★ 変更点: Staffの型を定義
 
 interface SupportPlanFormProps {
   editMode?: boolean
-  supportPlanId?: string
+  supportPlan?: SupportPlan
+  users: User[]
 }
 
-const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, supportPlanId }) => {
+const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, supportPlan, users }) => {
   const router = useRouter()
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [users, setUsers] = useState<User[]>([])
+  const [staffList, setStaffList] = useState<Staff[]>([]) // ★ 変更点: スタッフリスト用のstateを追加
   
+  // ★ 変更点: フォームのstateから staff_name を削除し、staff_id を追加
   const [formData, setFormData] = useState({
     user_id: '',
     creation_date: new Date().toISOString().split('T')[0],
-    staff_name: '',
+    staff_id: '', // staff_name から staff_id へ変更
     name: '',
     furigana: '',
     birth_date: '',
@@ -77,82 +83,83 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
     evacuation_plan_other_details: ''
   })
 
+  // ★ 変更点: スタッフリストを取得するuseEffectを追加
   useEffect(() => {
-    const fetchInitialData = async () => {
-      setLoading(true);
-      try {
-        const usersData = await usersApi.getAll();
-        setUsers(usersData);
-
-        if (editMode && supportPlanId) {
-          const planData = await supportPlansApi.getById(supportPlanId);
-          if (planData) {
-            setFormData({
-              user_id: planData.user_id,
-              creation_date: planData.creation_date.split('T')[0],
-              staff_name: planData.staff_name,
-              name: planData.name,
-              furigana: planData.furigana,
-              birth_date: planData.birth_date.split('T')[0],
-              residence: planData.residence,
-              phone_mobile: planData.phone_mobile || '',
-              line_available: planData.line_available || false,
-              welfare_recipient: planData.welfare_recipient || false,
-              welfare_worker: planData.welfare_worker || '',
-              welfare_contact: planData.welfare_contact || '',
-              care_level_independent: planData.care_level_independent || false,
-              care_level_support1: planData.care_level_support1 || false,
-              care_level_support2: planData.care_level_support2 || false,
-              care_level_care1: planData.care_level_care1 || false,
-              care_level_care2: planData.care_level_care2 || false,
-              care_level_care3: planData.care_level_care3 || false,
-              care_level_care4: planData.care_level_care4 || false,
-              care_level_care5: planData.care_level_care5 || false,
-              outpatient_care: planData.outpatient_care || false,
-              outpatient_institution: planData.outpatient_institution || '',
-              visiting_medical: planData.visiting_medical || false,
-              visiting_medical_institution: planData.visiting_medical_institution || '',
-              home_oxygen: planData.home_oxygen || false,
-              physical_disability_level: planData.physical_disability_level || '',
-              mental_disability_level: planData.mental_disability_level || '',
-              therapy_certificate_level: planData.therapy_certificate_level || '',
-              pension_national: planData.pension_national || false,
-              pension_employee: planData.pension_employee || false,
-              pension_disability: planData.pension_disability || false,
-              pension_survivor: planData.pension_survivor || false,
-              pension_corporate: planData.pension_corporate || false,
-              pension_other: planData.pension_other || false,
-              pension_other_details: planData.pension_other_details || '',
-              monitoring_secom: planData.monitoring_secom || false,
-              monitoring_secom_details: planData.monitoring_secom_details || '',
-              monitoring_hello_light: planData.monitoring_hello_light || false,
-              monitoring_hello_light_details: planData.monitoring_hello_light_details || '',
-              support_shopping: planData.support_shopping || false,
-              support_bank_visit: planData.support_bank_visit || false,
-              support_cleaning: planData.support_cleaning || false,
-              support_bulb_change: planData.support_bulb_change || false,
-              support_garbage_disposal: planData.support_garbage_disposal || false,
-              goals: planData.goals || '',
-              needs_financial: planData.needs_financial || '',
-              needs_physical: planData.needs_physical || '',
-              needs_mental: planData.needs_mental || '',
-              needs_lifestyle: planData.needs_lifestyle || '',
-              needs_environment: planData.needs_environment || '',
-              evacuation_plan_completed: planData.evacuation_plan_completed || false,
-              evacuation_plan_other_details: planData.evacuation_plan_other_details || '',
-            });
-          }
+    const fetchStaff = async () => {
+      const result = await getStaffForSelection();
+      if (result.success && result.data) {
+        if (result.data.length > 0) {
+          setStaffList(result.data);
+        } else {
+          setError('担当者が登録されていません。');
         }
-      } catch (err) {
-        console.error('データ取得に失敗しました:', err);
-        setError(err instanceof Error ? err.message : 'データの取得に失敗しました');
-      } finally {
-        setLoading(false);
+      } else {
+        console.error('Failed to fetch staff list:', result.error);
+        setError('担当者リストの読み込み中にエラーが発生しました。');
       }
     };
+    fetchStaff();
+  }, []);
 
-    fetchInitialData();
-  }, [editMode, supportPlanId]);
+  // ★ 変更点: 既存のuseEffectを、staff_idを扱うように修正
+  useEffect(() => {
+    if (editMode && supportPlan) {
+      setFormData({
+        user_id: supportPlan.user_id,
+        creation_date: supportPlan.creation_date.split('T')[0],
+        staff_id: supportPlan.staff_id || '', // staff_name を staff_id に変更
+        name: supportPlan.name,
+        furigana: supportPlan.furigana,
+        birth_date: supportPlan.birth_date.split('T')[0],
+        residence: supportPlan.residence,
+        phone_mobile: supportPlan.phone_mobile || '',
+        line_available: supportPlan.line_available || false,
+        welfare_recipient: supportPlan.welfare_recipient || false,
+        welfare_worker: supportPlan.welfare_worker || '',
+        welfare_contact: supportPlan.welfare_contact || '',
+        care_level_independent: supportPlan.care_level_independent || false,
+        care_level_support1: supportPlan.care_level_support1 || false,
+        care_level_support2: supportPlan.care_level_support2 || false,
+        care_level_care1: supportPlan.care_level_care1 || false,
+        care_level_care2: supportPlan.care_level_care2 || false,
+        care_level_care3: supportPlan.care_level_care3 || false,
+        care_level_care4: supportPlan.care_level_care4 || false,
+        care_level_care5: supportPlan.care_level_care5 || false,
+        outpatient_care: supportPlan.outpatient_care || false,
+        outpatient_institution: supportPlan.outpatient_institution || '',
+        visiting_medical: supportPlan.visiting_medical || false,
+        visiting_medical_institution: supportPlan.visiting_medical_institution || '',
+        home_oxygen: supportPlan.home_oxygen || false,
+        physical_disability_level: supportPlan.physical_disability_level || '',
+        mental_disability_level: supportPlan.mental_disability_level || '',
+        therapy_certificate_level: supportPlan.therapy_certificate_level || '',
+        pension_national: supportPlan.pension_national || false,
+        pension_employee: supportPlan.pension_employee || false,
+        pension_disability: supportPlan.pension_disability || false,
+        pension_survivor: supportPlan.pension_survivor || false,
+        pension_corporate: supportPlan.pension_corporate || false,
+        pension_other: supportPlan.pension_other || false,
+        pension_other_details: supportPlan.pension_other_details || '',
+        monitoring_secom: supportPlan.monitoring_secom || false,
+        monitoring_secom_details: supportPlan.monitoring_secom_details || '',
+        monitoring_hello_light: supportPlan.monitoring_hello_light || false,
+        monitoring_hello_light_details: supportPlan.monitoring_hello_light_details || '',
+        support_shopping: supportPlan.support_shopping || false,
+        support_bank_visit: supportPlan.support_bank_visit || false,
+        support_cleaning: supportPlan.support_cleaning || false,
+        support_bulb_change: supportPlan.support_bulb_change || false,
+        support_garbage_disposal: supportPlan.support_garbage_disposal || false,
+        goals: supportPlan.goals || '',
+        needs_financial: supportPlan.needs_financial || '',
+        needs_physical: supportPlan.needs_physical || '',
+        needs_mental: supportPlan.needs_mental || '',
+        needs_lifestyle: supportPlan.needs_lifestyle || '',
+        needs_environment: supportPlan.needs_environment || '',
+        evacuation_plan_completed: supportPlan.evacuation_plan_completed || false,
+        evacuation_plan_other_details: supportPlan.evacuation_plan_other_details || '',
+      });
+    }
+  }, [editMode, supportPlan]);
 
   const handleUserChange = (userId: string) => {
     if (editMode) return;
@@ -167,6 +174,16 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
         birth_date: selectedUser.birth_date ? selectedUser.birth_date.split('T')[0] : '',
         residence: selectedUser.property_address || '',
         phone_mobile: selectedUser.resident_contact || ''
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        user_id: '',
+        name: '',
+        furigana: '',
+        birth_date: '',
+        residence: '',
+        phone_mobile: ''
       }))
     }
   }
@@ -194,22 +211,22 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
     }));
   }
 
+  // ★ 変更点: handleSubmitを、staff_idを扱うように修正
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!formData.user_id) { setError('利用者を選択してください'); return; }
-    if (!formData.staff_name.trim()) { setError('担当スタッフ名を入力してください'); return; }
+    if (!formData.staff_id) { setError('担当スタッフを選択してください'); return; } // staff_name を staff_id に変更
     if (!formData.name.trim()) { setError('利用者名を入力してください'); return; }
-    if (!formData.furigana.trim()) { setError('フリガナを入力してください'); return; }
-    if (!formData.birth_date) { setError('生年月日を入力してください'); return; }
 
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
       
-      const commonData: Omit<SupportPlanInsert, 'user_id' | 'id' | 'created_at' | 'updated_at'> = {
+    try {
+      // ★ 変更点: commonDataから staff_name を削除し、staff_id を追加
+      const commonData: Omit<SupportPlanInsert, 'user_id' | 'id' | 'created_at' | 'updated_at' | 'staff_name'> & { staff_id: string } = {
         creation_date: formData.creation_date,
-        staff_name: formData.staff_name,
+        staff_id: formData.staff_id, // staff_name を staff_id に変更
         name: formData.name,
         furigana: formData.furigana,
         birth_date: formData.birth_date,
@@ -261,13 +278,19 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
         evacuation_plan_other_details: formData.evacuation_plan_other_details.trim() || null
       };
       
-      if (editMode && supportPlanId) {
+      if (editMode && supportPlan) {
         const updatePayload: SupportPlanUpdate = commonData;
-        await supportPlansApi.update(supportPlanId, updatePayload);
-        router.push(`/support-plans/${supportPlanId}`);
+        const result = await updateSupportPlan(supportPlan.id, updatePayload);
+        if (!result.success) {
+          throw new Error(result.error || '更新に失敗しました。');
+        }
+        router.push(`/support-plans/${supportPlan.id}`);
       } else {
         const createPayload: SupportPlanInsert = { ...commonData, user_id: formData.user_id };
-        await supportPlansApi.create(createPayload);
+        const result = await createSupportPlan(createPayload);
+        if (!result.success) {
+          throw new Error(result.error || '作成に失敗しました。');
+        }
         router.push('/support-plans');
       }
 
@@ -278,11 +301,6 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
       setLoading(false);
     }
   }
-
-  if (loading && !formData.user_id && !editMode) { 
-    return <div>読み込み中...</div>
-  }
-  
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       {error && (
@@ -316,8 +334,23 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
             <input type="date" name="creation_date" value={formData.creation_date} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">担当スタッフ <span className="text-red-500">*</span></label>
-            <input type="text" name="staff_name" value={formData.staff_name} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+            {/* ★ 変更点: input を select に完全に置換 */}
+            <label htmlFor="staff_id" className="block text-sm font-medium text-gray-700 mb-1">担当スタッフ <span className="text-red-500">*</span></label>
+            <select
+              id="staff_id"
+              name="staff_id"
+              value={formData.staff_id}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="" disabled>担当者を選択してください</option>
+              {staffList.map((staff) => (
+                <option key={staff.id} value={staff.id}>
+                  {staff.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">氏名 <span className="text-red-500">*</span></label>

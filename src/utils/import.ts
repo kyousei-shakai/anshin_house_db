@@ -1,3 +1,4 @@
+// src/utils/import.ts
 import * as XLSX from 'xlsx'
 import { Database } from '@/types/database'
 
@@ -15,6 +16,47 @@ export interface ImportValidationResult {
   errors: string[]
   warnings: string[]
 }
+
+// ★ 追加: タイムゾーン問題を回避する、安全な日付変換関数
+const convertDate = (dateInput: string | number | Date | null | undefined): string | undefined => {
+  if (!dateInput) return undefined;
+  
+  const dateStr = dateInput.toString().trim();
+  if (dateStr === '') return undefined;
+
+  // YYYY-MM-DD形式の場合はそのまま返す
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+
+  // Excelのシリアル値（数値）の場合
+  const excelDateNumber = Number(dateStr);
+  if (!isNaN(excelDateNumber) && excelDateNumber > 0) {
+    // Excelのシリアル値は1900-01-01を1とするが、JavaScriptのDateは1970-01-01を基準とするため変換
+    // 1900年のうるう年のバグも考慮
+    const epoch = Date.UTC(1899, 11, 30); // 1899-12-30を基準点とする
+    const date = new Date(epoch + excelDateNumber * 86400 * 1000);
+    
+    // UTC基準で年月日を取得し、YYYY-MM-DD形式にフォーマットする
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  
+  // その他の形式（'YYYY/MM/DD'など）をパースしてみる
+  const parsedDate = new Date(dateStr);
+  if (!isNaN(parsedDate.getTime())) {
+    const year = parsedDate.getFullYear();
+    const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(parsedDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // いずれにも当てはまらない場合は、バリデーションエラー用の不正な値として返す
+  return dateStr; 
+}
+
 
 export const checkUIDDuplication = (data: Partial<User>[]): ImportValidationResult => {
   const errors: string[] = []
@@ -49,25 +91,24 @@ export const validateImportData = (data: Partial<User>[]): ImportValidationResul
     if (!user.name || user.name.trim() === '') {
       errors.push(`行 ${rowNum}: 氏名が入力されていません`)
     }
-    
-    if (user.birth_date && user.birth_date.toString().trim() !== '') {
-      const dateStr = user.birth_date.toString()
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-        const excelDateNumber = Number(dateStr);
-        if (!isNaN(excelDateNumber) && excelDateNumber > 25569) {
-          const excelDate = new Date((excelDateNumber - 25569) * 86400 * 1000);
-          user.birth_date = excelDate.toISOString().split('T')[0];
-        } else {
-          const parsedDate = new Date(dateStr);
-          if (isNaN(parsedDate.getTime())) {
-            errors.push(`行 ${rowNum}: 生年月日の形式が正しくありません（例: 1980-01-01）`)
-          } else {
-            user.birth_date = parsedDate.toISOString().split('T')[0];
-          }
+
+    // ★ 変更点: 新しいconvertDate関数を使い、日付カラムをまとめて処理
+    const dateFields: (keyof User)[] = ['birth_date', 'move_in_date', 'next_renewal_date'];
+    dateFields.forEach(field => {
+      if (user[field]) {
+        const originalValue = user[field];
+        const converted = convertDate(originalValue as string);
+if (converted && /^\d{4}-\d{2}-\d{2}$/.test(converted)) {
+          // ★ 変更点: 説明付きの @ts-expect-error に変更
+          // @ts-expect-error: 'field'は日付型(string)であることが分かっているが、TSはUnion型と見なすため
+          user[field] = converted;
+        } else if (originalValue) {
+          const fieldName = userMapping[field] || field;
+          errors.push(`行 ${rowNum}: ${fieldName}「${originalValue}」の形式が正しくありません（例: 1980-01-01）`);
         }
       }
-    }
-    
+    });
+
     const gender = user.gender as string;
     if (gender && !['male', 'female', 'other'].includes(gender)) {
       if (['男性', '男', 'M', 'm'].includes(gender)) user.gender = 'male';
@@ -79,7 +120,7 @@ export const validateImportData = (data: Partial<User>[]): ImportValidationResul
       }
     }
     
-    if (user.rent !== undefined && user.rent !== null && user.rent < 0) warnings.push(`行 ${rowNum}: 家賃「${user.rent}」は0以上の数値で入力してください`);
+    if (user.rent !== undefined && user.rent !== null && Number(user.rent) < 0) warnings.push(`行 ${rowNum}: 家賃「${user.rent}」は0以上の数値で入力してください`);
   })
   
   return { valid: errors.length === 0, errors, warnings }
@@ -111,7 +152,6 @@ const parseRowToUser = (row: (string | number)[], headers: string[]): Partial<Us
       else if (header === userMapping.monitoring_system) user.monitoring_system = valueStr;
       else if (header === userMapping.support_medical_institution) user.support_medical_institution = valueStr;
       else if (header === userMapping.notes) user.notes = valueStr;
-      // 数値型
       else if (header === userMapping.deposit) user.deposit = parseFloat(valueStr);
       else if (header === userMapping.key_money) user.key_money = parseFloat(valueStr);
       else if (header === userMapping.rent) user.rent = parseFloat(valueStr);
@@ -121,7 +161,6 @@ const parseRowToUser = (row: (string | number)[], headers: string[]): Partial<Us
       else if (header === userMapping.landlord_common_fee) user.landlord_common_fee = parseFloat(valueStr);
       else if (header === userMapping.rent_difference) user.rent_difference = parseFloat(valueStr);
       else if (header === userMapping.renewal_count) user.renewal_count = parseInt(valueStr, 10);
-      // 真偽値型
       else if (header === userMapping.line_available) user.line_available = ['true', '1', 'はい', 'あり'].includes(valueStr.toLowerCase());
       else if (header === userMapping.proxy_payment_eligible) user.proxy_payment_eligible = ['true', '1', 'はい', 'あり'].includes(valueStr.toLowerCase());
       else if (header === userMapping.welfare_recipient) user.welfare_recipient = ['true', '1', 'はい', 'あり'].includes(valueStr.toLowerCase());

@@ -1,24 +1,29 @@
+// src/components/ConsultationDetail.tsx
+
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useMemo } from 'react'
+// import { useRouter } from 'next/navigation' // ★ 修正点: この行を削除
 import Link from 'next/link'
-import { consultationsApi, usersApi } from '@/lib/api'
-import { generateNewUID } from '@/utils/uid'
+import { createUser } from '@/app/actions/users'
+import { deleteConsultation } from '@/app/actions/consultations'
 import { Database } from '@/types/database'
 import { calculateAge } from '@/utils/date'
 
-// 型エイリアス
-type Consultation = Database['public']['Tables']['consultations']['Row']
-type UserInsert = Database['public']['Tables']['users']['Insert']
+// ★ 変更点: 型エイリアスを、JOIN後のstaffオブジェクトを含む形に拡張
+type Consultation = Database['public']['Tables']['consultations']['Row'] & {
+  staff: {
+    name: string | null
+  } | null
+}
+type UserInsert = Omit<Database['public']['Tables']['users']['Insert'], 'uid' | 'id' | 'created_at' | 'updated_at'>
 
 interface ConsultationDetailProps {
-  consultationId: string
+  consultation: Consultation
 }
 
 // 視認性向上のための小さなコンポーネント
 const DetailItem: React.FC<{ label: string; children: React.ReactNode; fullWidth?: boolean }> = ({ label, children, fullWidth = false }) => {
-  // 子要素が null, undefined, 空文字, false の場合に表示しないように厳密化
   if (children === null || children === undefined || children === '' || children === false) return null;
 
   return (
@@ -43,12 +48,10 @@ const DetailSection: React.FC<{ title: string; children: React.ReactNode }> = ({
 );
 
 
-const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId }) => {
-  const router = useRouter()
-  const [consultation, setConsultation] = useState<Consultation | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation }) => {
+  // const router = useRouter() // ★ 修正点: この行を削除
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isRegistering, setIsRegistering] = useState(false)
 
   const calculatedAge = useMemo(() => {
     if (consultation?.birth_year && consultation?.birth_month && consultation?.birth_day) {
@@ -64,23 +67,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
     return null;
   }, [consultation]);
 
-  useEffect(() => {
-    const fetchConsultation = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const data = await consultationsApi.getById(consultationId)
-        setConsultation(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'エラーが発生しました')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchConsultation()
-  }, [consultationId])
-
   const handleDelete = async () => {
     if (!consultation) return;
 
@@ -91,14 +77,14 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
 
     setIsDeleting(true)
     try {
-      await consultationsApi.delete(consultationId)
-      alert('相談履歴を削除しました。')
-      router.push('/consultations')
-      router.refresh()
+      const result = await deleteConsultation(consultation.id)
+      if (result && !result.success) {
+        throw new Error(result.error || '削除に失敗しました。')
+      }
+      // 成功時はServer Action内でredirectされる
     } catch (err) {
       console.error('相談履歴の削除エラー:', err)
-      alert('相談履歴の削除に失敗しました。')
-    } finally {
+      alert(err instanceof Error ? err.message : '相談履歴の削除に失敗しました。')
       setIsDeleting(false)
     }
   }
@@ -111,17 +97,15 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
   }
 
   const handleRegisterAsUser = async () => {
-    if (!consultation) return
+    if (!consultation || isRegistering) return
 
+    setIsRegistering(true)
     try {
-      const newUID = await generateNewUID()
-      
       const userData: UserInsert = {
-        uid: newUID,
         name: consultation.name || '匿名利用者',
         birth_date: consultation.birth_year && consultation.birth_month && consultation.birth_day
           ? `${consultation.birth_year}-${String(consultation.birth_month).padStart(2, '0')}-${String(consultation.birth_day).padStart(2, '0')}`
-          : undefined,
+          : null,
         gender: consultation.gender,
         property_address: consultation.address,
         resident_contact: consultation.phone_mobile || consultation.phone_home,
@@ -131,15 +115,20 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
         posthumous_affairs: false,
       }
       
-      const newUser = await usersApi.create(userData)
+      const result = await createUser(userData, consultation.id)
       
-      await consultationsApi.update(consultationId, { user_id: newUser.id })
+      if (!result.success) {
+        throw new Error(result.error || '利用者登録に失敗しました。')
+      }
       
       alert('利用者として登録しました。ページを更新します。');
       window.location.reload();
+
     } catch (err) {
       console.error('利用者登録エラー:', err)
-      alert('利用者登録に失敗しました')
+      alert(err instanceof Error ? err.message : '利用者登録に失敗しました')
+    } finally {
+      setIsRegistering(false)
     }
   }
 
@@ -192,7 +181,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
     }
   };
   
-  // ▼▼▼ 追加 ▼▼▼ ここから
   const getRelocationAdminOpinionLabel = (opinion: string | null | undefined, details: string | null | undefined): string => {
     if (!opinion) return '未設定';
     const detailText = details ? ` (${details})` : '';
@@ -229,33 +217,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
           default: return duration;
       }
   };
-  // ▲▲▲ 追加 ▲▲▲ ここまで
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-600"></div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
-        <p className="font-bold">エラー</p>
-        <p>データの読み込みに失敗しました: {error}</p>
-      </div>
-    )
-  }
-
-  if (!consultation) {
-    return (
-      <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
-        <p className="font-bold">情報</p>
-        <p>指定された相談データは見つかりませんでした。</p>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-10">
@@ -287,9 +248,9 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
           </span>
           {!consultation.user_id && (
             <span className="ml-3">
-              <button onClick={handleRegisterAsUser} type="button" className="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
+              <button onClick={handleRegisterAsUser} type="button" disabled={isRegistering} className="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50">
                 <svg className="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M8 8a3 3 0 100-6 3 3 0 000 6zM12 8a5 5 0 11-10 0 5 5 0 0110 0zM12 15a4 4 0 01-4 4H4a4 4 0 01-4-4v-1.382a3 3 0 01.99-2.121l4-4a3 3 0 014.242 0l4 4A3 3 0 0116 13.618V15z" /></svg>
-                利用者登録
+                {isRegistering ? '登録中...' : '利用者登録'}
               </button>
             </span>
           )}
@@ -304,7 +265,8 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
       
       <DetailSection title="1. 基本情報">
         <DetailItem label="相談日">{formatDate(consultation.consultation_date)}</DetailItem>
-        <DetailItem label="担当スタッフ">{consultation.staff_name || '未設定'}</DetailItem>
+        {/* ★ 変更点: consultation.staff.name を参照するように修正 */}
+        <DetailItem label="担当スタッフ">{consultation.staff?.name || '未設定'}</DetailItem>
         <DetailItem label="お名前">{consultation.name ? `${consultation.name}様` : '匿名'}</DetailItem>
         <DetailItem label="フリガナ">{consultation.furigana}</DetailItem>
         <DetailItem label="性別">{getGenderLabel(consultation.gender)}</DetailItem>
@@ -402,7 +364,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
         </DetailItem>
       </DetailSection>
       
-      {/* ▼▼▼ 追加 ▼▼▼ ここから */}
       {consultation.is_relocation_to_other_city_desired === true && (
         <DetailSection title="4. 他市区町村への転居">
           <DetailItem label="転居希望">
@@ -419,7 +380,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
           </DetailItem>
         </DetailSection>
       )}
-      {/* ▲▲▲ 追加 ▲▲▲ ここまで */}
 
       <DetailSection title="5. ADL/IADL">
         <DetailItem label="認知症">
@@ -442,7 +402,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
         <DetailItem label="その他特記事項" fullWidth><div className="whitespace-pre-wrap">{consultation.other_notes || '記載なし'}</div></DetailItem>
       </DetailSection>
 
-      {/* ▼▼▼ 追加 ▼▼▼ ここから */}
       <DetailSection title="6. 現在の住まい">
         <DetailItem label="家賃滞納">
           {consultation.rent_arrears_status === 'yes' ? (
@@ -473,7 +432,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
           {consultation.eviction_date_notes && <div className="mt-1 text-sm text-gray-600">補足: {consultation.eviction_date_notes}</div>}
         </DetailItem>
       </DetailSection>
-      {/* ▲▲▲ 追加 ▲▲▲ ここまで */}
 
       <DetailSection title="7. 相談内容等">
         <DetailItem label="相談内容（困りごと、何が大変でどうしたいか、等）" fullWidth>
@@ -492,11 +450,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultationId 
         </DetailItem>
         <DetailItem label="相談結果" fullWidth>
             <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">{consultation.consultation_result || '記載なし'}</div>
-        </DetailItem>
-        <DetailItem label="次回予定" fullWidth>
-          {consultation.next_appointment_scheduled ? (
-            <div>あり{consultation.next_appointment_details && <div className="mt-1 text-sm text-gray-600">詳細: {consultation.next_appointment_details}</div>}</div>
-          ) : 'なし'}
         </DetailItem>
       </DetailSection>
 

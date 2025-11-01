@@ -1,63 +1,30 @@
-'use client'
-
-// ★ useフックをreactからインポート
-import { useState, useRef, useCallback, use } from 'react' 
+// src/app/consultations/[id]/edit/page.tsx
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import ConsultationFormLayout from '@/components/ConsultationFormLayout'
 import ConsultationForm from '@/components/ConsultationForm'
+import { getConsultationById } from '@/app/actions/consultations'
+import { headers } from 'next/headers'
 
-// ★★★ propsの型定義を、エラーメッセージの事実に合わせてPromiseに戻す ★★★
-interface ConsultationEditPageProps {
-  params: Promise<{
-    id: string
-  }>
-}
+export const dynamic = 'force-dynamic'
 
-export default function ConsultationEditPage({ params }: ConsultationEditPageProps) {
-  // ★★★ React.use() を使ってPromiseを解決する ★★★
-  const { id } = use(params)
+export default async function ConsultationEditPage() {
+  const headersList = await headers()
+  const url = headersList.get('x-url') || ''
+  const segments = new URL(url).pathname.split('/')
+  
+  // ★ 変更点: 最後の要素ではなく、最後から2番目の要素をIDとして取得
+  const id = segments[segments.length - 2] || ''
 
   if (!id) {
     notFound()
   }
 
-  // 以下、ナビゲーション制御のロジックは変更なし
-  const [activeSection, setActiveSection] = useState<string>('section-1');
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  const { success, data: initialData } = await getConsultationById(id)
 
-  const formRefCallback = useCallback((formElement: HTMLFormElement | null) => {
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
-    if (formElement === null) {
-      return;
-    }
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        const intersectingEntries = entries.filter(entry => entry.isIntersecting);
-        if (intersectingEntries.length > 0) {
-          const topEntry = intersectingEntries.reduce((prev, current) => {
-            if (prev.target.compareDocumentPosition(current.target) & Node.DOCUMENT_POSITION_FOLLOWING) {
-              return prev;
-            }
-            return current;
-          });
-          setActiveSection(topEntry.target.id);
-        }
-      },
-      {
-        root: null,
-        threshold: [0, 1],
-      }
-    );
-    const sectionElements = Array.from(formElement.querySelectorAll('[id^="section-"]')) as HTMLElement[];
-    sectionElements.forEach(el => {
-      if(observerRef.current) {
-        observerRef.current.observe(el);
-      }
-    });
-  }, []);
+  if (!success || !initialData) {
+    notFound()
+  }
 
   const pageHeader = (
     <div>
@@ -89,7 +56,7 @@ export default function ConsultationEditPage({ params }: ConsultationEditPagePro
                 </Link>
               </div>
             </li>
-            <li>
+            <li aria-current="page">
               <div className="flex items-center">
                 <svg className="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
                   <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 9 4-4-4-4"/>
@@ -112,8 +79,11 @@ export default function ConsultationEditPage({ params }: ConsultationEditPagePro
   );
 
   return (
-    <ConsultationFormLayout pageHeader={pageHeader} activeSection={activeSection}>
-      <ConsultationForm ref={formRefCallback} editMode={true} consultationId={id} />
+    <ConsultationFormLayout pageHeader={pageHeader}>
+      <ConsultationForm
+        editMode={true}
+        initialData={initialData}
+      />
     </ConsultationFormLayout>
   )
 }

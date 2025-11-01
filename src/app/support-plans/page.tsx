@@ -1,8 +1,12 @@
+// src/app/support-plans/page.tsx
 import Link from 'next/link'
 import Layout from '@/components/Layout'
 import SupportPlanList from '@/components/SupportPlanList'
-
-export default function SupportPlansPage() {
+import { getSupportPlans } from '@/app/actions/supportPlans' // ★ Server Actionをインポート
+export const dynamic = 'force-dynamic'
+export default async function SupportPlansPage() {
+  // ▼▼▼ サーバーサイドで安全に支援計画一覧を取得 ▼▼▼
+  const { data: supportPlans, error } = await getSupportPlans()
   return (
     <Layout>
       <div className="max-w-6xl mx-auto">
@@ -17,7 +21,7 @@ export default function SupportPlansPage() {
               <li>
                 <div className="flex items-center">
                   <svg className="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
-                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 9 4-4-4-4"/>
+                    <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 9 4-4-4-4" />
                   </svg>
                   <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">支援計画</span>
                 </div>
@@ -25,7 +29,6 @@ export default function SupportPlansPage() {
             </ol>
           </nav>
         </div>
-
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -42,7 +45,11 @@ export default function SupportPlansPage() {
             </Link>
           </div>
 
-          <SupportPlanList />
+          {/* ▼▼▼ 取得したデータをpropsで渡す。エラーがあればエラーも渡す。 ▼▼▼ */}
+          <SupportPlanList
+            initialSupportPlans={supportPlans || []}
+            fetchError={error || null}
+          />
         </div>
       </div>
     </Layout>
