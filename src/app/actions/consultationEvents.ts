@@ -16,7 +16,9 @@ const supportEventSchema = z.object({
   status: z.enum(CONSULTATION_STATUSES, {
     message: '無効なステータ-スです。',
   }),
-  event_note: z.string().min(1, '対応内容は必須です。').max(5000, '対応内容は5000文字以内で入力してください。'),
+    // ↓↓↓↓ この行を修正 ↓↓↓↓
+  event_note: z.string().max(5000, '対応内容は5000文字以内で入力してください。').optional(),
+  // ↑↑↑↑ この行を修正 ↑↑↑↑
   next_action_date: z.string().nullable(),
 })
 
@@ -49,7 +51,7 @@ export async function createSupportEvent(formData: SupportEventData): Promise<Re
         consultation_id: consultationId,
         staff_id: staff_id,
         status: status,
-        event_note: event_note,
+        event_note: event_note || null,
         next_action_date: next_action_date || null,
       })
     if (eventError) throw eventError
