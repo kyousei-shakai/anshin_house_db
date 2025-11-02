@@ -1,60 +1,34 @@
+// src/components/UserConsultationHistory.tsx (完全版・修正後)
+
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import Link from 'next/link'
-import { consultationsApi } from '@/lib/api'
-// 👇 1. インポートを 'Database' 型に変更
 import { Database } from '@/types/database'
 
-// 👇 2. 新しい型定義から型エイリアスを作成
 type Consultation = Database['public']['Tables']['consultations']['Row']
 
 interface UserConsultationHistoryProps {
-  userId: string
+  consultations: Consultation[] // ★ userIdではなく、consultations配列を直接受け取る
 }
 
-const UserConsultationHistory: React.FC<UserConsultationHistoryProps> = ({ userId }) => {
-  const [consultations, setConsultations] = useState<Consultation[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const fetchConsultations = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const data = await consultationsApi.getByUserId(userId)
-        setConsultations(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'エラーが発生しました')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchConsultations()
-  }, [userId])
+const UserConsultationHistory: React.FC<UserConsultationHistoryProps> = ({ consultations }) => {
+  // ▼▼▼ データ取得関連のstateとuseEffectを全て削除 ▼▼▼
+  // const [consultations, setConsultations] = useState<Consultation[]>([])
+  // const [loading, setLoading] = useState(true)
+  // const [error, setError] = useState<string | null>(null)
+  // useEffect(() => { ... }, [userId])
 
   const formatDate = (dateString: string) => {
     if (!dateString) return ''
     return new Date(dateString).toLocaleDateString('ja-JP')
   }
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <div className="text-red-500 text-sm">エラーが発生しました: {error}</div>
-      </div>
-    )
-  }
+  // ▼▼▼ ローディングとエラー表示は不要に（親コンポーネントで処理されるため）▼▼▼
+  /*
+  if (loading) { ... }
+  if (error) { ... }
+  */
 
   return (
     <div className="space-y-6">

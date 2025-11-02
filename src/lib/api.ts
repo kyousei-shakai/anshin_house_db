@@ -1,4 +1,17 @@
-// import { supabase } from './supabase' // ← 古いインポートは不要
+
+// =================================================================
+// !!! 警告: このファイルは非推奨です (DEPRECATED) !!!
+// =================================================================
+// このファイル内のAPIオブジェクトは、古いクライアントサイドでのデータ取得
+// ロジックです。RLSポリシーの導入に伴い、ほとんどの機能は
+// /src/app/actions/ ディレクトリ内のServer Actionに移行されました。
+//
+// 新しい機能では、このファイル内の関数を呼び出さないでください。
+// データ操作は必ずServer Actionを通じて行ってください。
+//
+// このファイルは、ごく一部の未移行機能との後方互換性のために
+// 残されています。
+// =================================================================
 import { createBrowserClient } from '@supabase/ssr'
 import { Database } from '@/types/database'
 
@@ -171,6 +184,49 @@ export const consultationsApi = {
   }
 }
 
+
+// --- ▼▼▼ ここからが修正箇所です ▼▼▼ ---
+
+// Staff API
+export const staffApi = {
+  /**
+   * 全てのスタッフのレコードを取得します。
+   */
+  getAll: async (): Promise<Staff[]> => {
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase.from('staff').select('*').order('name')
+    if (error) throw error
+    return data || []
+  },
+
+  /**
+   * 新しいスタッフを作成します。
+   */
+  create: async (staff: StaffInsert): Promise<Staff> => {
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase.from('staff').insert([staff]).select().single()
+    if (error) throw error
+    return data
+  },
+  
+  /**
+   * SupportEventFormのドロップダウン用に、IDと名前だけを取得します。
+   */
+  getAllForSelection: async (): Promise<{ id: string; name: string | null }[]> => {
+    const supabase = getSupabaseClient()
+    const { data, error } = await supabase
+      .from('staff')
+      .select('id, name')
+      .order('name', { ascending: true });
+    if (error) throw error;
+    return data || [];
+  },
+}
+// --- ▲▲▲ 修正はここまでです ▲▲▲ ---
+
+
+
+
 // Support Plans API (変更なし)
 export const supportPlansApi = {
   getAll: async (): Promise<SupportPlan[]> => {
@@ -207,21 +263,5 @@ export const supportPlansApi = {
     const supabase = getSupabaseClient()
     const { error } = await supabase.from('support_plans').delete().eq('id', id)
     if (error) throw error
-  }
-}
-
-// Staff API (変更なし)
-export const staffApi = {
-  getAll: async (): Promise<Staff[]> => {
-    const supabase = getSupabaseClient()
-    const { data, error } = await supabase.from('staff').select('*').order('name')
-    if (error) throw error
-    return data || []
-  },
-  create: async (staff: StaffInsert): Promise<Staff> => {
-    const supabase = getSupabaseClient()
-    const { data, error } = await supabase.from('staff').insert([staff]).select().single()
-    if (error) throw error
-    return data
   }
 }

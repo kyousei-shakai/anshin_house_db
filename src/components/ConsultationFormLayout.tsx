@@ -16,10 +16,10 @@ const sections = [
 interface ConsultationFormLayoutProps {
   children: React.ReactNode;
   pageHeader: React.ReactNode;
-  activeSection: string; // ★ 親からアクティブなセクションIDを受け取る
+  activeSection?: string; // オプショナル：親からアクティブなセクションIDを受け取る（Server Componentでは不要）
 }
 
-const ConsultationFormLayout: React.FC<ConsultationFormLayoutProps> = ({ children, pageHeader, activeSection }) => {
+const ConsultationFormLayout: React.FC<ConsultationFormLayoutProps> = ({ children, pageHeader, activeSection = '' }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // IntersectionObserverのロジックはここから削除

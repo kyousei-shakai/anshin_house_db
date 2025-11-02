@@ -1,10 +1,8 @@
-// src/components/DataManagement.tsx
-
+// src/components/DataManagement.tsx 
 'use client'
 
 import React, { useState } from 'react'
-import { useUsers } from '@/hooks/useUsers'
-import { usersApi, consultationsApi, supportPlansApi } from '@/lib/api'
+import { createUser, getAllUsersForExport } from '@/app/actions/users'
 import {
   exportUsersToExcel,
   exportUsersToCSV,
@@ -18,51 +16,39 @@ import {
 import { importUsersFromExcel, importUsersFromCSV, ImportResult } from '@/utils/import'
 import { Database } from '@/types/database'
 
+type User = Database['public']['Tables']['users']['Row']
 type Consultation = Database['public']['Tables']['consultations']['Row']
 type SupportPlan = Database['public']['Tables']['support_plans']['Row']
 type UserInsert = Database['public']['Tables']['users']['Insert']
 
-const DataManagement: React.FC = () => {
-  const { users, refreshUsers } = useUsers()
-  const [consultations, setConsultations] = useState<Consultation[]>([])
-  const [supportPlans, setSupportPlans] = useState<SupportPlan[]>([])
+interface DataManagementProps {
+  initialUsers: User[]
+  initialConsultations: Consultation[]
+  initialSupportPlans: SupportPlan[]
+}
+
+const DataManagement: React.FC<DataManagementProps> = ({
+  initialUsers,
+  initialConsultations,
+  initialSupportPlans
+}) => {
+  // ★ 変更点 1: useState をやめ、propsを直接定数に代入
+  const [users, setUsers] = useState<User[]>(initialUsers)
+  const consultations = initialConsultations
+  const supportPlans = initialSupportPlans
+
   const [loading, setLoading] = useState(false)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [reportStartDate, setReportStartDate] = useState('')
   const [reportEndDate, setReportEndDate] = useState('')
   const [exportMonth, setExportMonth] = useState('')
 
-  const fetchAllData = async () => {
-    setLoading(true)
-    try {
-      console.log('データ取得を開始します...')
-      const consultationsData = await consultationsApi.getAll()
-      setConsultations(consultationsData)
-      const supportPlansData = await supportPlansApi.getAll()
-      setSupportPlans(supportPlansData)
-      console.log('データ取得完了')
-    } catch (error) {
-      console.error('データ取得エラー:', error)
-      if (error instanceof Error) {
-        console.error('エラーメッセージ:', error.message)
-      }
-      setConsultations([])
-      setSupportPlans([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  React.useEffect(() => {
-    fetchAllData()
-  }, [])
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const getFilteredData = (data: any[], dateField: string) => {
+  // ★ 変更点 2: ジェネリック関数に変更し、元の型を保持
+  const getFilteredData = <T extends Record<string, unknown>>(data: T[], dateField: string): T[] => {
     if (!exportMonth) return data
     return data.filter(item => {
       const itemDateValue = item[dateField];
-      if (!itemDateValue) return false;
+      if (!itemDateValue || typeof itemDateValue !== 'string') return false;
       const itemDate = new Date(itemDateValue)
       const filterDate = new Date(exportMonth + '-01')
       return itemDate.getFullYear() === filterDate.getFullYear() &&
@@ -146,56 +132,77 @@ const DataManagement: React.FC = () => {
       } else {
         result = { success: false, errors: ['サポートされていないファイル形式です。Excel(.xlsx)またはCSV(.csv)ファイルを選択してください。'] }
       }
-      setImportResult(result)
+      
+      setImportResult(result); // 先にバリデーション結果を表示
+
       if (result.success && result.data) {
         let successCount = 0;
         let failureCount = 0;
         const failures: string[] = [];
-        const existingUsers = await usersApi.getAll();
-        const existingUIDs = new Set(existingUsers.map(user => user.uid));
+        
+        const usersResponse = await getAllUsersForExport();
+        if (!usersResponse.success || !usersResponse.data) {
+          throw new Error('インポート前の既存ユーザーチェックに失敗しました。');
+        }
+        const existingUIDs = new Set(usersResponse.data.map(user => user.uid));
+        
         for (let i = 0; i < result.data.length; i++) {
-          const userData = result.data[i];
+          const userDataFromFile = result.data[i];
           try {
-            if (!userData.uid || !userData.name) { throw new Error(`UIDまたは氏名が不足しています`) }
-            if (existingUIDs.has(userData.uid)) { throw new Error(`UID「${userData.uid}」は既に存在します`) }
-            const processedData: UserInsert = {
-              uid: userData.uid, name: userData.name, birth_date: userData.birth_date || undefined,
-              gender: userData.gender || undefined, property_address: userData.property_address || undefined,
-              property_name: userData.property_name || undefined, room_number: userData.room_number || undefined,
-              intermediary: userData.intermediary || undefined, deposit: userData.deposit && !isNaN(Number(userData.deposit)) ? Number(userData.deposit) : null,
-              key_money: userData.key_money && !isNaN(Number(userData.key_money)) ? Number(userData.key_money) : null,
-              rent: userData.rent && !isNaN(Number(userData.rent)) ? Number(userData.rent) : null,
-              fire_insurance: userData.fire_insurance && !isNaN(Number(userData.fire_insurance)) ? Number(userData.fire_insurance) : null,
-              common_fee: userData.common_fee && !isNaN(Number(userData.common_fee)) ? Number(userData.common_fee) : null,
-              landlord_rent: userData.landlord_rent && !isNaN(Number(userData.landlord_rent)) ? Number(userData.landlord_rent) : null,
-              landlord_common_fee: userData.landlord_common_fee && !isNaN(Number(userData.landlord_common_fee)) ? Number(userData.landlord_common_fee) : null,
-              rent_difference: userData.rent_difference && !isNaN(Number(userData.rent_difference)) ? Number(userData.rent_difference) : null,
-              move_in_date: userData.move_in_date || undefined, next_renewal_date: userData.next_renewal_date || undefined,
-              renewal_count: userData.renewal_count && !isNaN(Number(userData.renewal_count)) ? Number(userData.renewal_count) : null,
-              resident_contact: userData.resident_contact || undefined, line_available: Boolean(userData.line_available),
-              emergency_contact: userData.emergency_contact || undefined, emergency_contact_name: userData.emergency_contact_name || undefined,
-              relationship: userData.relationship || undefined, monitoring_system: userData.monitoring_system || undefined,
-              support_medical_institution: userData.support_medical_institution || undefined, notes: userData.notes || undefined,
-              proxy_payment_eligible: Boolean(userData.proxy_payment_eligible), welfare_recipient: Boolean(userData.welfare_recipient),
-              posthumous_affairs: Boolean(userData.posthumous_affairs)
+            if (!userDataFromFile.uid || !userDataFromFile.name) { throw new Error(`UIDまたは氏名が不足しています`) }
+            if (existingUIDs.has(userDataFromFile.uid)) { throw new Error(`UID「${userDataFromFile.uid}」は既に存在します`) }
+            
+            const processedData: Omit<UserInsert, 'uid'> = {
+              name: userDataFromFile.name, 
+              birth_date: userDataFromFile.birth_date || null,
+              gender: (userDataFromFile.gender as 'male' | 'female' | 'other') || null,
+              property_address: userDataFromFile.property_address || null,
+              property_name: userDataFromFile.property_name || null,
+              room_number: userDataFromFile.room_number || null,
+              intermediary: userDataFromFile.intermediary || null,
+              deposit: userDataFromFile.deposit && !isNaN(Number(userDataFromFile.deposit)) ? Number(userDataFromFile.deposit) : null,
+              key_money: userDataFromFile.key_money && !isNaN(Number(userDataFromFile.key_money)) ? Number(userDataFromFile.key_money) : null,
+              rent: userDataFromFile.rent && !isNaN(Number(userDataFromFile.rent)) ? Number(userDataFromFile.rent) : null,
+              fire_insurance: userDataFromFile.fire_insurance && !isNaN(Number(userDataFromFile.fire_insurance)) ? Number(userDataFromFile.fire_insurance) : null,
+              common_fee: userDataFromFile.common_fee && !isNaN(Number(userDataFromFile.common_fee)) ? Number(userDataFromFile.common_fee) : null,
+              landlord_rent: userDataFromFile.landlord_rent && !isNaN(Number(userDataFromFile.landlord_rent)) ? Number(userDataFromFile.landlord_rent) : null,
+              landlord_common_fee: userDataFromFile.landlord_common_fee && !isNaN(Number(userDataFromFile.landlord_common_fee)) ? Number(userDataFromFile.landlord_common_fee) : null,
+              rent_difference: userDataFromFile.rent_difference && !isNaN(Number(userDataFromFile.rent_difference)) ? Number(userDataFromFile.rent_difference) : null,
+              move_in_date: userDataFromFile.move_in_date || null,
+              next_renewal_date: userDataFromFile.next_renewal_date || null,
+              renewal_count: userDataFromFile.renewal_count && !isNaN(Number(userDataFromFile.renewal_count)) ? Number(userDataFromFile.renewal_count) : null,
+              resident_contact: userDataFromFile.resident_contact || null,
+              line_available: Boolean(userDataFromFile.line_available),
+              emergency_contact: userDataFromFile.emergency_contact || null,
+              emergency_contact_name: userDataFromFile.emergency_contact_name || null,
+              relationship: userDataFromFile.relationship || null,
+              monitoring_system: userDataFromFile.monitoring_system || null,
+              support_medical_institution: userDataFromFile.support_medical_institution || null,
+              notes: userDataFromFile.notes || null,
+              proxy_payment_eligible: Boolean(userDataFromFile.proxy_payment_eligible),
+              welfare_recipient: Boolean(userDataFromFile.welfare_recipient),
+              posthumous_affairs: Boolean(userDataFromFile.posthumous_affairs)
             };
-            Object.keys(processedData).forEach(key => {
-              const K = key as keyof UserInsert;
-              if (processedData[K] === '') {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (processedData as any)[K] = null;
-              }
-            });
-            await usersApi.create(processedData);
-            existingUIDs.add(userData.uid);
+            
+            const createResult = await createUser(processedData, null);
+            if (!createResult.success) {
+              throw new Error(createResult.error || `データベースへの保存中にエラーが発生しました`);
+            }
+            
+            existingUIDs.add(userDataFromFile.uid);
             successCount++;
           } catch (error) {
             failureCount++;
             const errorMessage = error instanceof Error ? error.message : '不明なエラー';
-            failures.push(`行 ${i + 2} (${userData.name || 'Unknown'}): ${errorMessage}`);
+            failures.push(`行 ${i + 2} (${userDataFromFile.name || 'Unknown'}): ${errorMessage}`);
           }
         }
-        refreshUsers();
+        
+        const finalUsersResponse = await getAllUsersForExport();
+        if (finalUsersResponse.success && finalUsersResponse.data) {
+          setUsers(finalUsersResponse.data);
+        }
+        
         let message = `インポート完了:\n成功: ${successCount}件\n失敗: ${failureCount}件`;
         if (failures.length > 0) {
           message += '\n\n失敗した項目:\n' + failures.slice(0, 5).join('\n');
@@ -209,7 +216,7 @@ const DataManagement: React.FC = () => {
       setLoading(false)
     }
   }
-  
+
   return (
     <div className="space-y-8">
       <div className="bg-gray-50 rounded-lg p-6">
@@ -276,7 +283,7 @@ const DataManagement: React.FC = () => {
               <button onClick={handleExportReport} className="w-full bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">レポート生成</button>
             </div>
           </div>
-          <div className="mt-4 text-sm text-gray-600">指定した期間の相談実績を統計情報付きでエクスポートします。</div>
+          
         </div>
       </div>
       <div className="bg-gray-50 rounded-lg p-6">

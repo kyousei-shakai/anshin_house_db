@@ -1,27 +1,26 @@
+// src/components/UserEditForm.tsx
+
 'use client'
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser } from '@/hooks/useUsers' 
-import { usersApi } from '@/lib/api'
+import { updateUser, createUser } from '@/app/actions/users'
 import { Database } from '@/types/database'
 
-type UserUpdate = Partial<Database['public']['Tables']['users']['Update']>
+type User = Database['public']['Tables']['users']['Row']
+// type UserUpdate = Partial<Database['public']['Tables']['users']['Update']> // ★ 修正点: この行を削除
+type UserInsert = Omit<Database['public']['Tables']['users']['Insert'], 'uid' | 'id' | 'created_at' | 'updated_at'>
 
-// 1. Propsの型定義を userId から userUid に変更
 interface UserEditFormProps {
-  userUid: string
+  user?: User
+  editMode: boolean
 }
 
-const UserEditForm: React.FC<UserEditFormProps> = ({ userUid }) => {
+const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
   const router = useRouter()
-  // 2. useUserフックに userUid を渡すように変更
-  //    (useUserフックは後で 'uid' で検索するように修正が必要です)
-  const { user, loading: userLoading, error: userError } = useUser(userUid)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  // フォームデータのState定義は変更なし
   const [formData, setFormData] = useState({
     name: '',
     birth_date: '',
@@ -55,9 +54,8 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userUid }) => {
     registered_at: ''
   })
 
-  // フォームデータへの初期値設定ロジックは変更なし
   useEffect(() => {
-    if (user) {
+    if (editMode && user) {
       setFormData({
         name: user.name || '',
         birth_date: user.birth_date?.split('T')[0] || '',
@@ -88,33 +86,26 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userUid }) => {
         proxy_payment_eligible: user.proxy_payment_eligible || false,
         welfare_recipient: user.welfare_recipient || false,
         posthumous_affairs: user.posthumous_affairs || false,
-        // ↓ これを追加
         registered_at: user.registered_at?.split('T')[0] || ''
       })
+    } else if (!editMode) {
+      setFormData(prev => ({ ...prev, registered_at: new Date().toISOString().split('T')[0] }));
     }
-  }, [user])
+  }, [user, editMode])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // 3. ★★★ 最重要変更点 ★★★
-    // 更新APIを呼び出すためには、主キーである `id` (UUID) が必要。
-    // user オブジェクトが存在しない場合は処理を中断するガード節を追加。
-    if (!user) {
-      setError('更新対象のユーザー情報が見つかりません。')
-      return
-    }
-
     if (!formData.name.trim()) {
       setError('氏名は必須です')
       return
     }
 
-    try {
-      setLoading(true)
-      setError(null)
+    setLoading(true)
+    setError(null)
       
-      const userData: UserUpdate = {
+    try {
+      const userData = {
         name: formData.name.trim(),
         birth_date: formData.birth_date || null,
         gender: formData.gender || null,
@@ -144,23 +135,32 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userUid }) => {
         proxy_payment_eligible: formData.proxy_payment_eligible,
         welfare_recipient: formData.welfare_recipient,
         posthumous_affairs: formData.posthumous_affairs,
-        registered_at: formData.registered_at || undefined 
+        registered_at: formData.registered_at || undefined
       }
       
-      // 4. usersApi.update には、主キーである `user.id` (UUID) を渡す
-      await usersApi.update(user.id, userData)
-      
-      // 5. リダイレクト先を新しいURL形式 (`/users/[uid]`) に変更
-      router.push(`/users/${user.uid}`)
+      if (editMode && user) {
+        const result = await updateUser(user.uid, userData);
+        if (!result.success) {
+          throw new Error(result.error || '更新に失敗しました。');
+        }
+        alert('利用者情報を更新しました。');
+        router.push(`/users/${user.uid}`);
+      } else {
+        const result = await createUser(userData as UserInsert, null);
+        if (!result.success || !result.data) {
+          throw new Error(result.error || '作成に失敗しました。');
+        }
+        alert('新規利用者を登録しました。');
+        router.push(`/users/${result.data.uid}`);
+      }
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'エラーが発生しました')
+      setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
-  // handleChange関数は変更なし
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
     const isCheckbox = type === 'checkbox'
@@ -169,32 +169,14 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userUid }) => {
       [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value
     }))
   }
-
-  // JSX部分は変更なし
-  if (userLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
-  if (userError || !user) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <div className="text-red-500 text-sm">
-          利用者が見つかりません
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
       <div className="mb-6">
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">利用者情報編集</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
+          {editMode ? '利用者情報編集' : '新規利用者追加'}
+        </h1>
         <p className="text-gray-600 text-sm md:text-base">
-          利用者の基本情報を編集します。
+          {editMode ? '利用者の基本情報を編集します。' : '新しい利用者をシステムに登録します。'}
         </p>
       </div>
 
@@ -209,11 +191,13 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userUid }) => {
         <div className="bg-gray-50 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">基本情報</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">UID</label>
-              <input type="text" value={user?.uid || ''} readOnly className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-gray-100 focus:outline-none" />
-            </div>
-            <div>
+            {editMode && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">UID</label>
+                <input type="text" value={user?.uid || ''} readOnly className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-gray-100 focus:outline-none" />
+              </div>
+            )}
+            <div className={editMode ? '' : 'md:col-span-1'}>
               <label className="block text-sm font-medium text-gray-700 mb-1">氏名 <span className="text-red-500">*</span></label>
               <input type="text" name="name" value={formData.name} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
@@ -299,7 +283,6 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userUid }) => {
           <div><textarea name="notes" value={formData.notes} onChange={handleChange} rows={4} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="その他の備考事項があれば記入してください" /></div>
         </div>
 
-                {/* ===== ▼▼▼ ここから追加 ▼▼▼ ===== */}
         {/* システム情報 */}
         <div className="bg-gray-50 rounded-lg p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">システム情報</h3>
@@ -316,26 +299,27 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ userUid }) => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        最終更新日時
-                    </label>
-                    <input 
-                        type="text" 
-                        value={user?.updated_at ? new Date(user.updated_at).toLocaleString('ja-JP') : '-'} 
-                        readOnly 
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-gray-100 focus:outline-none"
-                    />
-                </div>
+                {editMode && (
+                  <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                          最終更新日時
+                      </label>
+                      <input 
+                          type="text" 
+                          value={user?.updated_at ? new Date(user.updated_at).toLocaleString('ja-JP') : '-'} 
+                          readOnly 
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-gray-100 focus:outline-none"
+                      />
+                  </div>
+                )}
             </div>
         </div>
-        {/* ===== ▲▲▲ ここまで追加 ▲▲▲ ===== */}
 
         {/* ボタン */}
         <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3">
           <button type="button" onClick={() => router.back()} className="w-full sm:w-auto px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 text-sm md:text-base">キャンセル</button>
           <button type="submit" disabled={loading} className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-sm md:text-base">
-            {loading ? '保存中...' : '保存'}
+            {loading ? (editMode ? '保存中...' : '作成中...') : (editMode ? '保存' : '作成')}
           </button>
         </div>
       </form>

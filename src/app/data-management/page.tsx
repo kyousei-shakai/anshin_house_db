@@ -1,8 +1,25 @@
+// src/app/data-management/page.tsx (修正後)
+
 import Link from 'next/link'
 import Layout from '@/components/Layout'
 import DataManagement from '@/components/DataManagement'
+import { getAllUsersForExport } from '@/app/actions/users'
+import { getAllConsultationsForExport } from '@/app/actions/consultations'
+import { getAllSupportPlansForExport } from '@/app/actions/supportPlans'
 
-export default function DataManagementPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function DataManagementPage() {
+  // ▼▼▼ サーバーサイドで全てのデータを並行して取得 ▼▼▼
+  const [
+    usersResult,
+    consultationsResult,
+    supportPlansResult
+  ] = await Promise.all([
+    getAllUsersForExport(),
+    getAllConsultationsForExport(),
+    getAllSupportPlansForExport()
+  ]);
   return (
     <Layout>
       <div className="max-w-6xl mx-auto">
@@ -34,7 +51,12 @@ export default function DataManagementPage() {
             </p>
           </div>
 
-          <DataManagement />
+           {/* ▼▼▼ 取得したデータをpropsで渡す ▼▼▼ */}
+          <DataManagement
+            initialUsers={usersResult.data || []}
+            initialConsultations={consultationsResult.data || []}
+            initialSupportPlans={supportPlansResult.data || []}
+          />
         </div>
       </div>
     </Layout>
