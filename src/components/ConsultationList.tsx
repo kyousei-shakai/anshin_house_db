@@ -13,6 +13,10 @@ import {
   StatusFilter,
   ConsultationStatus,
 } from '@/lib/consultationConstants'
+// --- ▼▼▼【エラー修正箇所】▼▼▼ ---
+import { type Staff } from '@/types/staff'
+// --- ▲▲▲【エラー修正箇所】▲▲▲ ---
+
 
 import SupportEventForm, { FormData as SupportEventFormData } from '@/components/forms/SupportEventForm'
 import { createSupportEvent } from '@/app/actions/consultationEvents'
@@ -45,9 +49,13 @@ const modalContentStyle: React.CSSProperties = {
 
 type ConsultationListProps = {
   initialConsultations: ConsultationWithStaff[]
+  staffs: Pick<Staff, 'id' | 'name'>[]
 }
 
-const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultations }) => {
+const ConsultationList: React.FC<ConsultationListProps> = ({ 
+  initialConsultations,
+  staffs 
+}) => {
   const [allConsultations, setAllConsultations] = useState<ConsultationWithStaff[]>(initialConsultations);
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -55,6 +63,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultation
   const [dateFilter, setDateFilter] = useState('')
   const [activeFilter, setActiveFilter] = useState<StatusFilter>(null);
   const [showOnlyWithNextAppointment, setShowOnlyWithNextAppointment] = useState(false);
+  const [staffFilter, setStaffFilter] = useState('') // スタッフフィルタ用のstate
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedConsultation, setSelectedConsultation] = useState<ConsultationWithStaff | null>(null)
@@ -73,6 +82,11 @@ const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultation
        const inactiveStatuses: string[] = ["支援終了", "対象外・辞退"];
        filtered = filtered.filter(c => !inactiveStatuses.includes(c.status) && !c.user_id);
     }
+    
+    if (staffFilter) {
+      filtered = filtered.filter(consultation => consultation.staff_id === staffFilter);
+    }
+
     if (searchTerm) {
       const lowercasedFilter = searchTerm.toLowerCase();
       filtered = filtered.filter(consultation =>
@@ -89,7 +103,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultation
       );
     }
     return filtered;
-  }, [allConsultations, activeFilter, searchTerm, dateFilter]);
+  }, [allConsultations, activeFilter, searchTerm, dateFilter, staffFilter]);
 
   const statusCounts = useMemo(() => {
     const counts: { [key: string]: number } = {};
@@ -192,7 +206,6 @@ const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultation
 
   if (loading) { return ( <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div> ) }
   if (error) { return ( <div className="bg-red-50 border border-red-200 rounded-lg p-4"><div className="text-red-500 text-sm">エラーが発生しました: {error}</div></div> ) }
-
   return (
     <Fragment>
       <div className="space-y-6">
@@ -228,7 +241,20 @@ const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultation
                   </div>
               </div>
               <div className="lg:col-span-3 pt-4 border-t grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div></div>
+                  <div>
+                      <label htmlFor="staff-filter" className="block text-sm font-medium text-gray-700 mb-2">担当スタッフ</label>
+                      <select 
+                        id="staff-filter" 
+                        value={staffFilter} 
+                        onChange={(e) => setStaffFilter(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="">すべて</option>
+                        {staffs.map(staff => (
+                          <option key={staff.id} value={staff.id}>{staff.name}</option>
+                        ))}
+                      </select>
+                  </div>
                   <div>
                       <label htmlFor="search-term" className="block text-sm font-medium text-gray-700 mb-2">キーワード検索</label>
                       <input id="search-term" type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
@@ -245,7 +271,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultation
           <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-4">
             <div className="text-sm text-gray-600">{filteredConsultations.length} 件表示</div>
             <button
-              onClick={() => { setSearchTerm(''); setDateFilter(''); setActiveFilter(null); setShowOnlyWithNextAppointment(false); }}
+              onClick={() => { setSearchTerm(''); setDateFilter(''); setActiveFilter(null); setShowOnlyWithNextAppointment(false); setStaffFilter(''); }}
               className="text-sm text-blue-600 hover:text-blue-800"
             >
               フィルタをクリア
