@@ -62,17 +62,11 @@ export default function UsersClientPage({ initialUsers, fetchError }: UsersClien
       {/* ヘッダー */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">利用者名簿</h1>
           <p className="text-gray-600 text-sm mt-1">
             {filteredAndSortedUsers.length} / {users.length} 名表示
           </p>
         </div>
-        <Link
-          href="/users/new"
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
-        >
-          新規利用者追加
-        </Link>
+
       </div>
 
       {/* 検索・フィルタ */}

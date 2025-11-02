@@ -114,18 +114,19 @@ const SupportEventForm: React.FC<SupportEventFormProps> = ({
         </div>
 
         <div className="mt-4">
-          <label htmlFor="event_note" className="block text-sm font-medium text-gray-700">
-            対応内容の記録 <span className="text-red-500">*</span>
-          </label>
-          <textarea id="event_note" name="event_note" value={formData.event_note} onChange={handleChange} rows={5} required className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="具体的な対応内容、経緯、相談者とのやり取りなどを記録してください。" />
-        </div>
-
-        <div className="mt-4">
           <label htmlFor="next_action_date" className="block text-sm font-medium text-gray-700">
             次回アクション予定日
           </label>
           <input type="date" id="next_action_date" name="next_action_date" value={formData.next_action_date} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
         </div>
+
+        <div className="mt-4">
+          <label htmlFor="event_note" className="block text-sm font-medium text-gray-700">
+            内容 
+          </label>
+          <textarea id="event_note" name="event_note" value={formData.event_note} onChange={handleChange} rows={5} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="次回予定など" />
+        </div>
+
       </div>
 
       <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
