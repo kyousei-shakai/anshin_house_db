@@ -1,20 +1,20 @@
-// src/app/actions/consultations.ts
+//src/app/actions/consultations.ts
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { Database } from '@/types/database'
 import { redirect } from 'next/navigation'
-
-// 型定義
-type Consultation = Database['public']['Tables']['consultations']['Row']
-type ConsultationInsert = Database['public']['Tables']['consultations']['Insert']
-type ConsultationUpdate = Database['public']['Tables']['consultations']['Update'] // ★ updateConsultation用に型を追加
+import {
+  type Consultation,
+  type ConsultationWithStaff,
+  type ConsultationInsert,
+  type ConsultationUpdate,
+} from '@/types/consultation'
 
 // --- getConsultations (ページネーション対応版) ---
 type GetConsultationsReturnType = {
   success: boolean
-  data?: Consultation[]
+  data?: ConsultationWithStaff[]
   count?: number | null
   error?: string
 }
@@ -26,13 +26,14 @@ export async function getConsultations({
   page: number
   itemsPerPage: number
 }): Promise<GetConsultationsReturnType> {
-  const supabase = await createClient() // ★ 変更点
+  const supabase = createClient() // ★ 修正点: awaitを削除
 
   try {
     const offset = (page - 1) * itemsPerPage
     const { data, error, count } = await supabase
       .from('consultations')
-      .select('*, staff:staff_id(name)', { count: 'exact' }) // ★ 変更点: staffの名前をJOINで取得
+      // ★ 修正点: 型推論が効きやすい構文に変更
+      .select('*, staff:staff_id (name)', { count: 'exact' })
       .order('consultation_date', { ascending: false })
       .range(offset, offset + itemsPerPage - 1)
 
@@ -40,7 +41,8 @@ export async function getConsultations({
       console.error('Get Consultations Server Action Error:', error)
       return { success: false, error: '相談一覧の取得に失敗しました。' }
     }
-    return { success: true, data: data || [], count }
+    // Supabase SSR @0.3.0では、JOINの型推論が不完全なため明示的にキャスト
+    return { success: true, data: (data || []) as unknown as ConsultationWithStaff[], count }
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : '予期せぬ不明なエラーが発生しました。'
     console.error('Unexpected Error in getConsultations:', errorMessage)
@@ -58,7 +60,7 @@ type CreateConsultationReturnType = {
 export async function createConsultation(
   consultationData: ConsultationInsert
 ): Promise<CreateConsultationReturnType> {
-  const supabase = await createClient() // ★ 変更点
+  const supabase = createClient() // ★ 修正点: awaitを削除
 
   try {
     const { data, error } = await supabase
@@ -87,7 +89,7 @@ export async function createConsultation(
 // --- getConsultationById ---
 type GetConsultationByIdReturnType = {
   success: boolean
-  data?: Consultation & { staff: { name: string | null } | null } // ★ 変更点: staffの名前を含む型
+  data?: ConsultationWithStaff
   error?: string
 }
 
@@ -99,11 +101,12 @@ export async function getConsultationById(
     return { success: false, error: '無効なID形式です。' }
   }
 
-  const supabase = await createClient() // ★ 変更点
+  const supabase = createClient() // ★ 修正点: awaitを削除
   try {
     const { data, error } = await supabase
       .from('consultations')
-      .select('*, staff:staff_id(name)') // ★ 変更点: staffの名前をJOINで取得
+       // ★ 修正点: 型推論が効きやすい構文に変更
+      .select('*, staff:staff_id (name)')
       .eq('id', id)
       .single()
 
@@ -116,7 +119,8 @@ export async function getConsultationById(
       return { success: false, error: '相談記録の取得に失敗しました。' }
     }
 
-    return { success: true, data }
+    // Supabase SSR @0.3.0では、JOINの型推論が不完全なため明示的にキャスト
+    return { success: true, data: data as unknown as ConsultationWithStaff }
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : '予期せぬ不明なエラーが発生しました。'
     console.error('Unexpected Error in getConsultationById:', errorMessage)
@@ -138,8 +142,8 @@ export async function updateConsultation(
   if (!id) {
     return { success: false, error: '更新対象のIDが指定されていません。' }
   }
-  
-  const supabase = await createClient() // ★ 変更点
+
+  const supabase = createClient() // ★ 修正点: awaitを削除
 
   try {
     const { data, error } = await supabase
@@ -169,8 +173,13 @@ export async function updateConsultation(
 }
 
 // --- deleteConsultation (削除) ---
-export async function deleteConsultation(id: string) {
-  const supabase = await createClient() // ★ 変更点
+type DeleteConsultationReturnType = {
+  success: boolean
+  error?: string
+}
+
+export async function deleteConsultation(id: string): Promise<DeleteConsultationReturnType> {
+  const supabase = createClient()
   try {
     const { error } = await supabase
       .from('consultations')
@@ -181,37 +190,39 @@ export async function deleteConsultation(id: string) {
       console.error('Delete Consultation Server Action Error:', error)
       return { success: false, error: '相談記録の削除に失敗しました。' }
     }
+
+    revalidatePath('/consultations')
+    redirect('/consultations')
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : '予期せぬエラーが発生しました。'
     console.error('Unexpected Error in deleteConsultation:', errorMessage)
     return { success: false, error: '予期せぬエラーが発生しました。' }
   }
-
-  revalidatePath('/consultations')
-  redirect('/consultations')
 }
 
 // --- getAllConsultationsForExport ---
 type GetAllConsultationsReturnType = {
   success: boolean
-  data?: (Consultation & { staff: { name: string | null } | null })[] // ★ 変更点: staffの名前を含む型
+  data?: ConsultationWithStaff[]
   error?: string
 }
 export async function getAllConsultationsForExport(): Promise<GetAllConsultationsReturnType> {
-  const supabase = await createClient() // ★ 変更点
+  const supabase = createClient() // ★ 修正点: awaitを削除
   try {
     const { data, error } = await supabase
       .from('consultations')
-      .select('*, staff:staff_id(name)') // ★ 変更点: staffの名前をJOINで取得
+      // ★ 修正点: 型推論が効きやすい構文に変更
+      .select('*, staff:staff_id (name)')
       .order('consultation_date', { ascending: false })
 
     if (error) {
       console.error('Get All Consultations For Export Error:', error)
       return { success: false, error: '全相談データの取得に失敗しました。' }
     }
-    return { success: true, data: data || [] }
+    // Supabase SSR @0.3.0では、JOINの型推論が不完全なため明示的にキャスト
+    return { success: true, data: (data || []) as unknown as ConsultationWithStaff[] }
   } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : '予期せぬエラーが発生しました。'
+    const errorMessage = e instanceof Error ? e.message : '予期せぬ不明なエラーが発生しました。'
     console.error('Unexpected Error in getAllConsultationsForExport:', errorMessage)
     return { success: false, error: '予期せぬエラーが発生しました。' }
   }
@@ -219,11 +230,12 @@ export async function getAllConsultationsForExport(): Promise<GetAllConsultation
 
 // --- getConsultationsByUserId ---
 export async function getConsultationsByUserId(userId: string): Promise<GetAllConsultationsReturnType> {
-  const supabase = await createClient() // ★ 変更点
+  const supabase = createClient() // ★ 修正点: awaitを削除
   try {
     const { data, error } = await supabase
       .from('consultations')
-      .select('*, staff:staff_id(name)') // ★ 変更点: staffの名前をJOINで取得
+      // ★ 修正点: 型推論が効きやすい構文に変更
+      .select('*, staff:staff_id (name)')
       .eq('user_id', userId)
       .order('consultation_date', { ascending: false })
 
@@ -231,9 +243,10 @@ export async function getConsultationsByUserId(userId: string): Promise<GetAllCo
       console.error('Get Consultations By UserId Error:', error)
       return { success: false, error: '利用者の相談履歴取得に失敗しました。' }
     }
-    return { success: true, data: data || [] }
+    // Supabase SSR @0.3.0では、JOINの型推論が不完全なため明示的にキャスト
+    return { success: true, data: (data || []) as unknown as ConsultationWithStaff[] }
   } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : '予期せぬエラーが発生しました。'
+    const errorMessage = e instanceof Error ? e.message : '予期せぬ不明なエラーが発生しました。'
     console.error('Unexpected Error in getConsultationsByUserId:', errorMessage)
     return { success: false, error: '予期せぬエラーが発生しました。' }
   }

@@ -6,8 +6,14 @@ import { Database } from '@/types/database';
 
 type ConsultationEvent = Database['public']['Tables']['consultation_events']['Row'];
 
+type ConsultationEventWithStaff = ConsultationEvent & {
+  staff?: {
+    name: string | null;
+  } | null;
+};
+
 interface SupportTimelineProps {
-  events: ConsultationEvent[];
+  events: ConsultationEventWithStaff[];
 }
 
 const SupportTimeline: React.FC<SupportTimelineProps> = ({ events }) => {
@@ -34,7 +40,7 @@ const SupportTimeline: React.FC<SupportTimelineProps> = ({ events }) => {
           <div className="absolute left-[-5px] top-1 h-3 w-3 rounded-full bg-blue-500 ring-4 ring-white"></div>
           
           <p className="text-sm font-semibold text-gray-800">{formatDate(event.created_at)}</p>
-          <p className="text-sm text-gray-500">担当: {event.staff_name}</p>
+          <p className="text-sm text-gray-500">担当: {event.staff?.name || '未設定'}</p>
 
           <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 p-3">
             <div className="flex items-center text-sm">
@@ -46,15 +52,15 @@ const SupportTimeline: React.FC<SupportTimelineProps> = ({ events }) => {
               <div className="mt-2 pt-2 border-t">
                 <p className="text-xs font-semibold text-gray-600">ネクストアクション:</p>
                 <p className="text-sm text-gray-800 whitespace-pre-wrap">{event.next_action_memo}</p>
-                {event.next_action_due_date && (
-                  <p className="text-xs text-gray-500">期限: {event.next_action_due_date}</p>
+                {event.next_action_date && (
+                  <p className="text-xs text-gray-500">期限: {event.next_action_date}</p>
                 )}
               </div>
             )}
-            {event.note && (
+            {event.event_note && (
                <div className="mt-2 pt-2 border-t">
                 <p className="text-xs font-semibold text-gray-600">補足メモ:</p>
-                <p className="text-sm text-gray-800 whitespace-pre-wrap">{event.note}</p>
+                <p className="text-sm text-gray-800 whitespace-pre-wrap">{event.event_note}</p>
               </div>
             )}
           </div>

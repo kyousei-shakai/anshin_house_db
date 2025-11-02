@@ -1,41 +1,48 @@
 //src/app/actions/consultationEvents.ts
 'use server'
 
+// tsconfig.jsonのパスエイリアスに基づいた絶対パスに修正
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
-import { Database } from '@/types/database'
+import { type Database } from '@/types/database'
 import { CONSULTATION_STATUSES } from '@/lib/consultationConstants'
+
+type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
 
 const supportEventSchema = z.object({
   consultationId: z.string().uuid('無効な相談IDです。'),
   staff_id: z.string().uuid('担当者を選択してください。'),
   status: z.enum(CONSULTATION_STATUSES, {
-    errorMap: () => ({ message: '無効なステータスです。' }),
+    message: '無効なステータ-スです。',
   }),
   event_note: z.string().min(1, '対応内容は必須です。').max(5000, '対応内容は5000文字以内で入力してください。'),
   next_action_date: z.string().nullable(),
 })
 
-// ★ 変更点: 返り値の型に `consultation` を追加
+type SupportEventData = z.infer<typeof supportEventSchema>
+
 type ReturnType = {
   success: boolean
   error?: string
-  consultation?: Database['public']['Tables']['consultations']['Row'] 
+  consultation?: Tables<'consultations'>
 }
 
-export async function createSupportEvent(formData: any): Promise<ReturnType> {
-  const supabase = await createClient()
+export async function createSupportEvent(formData: SupportEventData): Promise<ReturnType> {
+  // createClientが同期関数になったため、awaitを削除
+  const supabase = createClient()
 
   const validationResult = supportEventSchema.safeParse(formData)
   if (!validationResult.success) {
-    const errorMessage = validationResult.error.errors.map(e => e.message).join('\n')
+    const errorMessage = validationResult.error.issues.map((e: { message: string }) => e.message).join('\n')
     return { success: false, error: errorMessage }
   }
 
   const { consultationId, staff_id, status, event_note, next_action_date } = validationResult.data
 
   try {
+    // tryブロック全体を非同期処理で包む必要はないが、
+    // Supabaseへの各APIコールは非同期(Promiseを返す)なので、awaitは各所で必要
     const { error: eventError } = await supabase
       .from('consultation_events')
       .insert({
@@ -47,10 +54,12 @@ export async function createSupportEvent(formData: any): Promise<ReturnType> {
       })
     if (eventError) throw eventError
 
-    // ★ 変更点: Step Bで、更新後のデータを取得して返すように修正
     const { data: updatedConsultation, error: consultationError } = await supabase
       .from('consultations')
-      .update({ status: status, staff_id: staff_id })
+      .update({
+        status: status,
+        staff_id: staff_id,
+      })
       .eq('id', consultationId)
       .select()
       .single()
@@ -60,11 +69,11 @@ export async function createSupportEvent(formData: any): Promise<ReturnType> {
     revalidatePath('/consultations')
     revalidatePath(`/consultations/${consultationId}`)
 
-    // ★ 変更点: 成功時に更新後のconsultationデータを返す
     return { success: true, consultation: updatedConsultation }
-    
-  } catch (e: any) {
-    console.error('Error in createSupportEvent:', e.message)
+
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred'
+    console.error('Error in createSupportEvent:', errorMessage)
     return { success: false, error: '記録の保存に失敗しました。' }
   }
 }

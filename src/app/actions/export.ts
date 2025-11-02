@@ -1,24 +1,14 @@
 // src/app/actions/export.ts
-
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
-import { Database } from '@/types/database'
-// ★ 変更点 1: ライブラリから Workbook 型をインポートします
-import XlsxPopulate, { Workbook } from 'xlsx-populate'
+import { type ConsultationWithStaff } from '@/types/consultation'
+import XlsxPopulate from 'xlsx-populate'
+// xlsx-populateの型定義
+type Workbook = Awaited<ReturnType<typeof XlsxPopulate.fromDataAsync>>
+type Cell = ReturnType<ReturnType<Workbook['sheet']>['cell']>
 import path from 'path'
 import fs from 'fs/promises'
-
-// ★ 変更点 2: valueの返り値を 'any' から 'unknown' に変更します
-// XlsxPopulateのCellオブジェクトで実際に使用するメソッドだけを型定義
-interface XlsxCell {
-  value: (newValue?: string | number | boolean | Date | null) => unknown;
-}
-
-// ★ 変更点: staffオブジェクトを含む型に拡張
-type Consultation = Database['public']['Tables']['consultations']['Row'] & {
-  staff: { name: string | null } | null
-}
 
 // --- ヘルパー関数群 ---
 
@@ -76,7 +66,7 @@ const getRelocationCostBearerLabel = (bearer: string | null | undefined, details
       default: return bearer;
     }
 };
-  
+
 const getRentArrearsDurationLabel = (duration: string | null | undefined, details: string | null | undefined): string => {
       if (!duration) return '未設定';
       const detailText = details ? ` (${details})` : '';
@@ -89,7 +79,7 @@ const getRentArrearsDurationLabel = (duration: string | null | undefined, detail
       }
 };
 
-const createReplacements = (consultation: Consultation): Record<string, string | number> => {
+const createReplacements = (consultation: ConsultationWithStaff): Record<string, string | number> => {
     const check = (value: boolean | null | undefined) => value ? '✔' : '□';
     const cDate = new Date(consultation.consultation_date);
     const age = calculateAgeFromYMD(consultation.birth_year, consultation.birth_month, consultation.birth_day);
@@ -145,7 +135,6 @@ const createReplacements = (consultation: Consultation): Record<string, string |
 
     return {
         '{{consultation_date_year}}': cDate.getFullYear(), '{{consultation_date_month}}': cDate.getMonth() + 1, '{{consultation_date_day}}': cDate.getDate(),
-        // ★ 変更点: consultation.staff_name を consultation.staff?.name に変更
         '{{staff_name}}': consultation.staff?.name || '', 
         '{{route_self}}': check(consultation.consultation_route_self),
         '{{route_family}}': check(consultation.consultation_route_family), '{{route_care_manager}}': check(consultation.consultation_route_care_manager),
@@ -231,20 +220,18 @@ export async function generateFormattedConsultationsExcel(consultationIds: strin
     return { success: false, error: '無効なリクエストです。' };
   }
 
-  const supabase = await createClient(); // ★ 変更点: await を追加
-  
+  const supabase = createClient(); // ★ 修正点: await を削除
+
   try {
-    // ★ 変更点: staffテーブルをJOINして、staff.nameを取得する
     const { data: allConsultations, error: fetchError } = await supabase
       .from('consultations')
-      .select('*, staff:staff_id(name)')
+      .select('*, staff:staff_id (name)') // staffのnameを取得
       .in('id', consultationIds);
 
     if (fetchError) throw fetchError;
 
     const templatePath = path.resolve(process.cwd(), 'public', 'consultation_template.xlsx');
     const templateData = await fs.readFile(templatePath);
-   // ★ 変更点 3: 'workbook: any' を 'workbook: Workbook' に変更します
     const workbook: Workbook = await XlsxPopulate.fromDataAsync(templateData);
     const templateSheet = workbook.sheet("テンプレート");
     
@@ -252,7 +239,8 @@ export async function generateFormattedConsultationsExcel(consultationIds: strin
       throw new Error("テンプレートシート 'テンプレート' が見つかりません。");
     }
 
-        if (allConsultations.length > 0) {
+    if (allConsultations && allConsultations.length > 0) {
+      // ★ 修正点: allConsultationsの型が正しいので、asやts-expect-errorは不要
       for (const [index, consultation] of allConsultations.entries()) {
           const newSheetName = sanitizeSheetName(consultation.name || `無名_${index + 1}`);
           let finalSheetName = newSheetName;
@@ -265,23 +253,29 @@ export async function generateFormattedConsultationsExcel(consultationIds: strin
           workbook.cloneSheet(templateSheet, finalSheetName);
           const newSheet = workbook.sheet(finalSheetName);
 
-          // ▼▼▼ 修正点 ▼▼▼
-          // @ts-expect-error: allConsultationsの型をConsultationにキャスト
-          const replacements = createReplacements(consultation as Consultation);
-          
-          if (newSheet.usedRange()) {
-              // ★ 変更点 2: (cell: any) を (cell: XlsxCell) に変更します
-              newSheet.usedRange().forEach((cell: XlsxCell) => {
-                  let cellValue = cell.value();
+          // ★ 修正点: Supabase @0.3.0ではJOINの型推論が不完全なため型アサーションを使用
+          const replacements = createReplacements(consultation as unknown as ConsultationWithStaff);
+
+          const usedRange = newSheet.usedRange();
+          if (usedRange) {
+              // ★ 修正点2: cellの型をライブラリからインポートしたCell型に修正
+              usedRange.forEach((cell: Cell) => {
+                  const cellValue = cell.value(); // この時点ではまだ unknown | undefined
+                  
+                  // ★ 修正点3: 型ガードを追加して、文字列の場合のみ処理を実行
                   if (typeof cellValue === 'string') {
+                      let modifiedValue = cellValue;
                       for (const key in replacements) {
                           const placeholder = new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
-                          if (placeholder.test(cellValue)) {
+                          if (placeholder.test(modifiedValue)) {
                               const replacementValue = (replacements as Record<string, string | number>)[key];
-                              cellValue = cellValue.replace(placeholder, String(replacementValue));
+                              modifiedValue = modifiedValue.replace(placeholder, String(replacementValue));
                           }
                       }
-                      cell.value(cellValue);
+                      // 値が実際に変更された場合のみセルに書き込む
+                      if (modifiedValue !== cellValue) {
+                          cell.value(modifiedValue);
+                      }
                   }
               });
           }

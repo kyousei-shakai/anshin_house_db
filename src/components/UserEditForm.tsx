@@ -135,7 +135,7 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
         proxy_payment_eligible: formData.proxy_payment_eligible,
         welfare_recipient: formData.welfare_recipient,
         posthumous_affairs: formData.posthumous_affairs,
-        registered_at: formData.registered_at || null
+        registered_at: formData.registered_at || undefined
       }
       
       if (editMode && user) {

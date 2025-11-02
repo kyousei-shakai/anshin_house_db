@@ -1,6 +1,5 @@
 // src/app/support-plans/[id]/edit/page.tsx 
 import { notFound } from 'next/navigation'
-// import Link from 'next/link' ★ 修正点: 未使用の為コメントアウト
 import Layout from '@/components/Layout'
 import SupportPlanForm from '@/components/SupportPlanForm'
 import { getSupportPlanById } from '@/app/actions/supportPlans'
@@ -8,15 +7,20 @@ import { getUsers } from '@/app/actions/users'
 
 export const dynamic = 'force-dynamic'
 
-interface SupportPlanEditPageProps {
-  params: {
-    id: string
-  }
-}
+// ▼▼▼ ここからが修正箇所です ▼▼▼
 
-export default async function SupportPlanEditPage({ params }: SupportPlanEditPageProps) {
-  // ★ 変更点: Next.js v15の警告を回避する、より安全なアクセス方法に変更
-  const id = params?.id ?? ''
+// Next.js v15のビルドシステムと開発サーバーの両方の要求を満たすため、
+// paramsの型を Promise として明示的に定義します。
+export default async function SupportPlanEditPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  // Promiseとして型定義したため、await は型エラーを起こしません。
+  const resolvedParams = await params;
+  const id = resolvedParams.id ?? '';
+
+// ▲▲▲ ここまでが修正箇所です ▲▲▲
 
   const [planResult, usersResult] = await Promise.all([
     getSupportPlanById(id),

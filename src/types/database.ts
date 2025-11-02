@@ -41,8 +41,11 @@ export type Database = {
           event_note: string | null
           id: string
           next_action_date: string | null
+          next_action_memo: string | null
           staff_id: string | null
           status: Database["public"]["Enums"]["consultation_status"]
+          status_from: string | null
+          status_to: string | null
         }
         Insert: {
           consultation_id: string
@@ -50,8 +53,11 @@ export type Database = {
           event_note?: string | null
           id?: string
           next_action_date?: string | null
+          next_action_memo?: string | null
           staff_id?: string | null
           status: Database["public"]["Enums"]["consultation_status"]
+          status_from?: string | null
+          status_to?: string | null
         }
         Update: {
           consultation_id?: string
@@ -59,8 +65,11 @@ export type Database = {
           event_note?: string | null
           id?: string
           next_action_date?: string | null
+          next_action_memo?: string | null
           staff_id?: string | null
           status?: Database["public"]["Enums"]["consultation_status"]
+          status_from?: string | null
+          status_to?: string | null
         }
         Relationships: [
           {

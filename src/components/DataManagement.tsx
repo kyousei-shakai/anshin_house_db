@@ -43,8 +43,8 @@ const DataManagement: React.FC<DataManagementProps> = ({
   const [reportEndDate, setReportEndDate] = useState('')
   const [exportMonth, setExportMonth] = useState('')
 
-  // ★ 変更点 2: 'any' を 'unknown' に変更（これは維持）
-  const getFilteredData = (data: Array<Record<string, unknown>>, dateField: string) => {
+  // ★ 変更点 2: ジェネリック関数に変更し、元の型を保持
+  const getFilteredData = <T extends Record<string, unknown>>(data: T[], dateField: string): T[] => {
     if (!exportMonth) return data
     return data.filter(item => {
       const itemDateValue = item[dateField];
@@ -283,7 +283,7 @@ const DataManagement: React.FC<DataManagementProps> = ({
               <button onClick={handleExportReport} className="w-full bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">レポート生成</button>
             </div>
           </div>
-          <div className="mt-4 text-sm text-gray-600">指定した期間の相談実績を統計情報付きでエクスポートします。</div>
+          
         </div>
       </div>
       <div className="bg-gray-50 rounded-lg p-6">

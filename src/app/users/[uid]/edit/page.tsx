@@ -1,4 +1,4 @@
-// src/app/users/[uid]/edit/page.tsx (修正後)
+// src/app/users/[uid]/edit/page.tsx
 
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
@@ -6,15 +6,21 @@ import Layout from '@/components/Layout'
 import UserEditForm from '@/components/UserEditForm'
 import { getUserByUid } from '@/app/actions/users'
 
-interface UserEditPageProps {
-  params: {
-    uid: string
-  }
-}
+// ▼▼▼ ここからが修正箇所です ▼▼"▼▼
 
-export default async function UserEditPage({ params }: UserEditPageProps) {
-  const { uid } = params
-  const { success, data: user } = await getUserByUid(uid)
+// interface UserEditPageProps を削除
+
+// 我々が確立した「唯一の正しい解決パターン」を適用
+export default async function UserEditPage({
+  params,
+}: {
+  params: Promise<{ uid: string }>
+}) {
+  const resolvedParams = await params;
+  const { uid } = resolvedParams;
+  const { success, data: user } = await getUserByUid(uid);
+
+// ▲▲▲ ここまでが修正箇所です ▲▲▲
 
   if (!success || !user) {
     notFound()
@@ -53,7 +59,6 @@ export default async function UserEditPage({ params }: UserEditPageProps) {
           </nav>
         </div>
 
-        {/* ▼▼▼ editMode={true} を明示的に渡す ▼▼▼ */}
         <UserEditForm user={user} editMode={true} />
       </div>
     </Layout>

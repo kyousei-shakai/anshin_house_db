@@ -1,4 +1,4 @@
-// src/components/Header.tsx (修正後・アクセシビリティ対応)
+// src/components/Header.tsx
 
 'use client'
 
@@ -6,12 +6,14 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet' // ★ SheetHeader, SheetTitleを追加
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Menu, Database, NotebookPen } from 'lucide-react'
 
-interface HeaderProps {}
+interface HeaderProps {
+  onMenuClick?: () => void
+}
 
-const Header: React.FC<HeaderProps> = () => {
+const Header = ({ onMenuClick }: HeaderProps = {}): JSX.Element => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const dailyLogUrl = process.env.NEXT_PUBLIC_DAILY_LOG_APP_URL || "/";
@@ -38,7 +40,6 @@ const Header: React.FC<HeaderProps> = () => {
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="left">
-                    {/* ▼▼▼ ここからが修正箇所 ▼▼▼ */}
                     <SheetHeader>
                       <SheetTitle>メニュー</SheetTitle>
                     </SheetHeader>
@@ -59,7 +60,6 @@ const Header: React.FC<HeaderProps> = () => {
                         </Button>
                       </nav>
                     </div>
-                    {/* ▲▲▲ ここまでが修正箇所 ▲▲▲ */}
                   </SheetContent>
                 </Sheet>
               </div>

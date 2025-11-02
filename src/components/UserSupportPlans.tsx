@@ -8,8 +8,14 @@ import { Database } from '@/types/database'
 
 type SupportPlan = Database['public']['Tables']['support_plans']['Row']
 
+type SupportPlanWithStaff = SupportPlan & {
+  staff?: {
+    name: string | null;
+  } | null;
+};
+
 interface UserSupportPlansProps {
-  supportPlans: SupportPlan[] // ★ userIdではなく、supportPlans配列を直接受け取る
+  supportPlans: SupportPlanWithStaff[] // ★ userIdではなく、supportPlans配列を直接受け取る
 }
 
 const UserSupportPlans: React.FC<UserSupportPlansProps> = ({ supportPlans }) => {
@@ -75,7 +81,7 @@ const UserSupportPlans: React.FC<UserSupportPlansProps> = ({ supportPlans }) => 
                       )}
                     </div>
                     
-                    <div className="text-sm text-gray-600 mb-2">担当スタッフ: {plan.staff_name}</div>
+                    <div className="text-sm text-gray-600 mb-2">担当スタッフ: {plan.staff?.name || '未設定'}</div>
                     
                     {plan.goals && (
                       <div className="text-sm text-gray-600 mb-2">

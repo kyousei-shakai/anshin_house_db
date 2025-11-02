@@ -4,7 +4,8 @@
 import React, { useState, useMemo, Fragment } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Database } from '@/types/database'
+import { type ConsultationWithStaff } from '@/types/consultation'
+import { type Database } from '@/types/database'
 import { calculateAge } from '@/utils/date'
 import {
   STATUS_FILTERS,
@@ -13,11 +14,10 @@ import {
   ConsultationStatus,
 } from '@/lib/consultationConstants'
 
-import SupportEventForm from '@/components/forms/SupportEventForm'
+import SupportEventForm, { FormData as SupportEventFormData } from '@/components/forms/SupportEventForm'
 import { createSupportEvent } from '@/app/actions/consultationEvents'
 import { createUser } from '@/app/actions/users'
 
-type Consultation = Database['public']['Tables']['consultations']['Row']
 type UserInsert = Database['public']['Tables']['users']['Insert']
 
 const modalOverlayStyle: React.CSSProperties = {
@@ -44,11 +44,11 @@ const modalContentStyle: React.CSSProperties = {
 }
 
 type ConsultationListProps = {
-  initialConsultations: Consultation[]
+  initialConsultations: ConsultationWithStaff[]
 }
 
 const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultations }) => {
-  const [allConsultations, setAllConsultations] = useState<Consultation[]>(initialConsultations);
+  const [allConsultations, setAllConsultations] = useState<ConsultationWithStaff[]>(initialConsultations);
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -57,7 +57,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultation
   const [showOnlyWithNextAppointment, setShowOnlyWithNextAppointment] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedConsultation, setSelectedConsultation] = useState<Consultation | null>(null)
+  const [selectedConsultation, setSelectedConsultation] = useState<ConsultationWithStaff | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const router = useRouter();
 
@@ -70,14 +70,14 @@ const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultation
         filtered = filtered.filter(c => c.status === activeFilter && !c.user_id);
       }
     } else if (activeFilter === null) {
-       const inactiveStatuses: (string | null) = ["支援終了", "対象外・辞退"];
+       const inactiveStatuses: string[] = ["支援終了", "対象外・辞退"];
        filtered = filtered.filter(c => !inactiveStatuses.includes(c.status) && !c.user_id);
     }
     if (searchTerm) {
       const lowercasedFilter = searchTerm.toLowerCase();
       filtered = filtered.filter(consultation =>
         consultation.name?.toLowerCase().includes(lowercasedFilter) ||
-        (consultation as any).staff?.name?.toLowerCase().includes(lowercasedFilter) || // ★ 変更点: staff.nameを検索対象に
+        consultation.staff?.name?.toLowerCase().includes(lowercasedFilter) ||
         consultation.id.toLowerCase().includes(lowercasedFilter) ||
         consultation.consultation_content?.toLowerCase().includes(lowercasedFilter) ||
         consultation.consultation_result?.toLowerCase().includes(lowercasedFilter)
@@ -93,7 +93,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultation
 
   const statusCounts = useMemo(() => {
     const counts: { [key: string]: number } = {};
-    const defaultInactiveStatuses: (string | null) = ["支援終了", "対象外・辞退"];
+    const defaultInactiveStatuses: string[] = ["支援終了", "対象外・辞退"];
     counts['active'] = allConsultations.filter(c => !defaultInactiveStatuses.includes(c.status) && !c.user_id).length;
     for (const filter of STATUS_FILTERS) {
       if(filter === null) continue;
@@ -108,7 +108,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultation
     return counts;
   }, [allConsultations]);
 
-  const handleOpenModal = (consultation: Consultation) => {
+  const handleOpenModal = (consultation: ConsultationWithStaff) => {
     setSelectedConsultation(consultation);
     setIsModalOpen(true);
   };
@@ -118,8 +118,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultation
     setIsModalOpen(false);
   };
 
-  // ★ 変更点: handleSaveEventのロジックを修正
-  const handleSaveEvent = async (formData: any) => {
+  const handleSaveEvent = async (formData: SupportEventFormData) => {
     if (!selectedConsultation) return;
     setIsSaving(true);
 
@@ -137,7 +136,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultation
       // router.refresh()の代わりに、クライアントサイドでstateを更新
       setAllConsultations(prevConsultations => 
         prevConsultations.map(c => 
-          c.id === result.consultation!.id ? result.consultation! : c
+          c.id === result.consultation!.id ? { ...c, ...result.consultation! } as ConsultationWithStaff : c
         )
       );
     } else {
@@ -151,7 +150,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultation
     return new Date(dateString).toLocaleDateString('ja-JP')
   }
 
-  const handleRegisterAsUser = async (consultation: Consultation) => {
+  const handleRegisterAsUser = async (consultation: ConsultationWithStaff) => {
     if (!confirm(`「${consultation.name || '匿名'}」さんを利用者として登録しますか？`)) {
       return
     }
@@ -331,7 +330,6 @@ const ConsultationList: React.FC<ConsultationListProps> = ({ initialConsultation
         <div style={modalOverlayStyle} onClick={handleCloseModal}>
           <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
             <SupportEventForm
-              // consultationId={selectedConsultation.id}
               currentStatus={selectedConsultation.status as ConsultationStatus}
               onSave={handleSaveEvent}
               onCancel={handleCloseModal}

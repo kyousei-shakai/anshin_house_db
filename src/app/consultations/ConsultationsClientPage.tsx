@@ -5,13 +5,11 @@ import Link from 'next/link'
 import Layout from '@/components/Layout'
 import ConsultationList from '@/components/ConsultationList'
 import Pagination from '@/components/Pagination'
-import { Database } from '@/types/database'
-
-type Consultation = Database['public']['Tables']['consultations']['Row']
+import { type ConsultationWithStaff } from '@/types/consultation'
 
 // page.tsx から渡されるpropsの型定義
 interface ConsultationsClientPageProps {
-  initialConsultations: Consultation[]
+  initialConsultations: ConsultationWithStaff[]
   totalPages: number
   currentPage: number
   fetchError: string | null

@@ -6,10 +6,7 @@ import { Suspense } from 'react'
 import Link from 'next/link' // ★ 修正点: Linkコンポーネントをインポート
 import Layout from '@/components/Layout'
 import ConsultationDetail from '@/components/ConsultationDetail'
-import { Database } from '@/types/database'
-
-// 型エイリアス
-type Consultation = Database['public']['Tables']['consultations']['Row']
+import { type ConsultationWithStaff } from '@/types/consultation'
 
 // スケルトンコンポーネント (変更なし)
 const TimelineSkeleton = () => (
@@ -26,7 +23,7 @@ const TimelineSkeleton = () => (
 )
 
 interface ConsultationDetailClientPageProps {
-  consultation: Consultation
+  consultation: ConsultationWithStaff
   children: React.ReactNode
 }
 

@@ -1,11 +1,11 @@
 // utils/supabase/server.ts
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { Database } from '@/types/database'
+import { type Database } from '@/types/database'
 
-// 関数をasyncとしてエクスポート
-export async function createClient() {
-  // cookies()の呼び出しは top-level await ではないので、このままでOK
+// @supabase/ssr@0.3.0 + Next.js 14 環境における標準的な実装
+export function createClient() {
+  // cookies()はPromiseを返すため、ここでは直接呼び出す
   const cookieStore = cookies()
 
   return createServerClient<Database>(
@@ -17,21 +17,19 @@ export async function createClient() {
           return cookieStore.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
+          // try-catchは非同期コンテキストで必要
           try {
             cookieStore.set({ name, value, ...options })
-          } catch (error) { // ★ 変更点 1: (error) を削除
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+          } catch (error) {
+            // Server Componentsでのsetエラーは無視できる場合がある
           }
         },
         remove(name: string, options: CookieOptions) {
+          // try-catchは非同期コンテキストで必要
           try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch (error) { // ★ 変更点 2: (error) を削除
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+             cookieStore.set({ name, value: '', ...options })
+          } catch (error) {
+            // Server Componentsでのremoveエラーは無視できる場合がある
           }
         },
       },
