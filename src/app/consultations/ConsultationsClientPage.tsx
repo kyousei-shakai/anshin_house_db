@@ -1,15 +1,20 @@
-// src/app/consultations/ConsultationsClientPage.tsx
-'use client' // ★ このファイルがクライアントコンポーネントであることを示す
+//src/app/consultations/ConsultationsClientPage.tsx
+'use client'
 
 import Link from 'next/link'
 import Layout from '@/components/Layout'
 import ConsultationList from '@/components/ConsultationList'
 import Pagination from '@/components/Pagination'
 import { type ConsultationWithStaff } from '@/types/consultation'
+// --- ▼▼▼【エラー修正箇所】▼▼▼ ---
+import { type Staff } from '@/types/staff'
+// --- ▲▲▲【エラー修正箇所】▲▲▲ ---
 
 // page.tsx から渡されるpropsの型定義
 interface ConsultationsClientPageProps {
   initialConsultations: ConsultationWithStaff[]
+  // --- ▼ 変更点 2: staffsプロパティを型定義に追加 ▼ ---
+  staffs: Pick<Staff, 'id' | 'name'>[]
   totalPages: number
   currentPage: number
   fetchError: string | null
@@ -17,6 +22,8 @@ interface ConsultationsClientPageProps {
 
 export default function ConsultationsClientPage({
   initialConsultations,
+  // --- ▼ staffsプロパティを受け取るように変更 ▼ ---
+  staffs,
   totalPages,
   currentPage,
   fetchError
@@ -26,6 +33,7 @@ export default function ConsultationsClientPage({
   return (
     <Layout>
       <div className="max-w-6xl mx-auto">
+        {/* --- ▼【重要】パンくずリストのコードは元のまま完全に維持します ▼ --- */}
         <div className="mb-6">
           <nav className="flex" aria-label="Breadcrumb">
             <ol className="inline-flex items-center space-x-1 md:space-x-3">
@@ -45,6 +53,7 @@ export default function ConsultationsClientPage({
             </ol>
           </nav>
         </div>
+        {/* --- ▲ ここまで元のコードを維持 ▲ --- */}
 
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between mb-6">
@@ -65,8 +74,11 @@ export default function ConsultationsClientPage({
             </div>
           ) : (
             <>
-              {/* ConsultationListには、propsで受け取ったデータを渡す */}
-              <ConsultationList initialConsultations={initialConsultations} />
+              {/* --- ▼ 変更点 3: ConsultationListにstaffsを渡す ▼ --- */}
+              <ConsultationList
+                initialConsultations={initialConsultations}
+                staffs={staffs}
+              />
               <div className="mt-8">
                 <Pagination currentPage={currentPage} totalPages={totalPages} />
               </div>
