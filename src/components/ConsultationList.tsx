@@ -62,7 +62,6 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [activeFilter, setActiveFilter] = useState<StatusFilter>(null);
-  // ▼▼▼【1. Stateの追加】フィルタの状態を管理する新しいstate ▼▼▼
   const [showOnlyWithNextAction, setShowOnlyWithNextAction] = useState(false);
   const [staffFilter, setStaffFilter] = useState('')
 
@@ -89,14 +88,36 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
     }
 
     if (searchTerm) {
+      // ▼▼▼【ここからが唯一の修正点：検索ロジックの拡張】▼▼▼
       const lowercasedFilter = searchTerm.toLowerCase();
-      filtered = filtered.filter(consultation =>
-        consultation.name?.toLowerCase().includes(lowercasedFilter) ||
-        consultation.staff_name?.toLowerCase().includes(lowercasedFilter) ||
-        consultation.id.toLowerCase().includes(lowercasedFilter) ||
-        consultation.consultation_content?.toLowerCase().includes(lowercasedFilter) ||
-        consultation.consultation_result?.toLowerCase().includes(lowercasedFilter)
-      );
+      const filterWithoutHyphen = lowercasedFilter.replace(/-/g, '');
+
+      filtered = filtered.filter(consultation => {
+        // --- 相談者本人の情報 ---
+        if (consultation.name?.toLowerCase().includes(lowercasedFilter)) return true;
+        if (consultation.phone_home?.replace(/-/g, '').includes(filterWithoutHyphen)) return true;
+        if (consultation.phone_mobile?.replace(/-/g, '').includes(filterWithoutHyphen)) return true;
+        if (consultation.address?.toLowerCase().includes(lowercasedFilter)) return true;
+        
+        // --- 緊急連絡先の情報 ---
+        if (consultation.emergency_contact_name?.toLowerCase().includes(lowercasedFilter)) return true;
+        if (consultation.emergency_contact_phone_home?.replace(/-/g, '').includes(filterWithoutHyphen)) return true;
+        if (consultation.emergency_contact_phone_mobile?.replace(/-/g, '').includes(filterWithoutHyphen)) return true;
+
+        // --- 関連機関の情報 ---
+        if (consultation.care_manager?.toLowerCase().includes(lowercasedFilter)) return true;
+        if (consultation.medical_institution_name?.toLowerCase().includes(lowercasedFilter)) return true;
+        if (consultation.medical_institution_staff?.toLowerCase().includes(lowercasedFilter)) return true;
+
+        // --- その他の情報（既存の検索範囲） ---
+        if (consultation.staff_name?.toLowerCase().includes(lowercasedFilter)) return true;
+        if (consultation.consultation_content?.toLowerCase().includes(lowercasedFilter)) return true;
+        if (consultation.consultation_result?.toLowerCase().includes(lowercasedFilter)) return true;
+        if (consultation.id.toLowerCase().includes(lowercasedFilter)) return true;
+
+        return false;
+      });
+      // ▲▲▲【ここまでが唯一の修正点】▲▲▲
     }
     if (dateFilter) {
       filtered = filtered.filter(consultation =>
@@ -104,13 +125,12 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
       );
     }
 
-    // ▼▼▼【3. ロジックの追加】新しいフィルタ条件をここに追加 ▼▼▼
     if (showOnlyWithNextAction) {
       filtered = filtered.filter(consultation => !!consultation.next_action_date);
     }
 
     return filtered;
-  }, [allConsultations, activeFilter, searchTerm, dateFilter, staffFilter, showOnlyWithNextAction]); // 依存配列に新しいstateを追加
+  }, [allConsultations, activeFilter, searchTerm, dateFilter, staffFilter, showOnlyWithNextAction]);
 
   const statusCounts = useMemo(() => {
     const counts: { [key: string]: number } = {};
@@ -259,7 +279,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                   <div>
                       <label htmlFor="search-term" className="block text-sm font-medium text-gray-700 mb-2">キーワード検索</label>
                       <input id="search-term" type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                          placeholder="氏名、相談内容など" className="w-full px-3 py-2 border border-gray-300 rounded-md"/>
+                          placeholder="氏名, 電話番号, 住所, 関連機関名など" className="w-full px-3 py-2 border border-gray-300 rounded-md"/>
                   </div>
                   <div>
                       <label htmlFor="date-filter" className="block text-sm font-medium text-gray-700 mb-2">相談月で絞り込み</label>
@@ -270,7 +290,6 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
           </div>
           
           <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-4">
-            {/* ▼▼▼【2. UIの追加】フィルタ用のチェックボックスをここに追加 ▼▼▼ */}
             <div className="relative flex items-start">
               <div className="flex h-6 items-center">
                 <input
