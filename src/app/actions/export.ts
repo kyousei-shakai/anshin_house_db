@@ -4,13 +4,154 @@
 import { createClient } from '@/utils/supabase/server'
 import { type ConsultationWithStaff } from '@/types/consultation'
 import XlsxPopulate from 'xlsx-populate'
-// xlsx-populateの型定義
-type Workbook = Awaited<ReturnType<typeof XlsxPopulate.fromDataAsync>>
-type Cell = ReturnType<ReturnType<Workbook['sheet']>['cell']>
 import path from 'path'
 import fs from 'fs/promises'
+import {
+  formatConsultationRoute,
+  formatConsulterInfo,
+  formatWithPrefix,
+} from '@/utils/consultation-formatter'
+import { Database } from '@/types/database'
 
-// --- ヘルパー関数群 ---
+// xlsx-populateの型定義
+type Workbook = Awaited<ReturnType<typeof XlsxPopulate.fromDataAsync>>
+type Sheet = ReturnType<Workbook['sheet']>
+type Cell = ReturnType<ReturnType<Workbook['sheet']>['cell']>
+type Consultation = Database['public']['Tables']['consultations']['Row']
+
+
+// ★★★ 月次報告書生成のServer Action（修正版） ★★★
+export async function generateMonthlyReportExcel(year: number, month: number) {
+  if (!year || !month || month < 1 || month > 12) {
+    return { success: false, error: '無効な年月が指定されました。' };
+  }
+
+  const supabase = createClient();
+
+  try {
+    // 1. 指定月の相談データを取得
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+
+    const { data: consultations, error: fetchError } = await supabase
+      .from('consultations')
+      .select('*')
+      .gte('consultation_date', startDate)
+      .lte('consultation_date', endDate)
+      .order('consultation_date', { ascending: true });
+
+    if (fetchError) throw fetchError;
+    if (!consultations || consultations.length === 0) {
+      return { success: false, error: '指定された期間に該当する相談データがありません。' };
+    }
+
+    // 2. テンプレートファイルの存在確認と読み込み
+    const templatePath = path.resolve(process.cwd(), 'public', 'monthly_report_template.xlsx');
+
+    try {
+      await fs.access(templatePath);
+    } catch {
+      return {
+        success: false,
+        error: 'テンプレートファイル (monthly_report_template.xlsx) が見つかりません。'
+      };
+    }
+
+    const workbook = await XlsxPopulate.fromFileAsync(templatePath);
+
+    // 3. シートの安全な取得
+    const sheetName = "月次報告書テンプレート";
+    const sheet = workbook.sheet(sheetName);
+
+    if (!sheet) {
+      const availableSheets = workbook.sheets().map((s: Sheet) => s.name()).join(', ');
+      throw new Error(
+        `シート "${sheetName}" が見つかりません。利用可能なシート: ${availableSheets}`
+      );
+    }
+
+    // 4. 年月プレースホルダーを置換（nullチェック付き）
+    const cellA4Value = sheet.cell("A4").value();
+    if (cellA4Value) {
+      sheet.cell("A4").value(
+        String(cellA4Value)
+          .replace('{{YEAR}}', String(year))
+          .replace('{{MONTH}}', String(month))
+      );
+    }
+
+    // 5. テンプレート行の定義
+    const TEMPLATE_ROW_NUMBER = 6;
+    const templateRow = sheet.row(TEMPLATE_ROW_NUMBER);
+
+    // スタイルプロパティのリスト（主要なものを抽出）
+    const styleProperties = [
+      'bold', 'italic', 'underline', 'fontSize', 'fontFamily', 'fontColor',
+      'horizontalAlignment', 'verticalAlignment', 'wrapText',
+      'border', 'borderColor', 'borderStyle', 'fill'
+    ];
+
+    // 6. 各相談データを行に書き込む
+    consultations.forEach((consultation, index) => {
+      // 1件目はテンプレート行（6行目）を上書き、2件目以降は7, 8, 9...行
+      const currentRowNumber = TEMPLATE_ROW_NUMBER + index;
+      const currentRow = sheet.row(currentRowNumber);
+
+      // 2件目以降の行に対して、テンプレート行からスタイルをコピー
+      if (index > 0) {
+        // テンプレート行の各セルからスタイルをコピー
+        for (let colIdx = 1; colIdx <= 3; colIdx++) { // A, B, C列
+          const templateCell = templateRow.cell(colIdx);
+          const currentCell = currentRow.cell(colIdx);
+
+          // 主要なスタイルプロパティを一括取得
+          const styles = templateCell.style(styleProperties);
+
+          // 取得したスタイルを新しいセルに設定
+          currentCell.style(styles);
+        }
+      }
+
+      // 7. セルにデータを書き込む
+      // A列: No.
+      currentRow.cell(1).value(index + 1);
+
+      // C列: 相談日（Date型に変換して渡す）
+      try {
+        const consultationDate = new Date(consultation.consultation_date);
+        currentRow.cell(3).value(consultationDate);
+      } catch {
+        // Date変換に失敗した場合は文字列として設定
+        currentRow.cell(3).value(consultation.consultation_date);
+      }
+
+      // B列: 結合された相談内容
+      const line1 = `${formatConsultationRoute(consultation)}　${formatConsulterInfo(consultation)}`;
+      const line2 = formatWithPrefix(consultation.relocation_reason, '引越理由');
+      const line3 = formatWithPrefix(consultation.consultation_content, '状況・相談内容');
+      const line4 = formatWithPrefix(consultation.consultation_result, '相談結果');
+
+      const combinedText = [line1, line2, line3, line4].filter(Boolean).join('\n');
+
+      currentRow.cell(2).value(combinedText);
+    });
+
+    // 8. Excelファイルとして出力
+    const buffer = await workbook.outputAsync();
+    const fileBuffer = Buffer.from(buffer).toString('base64');
+
+    return { success: true, fileBuffer };
+
+  } catch (error) {
+    console.error("generateMonthlyReportExcel Error:", error);
+    const errorMessage = error instanceof Error ? error.message : "不明なエラーが発生しました";
+    return { success: false, error: errorMessage, fileBuffer: null };
+  }
+}
+// ★★★ 月次報告書生成のServer Action ここまで ★★★
+
+
+// --- 以下、既存のヘルパー関数群と generateFormattedConsultationsExcel はそのまま ---
 
 const calculateAgeFromYMD = (year: number | null, month: number | null, day: number | null): number | '' => {
     if (!year || !month || !day) return '';
@@ -220,7 +361,7 @@ export async function generateFormattedConsultationsExcel(consultationIds: strin
     return { success: false, error: '無効なリクエストです。' };
   }
 
-  const supabase = createClient(); // ★ 修正点: await を削除
+  const supabase = createClient();
 
   try {
     const { data: allConsultations, error: fetchError } = await supabase
@@ -240,7 +381,6 @@ export async function generateFormattedConsultationsExcel(consultationIds: strin
     }
 
     if (allConsultations && allConsultations.length > 0) {
-      // ★ 修正点: allConsultationsの型が正しいので、asやts-expect-errorは不要
       for (const [index, consultation] of allConsultations.entries()) {
           const newSheetName = sanitizeSheetName(consultation.name || `無名_${index + 1}`);
           let finalSheetName = newSheetName;
@@ -253,16 +393,13 @@ export async function generateFormattedConsultationsExcel(consultationIds: strin
           workbook.cloneSheet(templateSheet, finalSheetName);
           const newSheet = workbook.sheet(finalSheetName);
 
-          // ★ 修正点: Supabase @0.3.0ではJOINの型推論が不完全なため型アサーションを使用
           const replacements = createReplacements(consultation as unknown as ConsultationWithStaff);
 
           const usedRange = newSheet.usedRange();
           if (usedRange) {
-              // ★ 修正点2: cellの型をライブラリからインポートしたCell型に修正
               usedRange.forEach((cell: Cell) => {
-                  const cellValue = cell.value(); // この時点ではまだ unknown | undefined
+                  const cellValue = cell.value();
                   
-                  // ★ 修正点3: 型ガードを追加して、文字列の場合のみ処理を実行
                   if (typeof cellValue === 'string') {
                       let modifiedValue = cellValue;
                       for (const key in replacements) {
@@ -272,7 +409,6 @@ export async function generateFormattedConsultationsExcel(consultationIds: strin
                               modifiedValue = modifiedValue.replace(placeholder, String(replacementValue));
                           }
                       }
-                      // 値が実際に変更された場合のみセルに書き込む
                       if (modifiedValue !== cellValue) {
                           cell.value(modifiedValue);
                       }
