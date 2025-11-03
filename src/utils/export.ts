@@ -1,12 +1,37 @@
-// src/utils/export.ts (完全版・修正後)
-
+// src/utils/export.ts
 import { Database } from '@/types/database'
 import * as XLSX from 'xlsx'
-import { generateFormattedConsultationsExcel } from '@/app/actions/export' // ★ 新しいServer Actionをインポート
+import { 
+  generateFormattedConsultationsExcel,
+  generateMonthlyReportExcel,
+} from '@/app/actions/export'
 
 type User = Database['public']['Tables']['users']['Row']
 type Consultation = Database['public']['Tables']['consultations']['Row']
 type SupportPlan = Database['public']['Tables']['support_plans']['Row']
+
+// --- Base64からBlobへの変換ヘルパー ---
+const base64ToBlob = (base64: string, contentType: string): Blob => {
+  const byteCharacters = atob(base64);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: contentType });
+};
+
+// --- ファイルダウンロードのヘルパー ---
+const downloadFile = (blob: Blob, filename: string): void => {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+};
 
 // --- Users Export ---
 export const exportUsersToExcel = (users: User[], filename: string) => {
@@ -68,28 +93,28 @@ export const exportSupportPlansToCSV = (supportPlans: SupportPlan[], filename: s
   document.body.removeChild(link)
 }
 
-// --- Consultation Report Export ---
-export const exportConsultationReport = (
-  consultations: Consultation[],
-  startDate: string,
-  endDate: string,
-  filename: string
-) => {
-  // This is a placeholder. Actual implementation might be more complex.
-  const filtered = consultations.filter(c => {
-    if (!c.consultation_date) return false
-    const d = new Date(c.consultation_date)
-    return d >= new Date(startDate) && d <= new Date(endDate)
-  })
-  const worksheet = XLSX.utils.json_to_sheet(filtered)
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Report')
-  XLSX.writeFile(workbook, filename)
-}
+// --- 月次報告書を呼び出す新しい関数 ---
+export const exportMonthlyReport = async (year: number, month: number): Promise<void> => {
+  try {
+    const result = await generateMonthlyReportExcel(year, month);
+    if (!result.success || !result.fileBuffer) {
+      throw new Error(result.error || 'Excelファイルの生成に失敗しました。');
+    }
+    const blob = base64ToBlob(
+      result.fileBuffer, 
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    const filename = `月次報告書_${year}年${String(month).padStart(2, '0')}月.xlsx`;
+    downloadFile(blob, filename);
+  } catch (error) {
+    console.error('月次報告書のエクスポート処理中にエラーが発生しました:', error);
+    alert(`エクスポートに失敗しました。詳細: ${error instanceof Error ? error.message : '不明なエラー'}`);
+    throw error;
+  }
+};
 
-// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-// ★★★ ここが今回の主要な修正箇所です ★★★
-// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+// --- 整形済み相談記録のエクスポート (既存) ---
 export const exportFormattedConsultationsToExcel = async (
   consultations: Consultation[],
   filename: string
@@ -97,39 +122,28 @@ export const exportFormattedConsultationsToExcel = async (
   try {
     const consultationIds = consultations.map(c => c.id);
     
-    // Server Actionを直接呼び出す
     const result = await generateFormattedConsultationsExcel(consultationIds);
 
     if (!result.success || !result.fileBuffer) {
       throw new Error(result.error || 'Excelファイルの生成に失敗しました。');
     }
 
-    // Base64からBlobに変換してダウンロード
-    const byteCharacters = atob(result.fileBuffer);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
+    const blob = base64ToBlob(
+      result.fileBuffer,
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    
+    downloadFile(blob, filename);
 
   } catch (error) {
     console.error('エクスポート処理中にエラーが発生しました:', error);
     alert(`エクスポートに失敗しました。詳細: ${error instanceof Error ? error.message : '不明なエラー'}`);
+    throw error;
   }
 };
 
 
-// --- 共通ヘルパー関数 (APIルートから移動) ---
+// --- 共通ヘルパー関数 (既存) ---
 export const getRelocationAdminOpinionLabel = (opinion: string | null | undefined, details: string | null | undefined): string => {
     if (!opinion) return '未設定';
     const detailText = details ? ` (${details})` : '';

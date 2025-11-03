@@ -1,4 +1,4 @@
-// src/components/DataManagement.tsx 
+// src/components/DataManagement.tsx
 'use client'
 
 import React, { useState } from 'react'
@@ -10,8 +10,8 @@ import {
   exportConsultationsToCSV,
   exportSupportPlansToExcel,
   exportSupportPlansToCSV,
-  exportConsultationReport,
-  exportFormattedConsultationsToExcel
+  exportFormattedConsultationsToExcel,
+  exportMonthlyReport,
 } from '@/utils/export'
 import { importUsersFromExcel, importUsersFromCSV, ImportResult } from '@/utils/import'
 import { Database } from '@/types/database'
@@ -32,18 +32,16 @@ const DataManagement: React.FC<DataManagementProps> = ({
   initialConsultations,
   initialSupportPlans
 }) => {
-  // ★ 変更点 1: useState をやめ、propsを直接定数に代入
   const [users, setUsers] = useState<User[]>(initialUsers)
   const consultations = initialConsultations
   const supportPlans = initialSupportPlans
 
   const [loading, setLoading] = useState(false)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
-  const [reportStartDate, setReportStartDate] = useState('')
-  const [reportEndDate, setReportEndDate] = useState('')
+  
+  const [monthlyReportMonth, setMonthlyReportMonth] = useState('')
   const [exportMonth, setExportMonth] = useState('')
 
-  // ★ 変更点 2: ジェネリック関数に変更し、元の型を保持
   const getFilteredData = <T extends Record<string, unknown>>(data: T[], dateField: string): T[] => {
     if (!exportMonth) return data
     return data.filter(item => {
@@ -83,6 +81,10 @@ const DataManagement: React.FC<DataManagementProps> = ({
 
   const handleExportFormattedConsultations = async () => {
     const filteredConsultations = getFilteredData(consultations, 'consultation_date');
+    if (filteredConsultations.length === 0) {
+      alert("エクスポート対象のデータがありません。");
+      return;
+    }
     const timestamp = new Date().toISOString().slice(0, 10);
     const monthSuffix = exportMonth ? `_${exportMonth}` : '';
     const filename = `整形済み相談記録${monthSuffix}_${timestamp}.xlsx`;
@@ -92,7 +94,6 @@ const DataManagement: React.FC<DataManagementProps> = ({
       await exportFormattedConsultationsToExcel(filteredConsultations, filename);
     } catch (error) {
         console.error("Formatted export failed:", error);
-        alert("整形済みExcelのエクスポートに失敗しました。");
     } finally {
         setLoading(false);
     }
@@ -110,14 +111,22 @@ const DataManagement: React.FC<DataManagementProps> = ({
     }
   }
 
-  const handleExportReport = () => {
-    if (!reportStartDate || !reportEndDate) {
-      alert('期間を選択してください')
-      return
+  const handleExportMonthlyReport = async () => {
+    if (!monthlyReportMonth) {
+      alert("年月を選択してください");
+      return;
     }
-    const filename = `consultation_report_${reportStartDate}_${reportEndDate}.xlsx`
-    exportConsultationReport(consultations, reportStartDate, reportEndDate, filename)
-  }
+
+    setLoading(true);
+    try {
+      const [year, month] = monthlyReportMonth.split("-").map(Number);
+      await exportMonthlyReport(year, month);
+    } catch (error) {
+      console.error("月次報告書のエクスポートに失敗しました:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleImport = async (file: File) => {
     setLoading(true)
@@ -133,7 +142,7 @@ const DataManagement: React.FC<DataManagementProps> = ({
         result = { success: false, errors: ['サポートされていないファイル形式です。Excel(.xlsx)またはCSV(.csv)ファイルを選択してください。'] }
       }
       
-      setImportResult(result); // 先にバリデーション結果を表示
+      setImportResult(result);
 
       if (result.success && result.data) {
         let successCount = 0;
@@ -267,25 +276,34 @@ const DataManagement: React.FC<DataManagementProps> = ({
           </div>
         </div>
       </div>
+      
       <div className="bg-gray-50 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">期間別相談実績レポート</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">期間別相談実績レポート（月次報告書）</h2>
         <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">開始日</label>
-              <input type="date" value={reportStartDate} onChange={(e) => setReportStartDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+          <div className="flex flex-col sm:flex-row items-end gap-4">
+            <div className="flex-grow">
+              <label htmlFor="report-month" className="block text-sm font-medium text-gray-700 mb-1">対象年月</label>
+              <input 
+                id="report-month"
+                type="month" 
+                value={monthlyReportMonth} 
+                onChange={(e) => setMonthlyReportMonth(e.target.value)} 
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">終了日</label>
-              <input type="date" value={reportEndDate} onChange={(e) => setReportEndDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-            </div>
-            <div>
-              <button onClick={handleExportReport} className="w-full bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">レポート生成</button>
+            <div className="w-full sm:w-auto">
+              <button 
+                onClick={handleExportMonthlyReport}
+                disabled={loading || !monthlyReportMonth}
+                className="w-full bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? '生成中...' : '月次報告書ダウンロード'}
+              </button>
             </div>
           </div>
-          
         </div>
       </div>
+
       <div className="bg-gray-50 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">利用者データインポート</h2>
         <div className="bg-white rounded-lg p-4 border border-gray-200">
