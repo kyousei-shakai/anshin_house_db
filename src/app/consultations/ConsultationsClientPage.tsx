@@ -1,18 +1,20 @@
-//src/app/consultations/ConsultationsClientPage.tsx
+// src/app/consultations/ConsultationsClientPage.tsx
 'use client'
 
 import Link from 'next/link'
 import Layout from '@/components/Layout'
 import ConsultationList from '@/components/ConsultationList'
 import Pagination from '@/components/Pagination'
-import { type ConsultationWithStaff } from '@/types/consultation'
+// ▼▼▼【型の修正】古い型 `ConsultationWithStaff` の代わりに、新しい `ConsultationWithNextAction` をインポート ▼▼▼
+import { type ConsultationWithNextAction } from '@/types/consultation'
 // --- ▼▼▼【エラー修正箇所】▼▼▼ ---
 import { type Staff } from '@/types/staff'
 // --- ▲▲▲【エラー修正箇所】▲▲▲ ---
 
 // page.tsx から渡されるpropsの型定義
 interface ConsultationsClientPageProps {
-  initialConsultations: ConsultationWithStaff[]
+  // ▼▼▼【型の修正】propsの型を `ConsultationWithStaff[]` から `ConsultationWithNextAction[]` へ変更 ▼▼▼
+  initialConsultations: ConsultationWithNextAction[]
   // --- ▼ 変更点 2: staffsプロパティを型定義に追加 ▼ ---
   staffs: Pick<Staff, 'id' | 'name'>[]
   totalPages: number
