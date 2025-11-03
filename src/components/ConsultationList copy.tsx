@@ -4,7 +4,7 @@
 import React, { useState, useMemo, Fragment } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { type ConsultationWithNextAction } from '@/types/consultation'
+import { type ConsultationWithStaff } from '@/types/consultation'
 import { type Database } from '@/types/database'
 import { calculateAge } from '@/utils/date'
 import {
@@ -13,10 +13,10 @@ import {
   StatusFilter,
   ConsultationStatus,
 } from '@/lib/consultationConstants'
+// --- ▼▼▼【エラー修正箇所】▼▼▼ ---
 import { type Staff } from '@/types/staff'
-import {
-  getDaysUntil,
-} from '@/lib/dateUtils'
+// --- ▲▲▲【エラー修正箇所】▲▲▲ ---
+
 
 import SupportEventForm, { FormData as SupportEventFormData } from '@/components/forms/SupportEventForm'
 import { createSupportEvent } from '@/app/actions/consultationEvents'
@@ -48,7 +48,7 @@ const modalContentStyle: React.CSSProperties = {
 }
 
 type ConsultationListProps = {
-  initialConsultations: ConsultationWithNextAction[]
+  initialConsultations: ConsultationWithStaff[]
   staffs: Pick<Staff, 'id' | 'name'>[]
 }
 
@@ -56,18 +56,17 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
   initialConsultations,
   staffs 
 }) => {
-  const [allConsultations, setAllConsultations] = useState<ConsultationWithNextAction[]>(initialConsultations);
+  const [allConsultations, setAllConsultations] = useState<ConsultationWithStaff[]>(initialConsultations);
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('')
   const [activeFilter, setActiveFilter] = useState<StatusFilter>(null);
-  // ▼▼▼【1. Stateの追加】フィルタの状態を管理する新しいstate ▼▼▼
-  const [showOnlyWithNextAction, setShowOnlyWithNextAction] = useState(false);
-  const [staffFilter, setStaffFilter] = useState('')
+  const [showOnlyWithNextAppointment, setShowOnlyWithNextAppointment] = useState(false);
+  const [staffFilter, setStaffFilter] = useState('') // スタッフフィルタ用のstate
 
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedConsultation, setSelectedConsultation] = useState<ConsultationWithNextAction | null>(null)
+  const [selectedConsultation, setSelectedConsultation] = useState<ConsultationWithStaff | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const router = useRouter();
 
@@ -81,7 +80,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
       }
     } else if (activeFilter === null) {
        const inactiveStatuses: string[] = ["支援終了", "対象外・辞退"];
-       filtered = filtered.filter(c => !inactiveStatuses.includes(c.status || '') && !c.user_id);
+       filtered = filtered.filter(c => !inactiveStatuses.includes(c.status) && !c.user_id);
     }
     
     if (staffFilter) {
@@ -92,7 +91,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
       const lowercasedFilter = searchTerm.toLowerCase();
       filtered = filtered.filter(consultation =>
         consultation.name?.toLowerCase().includes(lowercasedFilter) ||
-        consultation.staff_name?.toLowerCase().includes(lowercasedFilter) ||
+        consultation.staff?.name?.toLowerCase().includes(lowercasedFilter) ||
         consultation.id.toLowerCase().includes(lowercasedFilter) ||
         consultation.consultation_content?.toLowerCase().includes(lowercasedFilter) ||
         consultation.consultation_result?.toLowerCase().includes(lowercasedFilter)
@@ -103,19 +102,13 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
         consultation.consultation_date && consultation.consultation_date.startsWith(dateFilter)
       );
     }
-
-    // ▼▼▼【3. ロジックの追加】新しいフィルタ条件をここに追加 ▼▼▼
-    if (showOnlyWithNextAction) {
-      filtered = filtered.filter(consultation => !!consultation.next_action_date);
-    }
-
     return filtered;
-  }, [allConsultations, activeFilter, searchTerm, dateFilter, staffFilter, showOnlyWithNextAction]); // 依存配列に新しいstateを追加
+  }, [allConsultations, activeFilter, searchTerm, dateFilter, staffFilter]);
 
   const statusCounts = useMemo(() => {
     const counts: { [key: string]: number } = {};
     const defaultInactiveStatuses: string[] = ["支援終了", "対象外・辞退"];
-    counts['active'] = allConsultations.filter(c => !defaultInactiveStatuses.includes(c.status || '') && !c.user_id).length;
+    counts['active'] = allConsultations.filter(c => !defaultInactiveStatuses.includes(c.status) && !c.user_id).length;
     for (const filter of STATUS_FILTERS) {
       if(filter === null) continue;
       if (filter === 'すべて表示') {
@@ -129,7 +122,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
     return counts;
   }, [allConsultations]);
 
-  const handleOpenModal = (consultation: ConsultationWithNextAction) => {
+  const handleOpenModal = (consultation: ConsultationWithStaff) => {
     setSelectedConsultation(consultation);
     setIsModalOpen(true);
   };
@@ -153,7 +146,13 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
     if (result.success && result.consultation) {
       alert('記録を保存しました。');
       handleCloseModal();
-      router.refresh();
+
+      // router.refresh()の代わりに、クライアントサイドでstateを更新
+      setAllConsultations(prevConsultations => 
+        prevConsultations.map(c => 
+          c.id === result.consultation!.id ? { ...c, ...result.consultation! } as ConsultationWithStaff : c
+        )
+      );
     } else {
       alert(`エラー: ${result.error}`);
     }
@@ -162,10 +161,10 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
   
   const formatDate = (dateString: string | null) => {
     if (!dateString) return ''
-    return new Date(dateString).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
+    return new Date(dateString).toLocaleDateString('ja-JP')
   }
 
-  const handleRegisterAsUser = async (consultation: ConsultationWithNextAction) => {
+  const handleRegisterAsUser = async (consultation: ConsultationWithStaff) => {
     if (!confirm(`「${consultation.name || '匿名'}」さんを利用者として登録しますか？`)) {
       return
     }
@@ -270,43 +269,21 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
           </div>
           
           <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-4">
-            {/* ▼▼▼【2. UIの追加】フィルタ用のチェックボックスをここに追加 ▼▼▼ */}
-            <div className="relative flex items-start">
-              <div className="flex h-6 items-center">
-                <input
-                  id="next-action-filter"
-                  aria-describedby="next-action-filter-description"
-                  name="next-action-filter"
-                  type="checkbox"
-                  checked={showOnlyWithNextAction}
-                  onChange={(e) => setShowOnlyWithNextAction(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
-                />
-              </div>
-              <div className="ml-3 text-sm leading-6">
-                <label htmlFor="next-action-filter" className="font-medium text-gray-900">
-                  次回予定ありのみ表示
-                </label>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-x-4">
-              <div className="text-sm text-gray-600">{filteredConsultations.length} 件表示</div>
-              <button
-                onClick={() => { setSearchTerm(''); setDateFilter(''); setActiveFilter(null); setShowOnlyWithNextAction(false); setStaffFilter(''); }}
-                className="text-sm text-blue-600 hover:text-blue-800"
-              >
-                フィルタをクリア
-              </button>
-            </div>
+            <div className="text-sm text-gray-600">{filteredConsultations.length} 件表示</div>
+            <button
+              onClick={() => { setSearchTerm(''); setDateFilter(''); setActiveFilter(null); setShowOnlyWithNextAppointment(false); setStaffFilter(''); }}
+              className="text-sm text-blue-600 hover:text-blue-800"
+            >
+              フィルタをクリア
+            </button>
           </div>
         </div>
 
         {filteredConsultations.length === 0 ? (
           <div className="bg-white border rounded-lg p-8 text-center">
             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" /></svg>
-            <h3 className="mt-2 text-sm font-semibold text-gray-900">{searchTerm || dateFilter || activeFilter !== null || showOnlyWithNextAction ? '該当する相談履歴が見つかりません' : '相談履歴はありません'}</h3>
-            <p className="mt-1 text-sm text-gray-500">{searchTerm || dateFilter || activeFilter !== null || showOnlyWithNextAction ? '検索条件を変更してください。' : '新しい相談を登録してください。'}</p>
+            <h3 className="mt-2 text-sm font-semibold text-gray-900">{searchTerm || dateFilter || activeFilter !== null || showOnlyWithNextAppointment ? '該当する相談履歴が見つかりません' : '相談履歴はありません'}</h3>
+            <p className="mt-1 text-sm text-gray-500">{searchTerm || dateFilter || activeFilter !== null || showOnlyWithNextAppointment ? '検索条件を変更してください。' : '新しい相談を登録してください。'}</p>
           </div>
         ) : (
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
@@ -323,20 +300,9 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
               const displayStatus = consultation.user_id ? '利用者登録済み' : consultation.status;
               const statusColor = STATUS_COLORS[displayStatus as keyof typeof STATUS_COLORS] || STATUS_COLORS['進行中'];
               
-              const daysUntil = getDaysUntil(consultation.next_action_date);
-
-              const cardStyle = daysUntil !== null && daysUntil < 0
-                ? 'bg-gray-100 border-gray-200'
-                : 'bg-rose-50 border-rose-200';
-
-              const dateStyle = daysUntil !== null && daysUntil < 0
-                ? 'text-gray-600 font-semibold'
-                : 'text-rose-800 font-semibold';
-              
               return (
                 <div key={consultation.id} className="p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
-                    
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-x-3 flex-wrap">
                         <span className={`rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusColor}`}>{displayStatus}</span>
@@ -348,26 +314,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                         {age !== null && <p>年齢: {age}歳</p>}
                       </div>
                       {consultation.consultation_content && (<p className="mt-2 text-sm text-gray-600 line-clamp-2">{consultation.consultation_content}</p>)}
-
-                      {consultation.next_action_date && (
-                        <div className={`mt-3 rounded-md border ${cardStyle}`}>
-                          <div className="flex items-center gap-x-3 p-2 sm:p-2.5">
-                            <span className="text-xl">📅</span>
-                            <div className="flex-1 min-w-0">
-                               <p className={`text-sm ${dateStyle}`}>
-                                {formatDate(consultation.next_action_date)}
-                              </p>
-                              {consultation.next_action_memo && (
-                                <p className="text-sm text-stone-700 truncate" title={consultation.next_action_memo}>
-                                  {consultation.next_action_memo}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
-                    
                     <div className="mt-4 sm:mt-0 sm:ml-4 flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                       {!consultation.user_id && (
                         <button

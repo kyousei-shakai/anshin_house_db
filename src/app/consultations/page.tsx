@@ -1,4 +1,4 @@
-//src/app/consultations/page.tsx
+// src/app/consultations/page.tsx
 import { getConsultations } from '@/app/actions/consultations'
 // --- ▼ 追加 ▼ ---
 import { getStaffForSelection } from '@/app/actions/staff'
@@ -28,6 +28,7 @@ export default async function ConsultationsPage() {
     getStaffForSelection(),
   ])
 
+  // ▼▼▼【型の修正】getConsultationsの返り値の型が変わったことを反映 ▼▼▼
   const { data: consultations, count, error: fetchError } = consultationsResult
   const { data: staffs, error: staffFetchError } = staffsResult
   // --- ▲ 変更 ▲ ---
@@ -39,6 +40,7 @@ export default async function ConsultationsPage() {
 
   return (
     <ConsultationsClientPage
+      // ▼▼▼【型の修正】渡すデータの型が`ConsultationWithNextAction[]`に変わります ▼▼▼
       initialConsultations={consultations || []}
       // --- ▼ 追加 ▼ ---
       staffs={staffs || []}
