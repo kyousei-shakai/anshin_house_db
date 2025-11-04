@@ -28,7 +28,7 @@ export async function getConsultations({
   page,
   itemsPerPage,
 }: GetConsultationsArgs): Promise<GetConsultationsReturnType> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   try {
     const offset = (page - 1) * itemsPerPage
@@ -72,7 +72,7 @@ type CreateConsultationReturnType = {
 export async function createConsultation(
   consultationData: ConsultationInsert
 ): Promise<CreateConsultationReturnType> {
-  const supabase = createClient()
+  const supabase = await createClient()
   try {
     const { data, error } = await supabase
       .from('consultations')
@@ -106,7 +106,7 @@ export async function getConsultationById(
     console.error('Invalid ID format for getConsultationById:', id)
     return { success: false, error: '無効なID形式です。' }
   }
-  const supabase = createClient()
+  const supabase = await createClient()
   try {
     const { data, error } = await supabase
       .from('consultations')
@@ -143,7 +143,7 @@ export async function updateConsultation(
   if (!id) {
     return { success: false, error: '更新対象のIDが指定されていません。' }
   }
-  const supabase = createClient()
+  const supabase = await createClient()
   try {
     const { data, error } = await supabase
       .from('consultations')
@@ -173,7 +173,7 @@ type DeleteConsultationReturnType = {
   error?: string
 }
 export async function deleteConsultation(id: string): Promise<DeleteConsultationReturnType> {
-  const supabase = createClient()
+  const supabase = await createClient()
   try {
     const { error } = await supabase
       .from('consultations')
@@ -207,7 +207,7 @@ type GetAllConsultationsReturnType = {
   error?: string
 }
 export async function getAllConsultationsForExport(): Promise<GetAllConsultationsReturnType> {
-  const supabase = createClient()
+  const supabase = await createClient()
   try {
     const { data, error } = await supabase
       .from('consultations')
@@ -227,7 +227,7 @@ export async function getAllConsultationsForExport(): Promise<GetAllConsultation
 
 // --- getConsultationsByUserId (変更なし) ---
 export async function getConsultationsByUserId(userId: string): Promise<GetAllConsultationsReturnType> {
-  const supabase = createClient()
+  const supabase = await createClient()
   try {
     const { data, error } = await supabase
       .from('consultations')

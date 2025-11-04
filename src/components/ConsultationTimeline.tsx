@@ -14,7 +14,7 @@ interface ConsultationTimelineProps {
 
 // データ取得を担当する親となるServer Component
 const ConsultationTimeline = async ({ consultationId }: ConsultationTimelineProps) => {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data: events, error } = await supabase
     .from('consultation_events')
