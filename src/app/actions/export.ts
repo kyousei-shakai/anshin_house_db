@@ -46,8 +46,8 @@ export async function generateMonthlyReportExcel(year: number, month: number) {
     }
 
     // 2. テンプレートファイルの存在確認と読み込み
-    // Vercel環境対応: src/templates/ から読み込み
-    const templatePath = path.join(__dirname, '../../../templates', 'monthly_report_template.xlsx');
+    // Vercel環境対応: process.cwd() + public/ から読み込み
+    const templatePath = path.join(process.cwd(), 'public', 'monthly_report_template.xlsx');
 
     try {
       await fs.access(templatePath);
@@ -372,8 +372,8 @@ export async function generateFormattedConsultationsExcel(consultationIds: strin
 
     if (fetchError) throw fetchError;
 
-    // Vercel環境対応: src/templates/ から読み込み
-    const templatePath = path.join(__dirname, '../../../templates', 'consultation_template.xlsx');
+    // Vercel環境対応: process.cwd() + public/ から読み込み
+    const templatePath = path.join(process.cwd(), 'public', 'consultation_template.xlsx');
     const templateData = await fs.readFile(templatePath);
     const workbook: Workbook = await XlsxPopulate.fromDataAsync(templateData);
     const templateSheet = workbook.sheet("テンプレート");
