@@ -47,8 +47,8 @@ export async function createSupportEvent(formData: SupportEventData): Promise<Re
         consultation_id: consultationId,
         staff_id: staff_id,
         status: status,
-        event_note: event_note,
-        next_action_date: next_action_date,
+        event_note: event_note || null,
+        next_action_date: next_action_date || null,
       })
     if (eventError) throw eventError
 
@@ -112,8 +112,8 @@ export async function updateSupportEvent(
       .update({
         staff_id: staff_id,
         status: status,
-        event_note: event_note,
-        next_action_date: next_action_date,
+        event_note: event_note || null,
+        next_action_date: next_action_date || null,
       })
       .eq('id', eventId)
     
