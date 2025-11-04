@@ -1,25 +1,10 @@
 // src/utils/export.ts
 import { Database } from '@/types/database'
 import * as XLSX from 'xlsx'
-import { 
-  generateFormattedConsultationsExcel,
-  generateMonthlyReportExcel,
-} from '@/app/actions/export'
 
 type User = Database['public']['Tables']['users']['Row']
 type Consultation = Database['public']['Tables']['consultations']['Row']
 type SupportPlan = Database['public']['Tables']['support_plans']['Row']
-
-// --- Base64からBlobへの変換ヘルパー ---
-const base64ToBlob = (base64: string, contentType: string): Blob => {
-  const byteCharacters = atob(base64);
-  const byteNumbers = new Array(byteCharacters.length);
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
-  }
-  const byteArray = new Uint8Array(byteNumbers);
-  return new Blob([byteArray], { type: contentType });
-};
 
 // --- ファイルダウンロードのヘルパー ---
 const downloadFile = (blob: Blob, filename: string): void => {
@@ -96,14 +81,20 @@ export const exportSupportPlansToCSV = (supportPlans: SupportPlan[], filename: s
 // --- 月次報告書を呼び出す新しい関数 ---
 export const exportMonthlyReport = async (year: number, month: number): Promise<void> => {
   try {
-    const result = await generateMonthlyReportExcel(year, month);
-    if (!result.success || !result.fileBuffer) {
-      throw new Error(result.error || 'Excelファイルの生成に失敗しました。');
+    const response = await fetch('/api/export/monthly-report', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ year, month }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'エクスポートに失敗しました' }));
+      throw new Error(errorData.error || 'エクスポートに失敗しました');
     }
-    const blob = base64ToBlob(
-      result.fileBuffer, 
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    );
+
+    const blob = await response.blob();
     const filename = `月次報告書_${year}年${String(month).padStart(2, '0')}月.xlsx`;
     downloadFile(blob, filename);
   } catch (error) {
@@ -121,18 +112,21 @@ export const exportFormattedConsultationsToExcel = async (
 ): Promise<void> => {
   try {
     const consultationIds = consultations.map(c => c.id);
-    
-    const result = await generateFormattedConsultationsExcel(consultationIds);
 
-    if (!result.success || !result.fileBuffer) {
-      throw new Error(result.error || 'Excelファイルの生成に失敗しました。');
+    const response = await fetch('/api/export/consultations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ consultationIds }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'エクスポートに失敗しました' }));
+      throw new Error(errorData.error || 'エクスポートに失敗しました');
     }
 
-    const blob = base64ToBlob(
-      result.fileBuffer,
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    );
-    
+    const blob = await response.blob();
     downloadFile(blob, filename);
 
   } catch (error) {
