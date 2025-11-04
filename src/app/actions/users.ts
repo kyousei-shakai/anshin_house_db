@@ -1,5 +1,4 @@
 // src/app/actions/users.ts
-
 'use server'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
@@ -7,7 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { Database } from '@/types/database'
 import { generateNewUID } from '@/utils/uid'
 
-// 型定義
+// 型定義 (変更なし)
 type User = Database['public']['Tables']['users']['Row']
 type UserInsert = Database['public']['Tables']['users']['Insert']
 type UserUpdate = Database['public']['Tables']['users']['Update']
@@ -18,8 +17,9 @@ type GetUsersReturnType = {
   data?: User[]
   error?: string
 }
+// ▼▼▼ ここからが変更箇所です（元の状態に戻します） ▼▼▼
 export async function getUsers(): Promise<GetUsersReturnType> {
-  const supabase = await createClient() // ★ 変更点
+  const supabase = await createClient()
   try {
     const { data, error } = await supabase.from('users').select('*').order('name', { ascending: true })
     if (error) {
@@ -33,8 +33,9 @@ export async function getUsers(): Promise<GetUsersReturnType> {
     return { success: false, error: '予期せぬエラーが発生しました。' }
   }
 }
+// ▲▲▲ ここまでが変更箇所です ▲▲▲
 
-// --- createUser ---
+// --- createUser --- (変更なし)
 type CreateUserReturnType = {
   success: boolean
   data?: User
@@ -44,7 +45,7 @@ export async function createUser(
   userData: Omit<UserInsert, 'uid'>,
   consultationId: string | null
 ): Promise<CreateUserReturnType> {
-  const supabase = await createClient() // ★ 変更点
+  const supabase = await createClient()
 
   try {
     const newUID = await generateNewUID()
@@ -87,9 +88,9 @@ export async function createUser(
   }
 }
 
-// --- deleteUser ---
+// --- deleteUser --- (変更なし)
 export async function deleteUser(uid: string) {
-  const supabase = await createClient() // ★ 変更点
+  const supabase = await createClient()
   try {
     const { error } = await supabase.from('users').delete().eq('uid', uid)
     if (error) {
@@ -97,7 +98,7 @@ export async function deleteUser(uid: string) {
       return { success: false, error: '利用者の削除に失敗しました。' }
     }
   } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : '予期せぬエラーが発生しました。'
+    const errorMessage = e instanceof Error ? e.message : '予期せぬ不明なエラーが発生しました。'
     console.error('Unexpected Error in deleteUser:', errorMessage)
     return { success: false, error: '予期せぬエラーが発生しました。' }
   }
@@ -106,14 +107,14 @@ export async function deleteUser(uid: string) {
   redirect('/users')
 }
 
-// --- getUserByUid ---
+// --- getUserByUid --- (変更なし)
 type GetUserByUidReturnType = {
   success: boolean
   data?: User
   error?: string
 }
 export async function getUserByUid(uid: string): Promise<GetUserByUidReturnType> {
-  const supabase = await createClient() // ★ 変更点
+  const supabase = await createClient()
   try {
     const { data, error } = await supabase.from('users').select('*').eq('uid', uid).single()
     if (error) {
@@ -131,7 +132,7 @@ export async function getUserByUid(uid: string): Promise<GetUserByUidReturnType>
   }
 }
 
-// --- updateUser ---
+// --- updateUser --- (変更なし)
 type UpdateUserReturnType = {
   success: boolean
   data?: User
@@ -141,7 +142,7 @@ export async function updateUser(
   uid: string,
   userData: UserUpdate
 ): Promise<UpdateUserReturnType> {
-  const supabase = await createClient() // ★ 変更点
+  const supabase = await createClient()
   try {
     const { data, error } = await supabase
       .from('users')
@@ -167,9 +168,9 @@ export async function updateUser(
   }
 }
 
-// --- getAllUsersForExport ---
+// --- getAllUsersForExport --- (変更なし)
 export async function getAllUsersForExport(): Promise<GetUsersReturnType> {
-  const supabase = await createClient() // ★ 変更点
+  const supabase = await createClient()
   try {
     const { data, error } = await supabase.from('users').select('*').order('uid', { ascending: true })
     if (error) {
@@ -178,7 +179,7 @@ export async function getAllUsersForExport(): Promise<GetUsersReturnType> {
     }
     return { success: true, data: data || [] }
   } catch (e) {
-    const errorMessage = e instanceof Error ? e.message : '予期せぬエラーが発生しました。'
+    const errorMessage = e instanceof Error ? e.message : '予期せぬ不明なエラーが発生しました。'
     console.error('Unexpected Error in getAllUsersForExport:', errorMessage)
     return { success: false, error: '予期せぬエラーが発生しました。' }
   }
