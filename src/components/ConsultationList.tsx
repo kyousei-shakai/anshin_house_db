@@ -18,7 +18,7 @@ import {
   getDaysUntil,
 } from '@/lib/dateUtils'
 
-import SupportEventForm, { FormData as SupportEventFormData } from '@/components/forms/SupportEventForm'
+import SupportEventForm, { type SupportEventFormData } from '@/components/forms/SupportEventForm'
 import { createSupportEvent } from '@/app/actions/consultationEvents'
 import { createUser } from '@/app/actions/users'
 
@@ -88,7 +88,6 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
     }
 
     if (searchTerm) {
-      // ▼▼▼【ここからが唯一の修正点：検索ロジックの拡張】▼▼▼
       const lowercasedFilter = searchTerm.toLowerCase();
       const filterWithoutHyphen = lowercasedFilter.replace(/-/g, '');
 
@@ -117,7 +116,6 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
 
         return false;
       });
-      // ▲▲▲【ここまでが唯一の修正点】▲▲▲
     }
     if (dateFilter) {
       filtered = filtered.filter(consultation =>
