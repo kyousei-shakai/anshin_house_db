@@ -26,7 +26,7 @@ export async function generateMonthlyReportExcel(year: number, month: number) {
     return { success: false, error: '無効な年月が指定されました。' };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     // 1. 指定月の相談データを取得
@@ -361,7 +361,7 @@ export async function generateFormattedConsultationsExcel(consultationIds: strin
     return { success: false, error: '無効なリクエストです。' };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   try {
     const { data: allConsultations, error: fetchError } = await supabase

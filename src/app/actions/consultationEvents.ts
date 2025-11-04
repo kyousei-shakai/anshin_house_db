@@ -30,7 +30,7 @@ type ReturnType = {
 }
 
 export async function createSupportEvent(formData: SupportEventData): Promise<ReturnType> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const validationResult = supportEventSchema.safeParse(formData)
   if (!validationResult.success) {
@@ -89,7 +89,7 @@ export async function updateSupportEvent(
   consultationId: string,
   formData: UpdateSupportEventData
 ): Promise<UpdateReturnType> {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const validationResult = updateSupportEventSchema.safeParse(formData)
   if (!validationResult.success) {
@@ -139,7 +139,7 @@ export async function deleteSupportEvent(
   eventId: string,
   consultationId: string
 ): Promise<DeleteReturnType> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   if (!z.string().uuid().safeParse(eventId).success) {
     return { success: false, error: '無効なイベントIDです。' };

@@ -4,9 +4,9 @@ import { cookies } from 'next/headers'
 import { type Database } from '@/types/database'
 
 // @supabase/ssr@0.3.0 + Next.js 14 環境における標準的な実装
-export function createClient() {
+export async function createClient() {
   // cookies()はPromiseを返すため、ここでは直接呼び出す
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
