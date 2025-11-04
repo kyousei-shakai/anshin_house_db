@@ -35,25 +35,30 @@ const buttonVariants = cva(
   }
 )
 
-function Button({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean
-  }) {
-  const Comp = asChild ? Slot : "button"
+// ▼▼▼ ここからが変更箇所です ▼▼▼
 
-  return (
-    <Comp
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  )
+// ButtonコンポーネントのProps型定義を明示的に作成
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
 }
+
+// React.forwardRefを使用してコンポーネントを定義
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref} // 受け取ったrefをCompに渡す
+        {...props}
+      />
+    )
+  }
+)
+Button.displayName = "Button" // React DevToolsでの表示名を定義
+
+// ▲▲▲ ここまでが変更箇所です ▲▲▲
 
 export { Button, buttonVariants }

@@ -27,8 +27,8 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
   const navLinks: NavLink[] = [
     { href: "/", label: "ホーム" },
     { href: "/consultations", label: "相談履歴" },
-    { href: "/support-plans", label: "支援計画" },
-    { href: "/users", label: "利用者さま" },
+    { href: "/support-plans", label: "支援計画一覧" },
+    { href: "/users", label: "利用者さま一覧" },
     { href: "/data-management", label: "データ管理" },
   ];
 
