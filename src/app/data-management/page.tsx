@@ -1,4 +1,4 @@
-// src/app/data-management/page.tsx (修正後)
+// src/app/data-management/page.tsx
 
 import Link from 'next/link'
 import Layout from '@/components/Layout'
@@ -6,19 +6,23 @@ import DataManagement from '@/components/DataManagement'
 import { getAllUsersForExport } from '@/app/actions/users'
 import { getAllConsultationsForExport } from '@/app/actions/consultations'
 import { getAllSupportPlansForExport } from '@/app/actions/supportPlans'
+// ▼▼▼ 【追加】担当者取得のServer Actionをインポート ▼▼▼
+import { getStaffForSelection } from '@/app/actions/staff'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DataManagementPage() {
-  // ▼▼▼ サーバーサイドで全てのデータを並行して取得 ▼▼▼
+  // ▼▼▼ Promise.allに担当者取得を追加 ▼▼▼
   const [
     usersResult,
     consultationsResult,
-    supportPlansResult
+    supportPlansResult,
+    staffResult // 【追加】
   ] = await Promise.all([
     getAllUsersForExport(),
     getAllConsultationsForExport(),
-    getAllSupportPlansForExport()
+    getAllSupportPlansForExport(),
+    getStaffForSelection() // 【追加】
   ]);
   return (
     <Layout>
@@ -47,7 +51,7 @@ export default async function DataManagementPage() {
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">データ管理</h1>
             <p className="text-gray-600">
-              データのインポート・エクスポート、レポート生成を行います。
+              特定の内容を指定して、データエクエルファイルとしてダウンロードできます。
             </p>
           </div>
 
@@ -56,6 +60,8 @@ export default async function DataManagementPage() {
             initialUsers={usersResult.data || []}
             initialConsultations={consultationsResult.data || []}
             initialSupportPlans={supportPlansResult.data || []}
+            // ▼▼▼ 【追加】取得したスタッフリストをpropsで渡す ▼▼▼
+            staffList={staffResult.success ? (staffResult.data || []) : []}
           />
         </div>
       </div>
