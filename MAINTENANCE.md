@@ -770,6 +770,191 @@ public/monthly_report_template.xlsx (エクスポート用テンプレート)```
 
 ---
 
+## 今回実施した作業（2025年11月5日）
+
+### 背景
+
+**問題**: Vercel本番環境でExcelエクスポート機能が失敗。ローカル環境では正常に動作するが、本番環境で以下のエラーが発生：
+- `ENOENT: no such file or directory, open '/var/task/public/consultation_template.xlsx'`
+- `テンプレートファイル (monthly_report_template.xlsx) が見つかりません`
+
+**目標**: ローカル・本番環境の両方で確実に動作するエクスポート機能を実現する。
+
+### 実施した作業の詳細
+
+#### フェーズ1: 根本原因の特定
+
+1. **調査結果**:
+   - Server Actionsでのファイルアクセスは、Vercelのサーバーレス環境で不安定
+   - `process.cwd()`を使用しても、Server Actionsは`.next/server/`にバンドルされるため、`public/`へのパスが解決できない
+   - Stack Overflowでも同様の問題が報告されており、API Route方式が推奨されていた
+
+2. **過去の成功例の発見**:
+   - MAINTENANCE.mdに記載される以前のコードで、API Route方式を使用していた実績がある
+   - `src/app/api/export/consultations/route.ts`が以前は存在し、正常に動作していた
+
+3. **Server Actions vs API Routes**:
+   | 項目 | Server Actions | API Routes |
+   |------|---------------|------------|
+   | ファイルアクセス | 不安定（Vercelで失敗） | 安定（実績あり） |
+   | バンドル場所 | `.next/server/app/actions/` | `/api/`エンドポイント |
+   | `process.cwd()`の挙動 | パス解決が困難 | 確実に動作 |
+   | Vercel公式推奨 | - | ✅ |
+
+#### フェーズ2: API Route方式への移行
+
+1. **新しいAPI Routeエンドポイントの作成**:
+
+   **a) 整形済み相談記録エクスポート用**
+   - ファイル: `src/app/api/export/consultations/route.ts`
+   - 既存のServer Action (`generateFormattedConsultationsExcel`) のロジックを完全移行
+   - ヘルパー関数群を保持:
+     - `calculateAgeFromYMD`
+     - `toJapaneseEra`
+     - `sanitizeSheetName`
+     - `getRelocationAdminOpinionLabel`
+     - `getRelocationCostBearerLabel`
+     - `getRentArrearsDurationLabel`
+     - `createReplacements`（200行超の置換ロジック）
+
+   **b) 月次報告書エクスポート用**
+   - ファイル: `src/app/api/export/monthly-report/route.ts`
+   - 既存のServer Action (`generateMonthlyReportExcel`) のロジックを完全移行
+   - `formatConsultationRoute`, `formatConsulterInfo`, `formatWithPrefix`を利用
+
+2. **utils/export.tsの修正**:
+
+   **変更前（Server Action呼び出し）:**
+   ```typescript
+   const result = await generateMonthlyReportExcel(year, month);
+   if (!result.success || !result.fileBuffer) {
+     throw new Error(result.error);
+   }
+   const blob = base64ToBlob(result.fileBuffer, 'application/...');
+   downloadFile(blob, filename);
+   ```
+
+   **変更後（API Route呼び出し）:**
+   ```typescript
+   const response = await fetch('/api/export/monthly-report', {
+     method: 'POST',
+     headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify({ year, month }),
+   });
+   if (!response.ok) {
+     const errorData = await response.json();
+     throw new Error(errorData.error);
+   }
+   const blob = await response.blob();
+   downloadFile(blob, filename);
+   ```
+
+   - Base64エンコード/デコード処理が不要に（直接Blob受信）
+   - エラーハンドリングをHTTPステータスベースに変更
+
+3. **不要なコードの削除**:
+   - `base64ToBlob`関数を削除（API Routeは直接Blobを返すため不要）
+   - Server Actionのインポート文を削除
+
+#### フェーズ3: テンプレートファイルのパス解決
+
+**API Route内での正しいパス指定:**
+```typescript
+const templatePath = path.join(process.cwd(), 'public', 'consultation_template.xlsx');
+const templateData = await fs.readFile(templatePath);
+const workbook = await XlsxPopulate.fromDataAsync(templateData);
+```
+
+**重要なポイント:**
+- `process.cwd()`がプロジェクトルートを正しく指す
+- `public/`フォルダの内容がVercelでも確実にアクセス可能
+- `__dirname`ではなく`process.cwd()`を使用
+
+#### フェーズ4: 型安全性の確保
+
+1. **型チェック実行**:
+   ```bash
+   pnpm tsc --noEmit
+   ```
+   - 結果: エラー0件
+
+2. **ビルドテスト**:
+   ```bash
+   pnpm build
+   ```
+   - 結果: 成功
+   - 新しいAPI Routeが正しく認識された:
+     - `ƒ /api/export/consultations`
+     - `ƒ /api/export/monthly-report`
+
+#### フェーズ5: デプロイと動作確認
+
+1. **本番環境デプロイ**:
+   - GitHubにプッシュ
+   - Vercel自動デプロイ
+
+2. **動作確認**:
+   - ✅ 整形済み相談記録エクスポート: 成功
+   - ✅ 月次報告書エクスポート: 成功
+   - ✅ ローカル環境: 引き続き正常動作
+
+### 解決した問題の総括
+
+| 問題 | 原因 | 解決策 |
+|------|------|--------|
+| Vercelでファイルが見つからない | Server Actionsのバンドル構造 | API Route方式に移行 |
+| `process.cwd()`のパス解決失敗 | `.next/server/`での実行 | API Routeで`process.cwd()`が正しく機能 |
+| Base64エンコードのオーバーヘッド | Server Actionsの戻り値制限 | API RouteでBufferを直接返却 |
+
+### 変更したファイル一覧
+
+```
+新規作成:
+- src/app/api/export/consultations/route.ts (315行)
+- src/app/api/export/monthly-report/route.ts (157行)
+
+修正:
+- src/utils/export.ts (API Route呼び出しに変更、base64ToBlob削除)
+
+削除:
+- なし（既存のServer Actionsは保持、将来的に削除可能）
+```
+
+### 技術的な学び
+
+1. **Vercelでのファイルアクセス**:
+   - Server Actionsでのファイル操作は制限がある
+   - API Routesの方が`public/`へのアクセスが確実
+   - `process.cwd()`はAPI Routeで正しく機能
+
+2. **アーキテクチャの選択**:
+   - ファイル操作を伴う処理: API Routes推奨
+   - 単純なDB操作: Server Actionsで問題なし
+   - 実績のあるパターンを優先
+
+3. **デバッグ手法**:
+   - ローカルと本番の動作差異は環境依存の問題
+   - 過去のコード履歴（成功時の実装）を参考に
+   - Stack Overflowで同様の問題と解決策を確認
+
+### 今後の注意事項
+
+1. **新しいエクスポート機能を追加する場合**:
+   - API Route方式を採用すること
+   - `process.cwd() + 'public/'`でテンプレートファイルにアクセス
+   - Server Actionsはファイル操作に使用しない
+
+2. **既存のServer Actionsについて**:
+   - `src/app/actions/export.ts`は現在使用されていない
+   - 削除しても問題ないが、参考資料として保持可能
+   - 削除する場合は、ヘルパー関数が他で使われていないか確認
+
+3. **テンプレートファイルの管理**:
+   - `public/`フォルダに配置すること
+   - `src/templates/`などへの移動は避ける（Vercelでバンドル対象外）
+
+---
+
 ## トラブルシューティング
 
 ### 1. ビルドエラー: "Never type error"
@@ -921,6 +1106,49 @@ Error: Cannot connect to local database
 3. **スタイルコピー方法の確認**:
    - セルのスタイルをコピーする場合、`cell.style(anotherCell.style())` という単純な形式ではエラーになる。
    - `const styles = templateCell.style(['bold', 'fontSize', ...])` のように、コピーしたいスタイルプロパティを配列で明示的に指定し、取得したスタイルオブジェクトを `currentCell.style(styles)` で設定するのが正しい方法である。
+
+### 8. Vercel本番環境でExcelエクスポートが失敗する
+
+**症状**:
+- ローカル環境では正常に動作するが、Vercel本番環境でエクスポートが失敗
+- `ENOENT: no such file or directory, open '/var/task/public/xxx.xlsx'` エラー
+- `テンプレートファイルが見つかりません` エラー
+
+**原因**:
+Server Actionsを使用したファイルアクセスは、Vercelのサーバーレス環境で不安定。`.next/server/`にバンドルされるため、`public/`へのパス解決が困難。
+
+**解決策**:
+1. **API Route方式を使用する（推奨）**:
+   ```typescript
+   // src/app/api/export/xxx/route.ts
+   export async function POST(request: Request) {
+     const templatePath = path.join(process.cwd(), 'public', 'template.xlsx');
+     const templateData = await fs.readFile(templatePath);
+     // ...
+   }
+   ```
+
+2. **Server Actionsは避ける**:
+   - ファイル操作を伴うエクスポート処理には使用しない
+   - 既存の`src/app/actions/export.ts`は参考用として保持可能だが、使用は非推奨
+
+3. **テンプレートファイルの配置**:
+   - 必ず`public/`フォルダに配置
+   - `src/templates/`などに移動しない（Vercelでバンドル対象外になる）
+
+4. **フロントエンドからの呼び出し**:
+   ```typescript
+   const response = await fetch('/api/export/xxx', {
+     method: 'POST',
+     headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify({ /* parameters */ }),
+   });
+   const blob = await response.blob();
+   ```
+
+**参考**:
+- 2025年11月5日の作業記録を参照
+- Stack Overflowでも同様の問題と解決策が報告されている
 
 ---
 
@@ -1107,7 +1335,9 @@ supabase status
 | 日付 | 作業内容 | 担当者 |
 |------|---------|--------|
 | 2025-11-01 | 初版作成。Next.js 15→14ダウングレード、consultation_eventsテーブル拡張、全型エラー解決 | - |
+| 2025-11-03 | 月次報告書エクスポート機能実装。xlsx-populateライブラリの制約対応 | - |
+| 2025-11-05 | Vercel環境でのExcelエクスポート機能をAPI Route方式に根本修正。Server ActionsからAPI Routesへ移行 | - |
 
 ---
 
-**最終更新**: 2025年11月1日
+**最終更新**: 2025年11月5日
