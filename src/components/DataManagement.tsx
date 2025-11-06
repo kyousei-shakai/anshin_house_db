@@ -20,17 +20,23 @@ type User = Database['public']['Tables']['users']['Row']
 type Consultation = Database['public']['Tables']['consultations']['Row']
 type SupportPlan = Database['public']['Tables']['support_plans']['Row']
 type UserInsert = Database['public']['Tables']['users']['Insert']
+// ▼▼▼ 【追加】Staffの型定義 ▼▼▼
+type Staff = { id: string; name: string | null }
 
 interface DataManagementProps {
   initialUsers: User[]
   initialConsultations: Consultation[]
   initialSupportPlans: SupportPlan[]
+  // ▼▼▼ 【追加】staffListプロップ ▼▼▼
+  staffList: Staff[]
 }
 
 const DataManagement: React.FC<DataManagementProps> = ({
   initialUsers,
   initialConsultations,
-  initialSupportPlans
+  initialSupportPlans,
+  // ▼▼▼ 【追加】staffListプロップの受け取り ▼▼▼
+  staffList
 }) => {
   const [users, setUsers] = useState<User[]>(initialUsers)
   const consultations = initialConsultations
@@ -41,17 +47,35 @@ const DataManagement: React.FC<DataManagementProps> = ({
   
   const [monthlyReportMonth, setMonthlyReportMonth] = useState('')
   const [exportMonth, setExportMonth] = useState('')
+  // ▼▼▼ 【追加】選択された担当者を管理するstate ▼▼▼
+  const [selectedStaffId, setSelectedStaffId] = useState('')
 
-  const getFilteredData = <T extends Record<string, unknown>>(data: T[], dateField: string): T[] => {
-    if (!exportMonth) return data
-    return data.filter(item => {
-      const itemDateValue = item[dateField];
-      if (!itemDateValue || typeof itemDateValue !== 'string') return false;
-      const itemDate = new Date(itemDateValue)
-      const filterDate = new Date(exportMonth + '-01')
-      return itemDate.getFullYear() === filterDate.getFullYear() &&
-        itemDate.getMonth() === filterDate.getMonth()
-    })
+  // ▼▼▼ 【修正】フィルタリング関数に担当者絞り込み機能を追加 ▼▼▼
+  const getFilteredData = <T extends { [key: string]: any }>(
+    data: T[],
+    dateField: string,
+    staffField?: string
+  ): T[] => {
+    let filteredData = data;
+
+    // 月フィルター
+    if (exportMonth) {
+      filteredData = filteredData.filter(item => {
+        const itemDateValue = item[dateField];
+        if (!itemDateValue || typeof itemDateValue !== 'string') return false;
+        const itemDate = new Date(itemDateValue)
+        const filterDate = new Date(exportMonth + '-01')
+        return itemDate.getFullYear() === filterDate.getFullYear() &&
+          itemDate.getMonth() === filterDate.getMonth()
+      });
+    }
+
+    // 【追加】スタッフフィルター
+    if (staffField && selectedStaffId) {
+      filteredData = filteredData.filter(item => item[staffField] === selectedStaffId);
+    }
+
+    return filteredData;
   }
 
   const handleExportUsers = (format: 'excel' | 'csv') => {
@@ -79,15 +103,18 @@ const DataManagement: React.FC<DataManagementProps> = ({
     }
   }
 
+  // ▼▼▼ 【修正】整形済みExcelエクスポートのハンドラ ▼▼▼
   const handleExportFormattedConsultations = async () => {
-    const filteredConsultations = getFilteredData(consultations, 'consultation_date');
+    const filteredConsultations = getFilteredData(consultations, 'consultation_date', 'staff_id');
     if (filteredConsultations.length === 0) {
       alert("エクスポート対象のデータがありません。");
       return;
     }
     const timestamp = new Date().toISOString().slice(0, 10);
     const monthSuffix = exportMonth ? `_${exportMonth}` : '';
-    const filename = `整形済み相談記録${monthSuffix}_${timestamp}.xlsx`;
+    const staffInfo = staffList.find(s => s.id === selectedStaffId);
+    const staffSuffix = staffInfo ? `_${staffInfo.name}` : '';
+    const filename = `整形済み相談記録${monthSuffix}${staffSuffix}_${timestamp}.xlsx`;
 
     setLoading(true);
     try {
@@ -225,23 +252,44 @@ const DataManagement: React.FC<DataManagementProps> = ({
       setLoading(false)
     }
   }
-
   return (
     <div className="space-y-8">
       <div className="bg-gray-50 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">データエクスポート</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">フィルターをかけてダウンロードする</h2>
         <div className="mb-6 bg-white rounded-lg p-4 border border-gray-200">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="flex-1">
+          {/* ▼▼▼ 【修正】フィルターUI部分 ▼▼▼ */}
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex-grow min-w-[200px]">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                エクスポート対象月（指定しない場合は全期間）
+                ダウンロードしたい対象月
               </label>
-              <input type="month" value={exportMonth} onChange={(e) => setExportMonth(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input type="month" value={exportMonth} onChange={(e) => setExportMonth(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            {exportMonth && (
-              <div className="text-sm text-gray-600">
-                <span className="font-medium">フィルタ適用中:</span> {new Date(exportMonth + '-01').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long' })}
-                <button onClick={() => setExportMonth('')} className="ml-2 text-blue-600 hover:text-blue-800">クリア</button>
+
+            {/* ▼▼▼ 【追加】担当者フィルタのUI ▼▼▼ */}
+            <div className="flex-grow min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                担当スタッフ
+              </label>
+              <select
+                value={selectedStaffId}
+                onChange={(e) => setSelectedStaffId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="">すべての担当者</option>
+                {staffList.map(staff => (
+                  <option key={staff.id} value={staff.id}>
+                    {staff.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            {(exportMonth || selectedStaffId) && (
+              <div className="text-sm text-gray-600 self-center pb-2">
+                <button onClick={() => { setExportMonth(''); setSelectedStaffId(''); }} className="text-blue-600 hover:text-blue-800">
+                  フィルターをクリア
+                </button>
               </div>
             )}
           </div>
@@ -264,7 +312,8 @@ const DataManagement: React.FC<DataManagementProps> = ({
               </button>
               <button onClick={() => handleExportConsultations('excel')} className="w-full bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">DB形式でダウンロード（Excel）</button>
             </div>
-            <div className="mt-2 text-xs text-gray-500">{exportMonth ? getFilteredData(consultations, 'consultation_date').length : consultations.length}件のデータ</div>
+            {/* ▼▼▼ 【修正】フィルターされた件数を表示 ▼▼▼ */}
+            <div className="mt-2 text-xs text-gray-500">{getFilteredData(consultations, 'consultation_date', 'staff_id').length}件のデータ</div>
           </div>
           <div className="bg-white rounded-lg p-4 border border-gray-200">
             <h3 className="font-medium text-gray-900 mb-2">支援計画データ</h3>
