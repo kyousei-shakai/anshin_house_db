@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -99,9 +119,13 @@ export type Database = {
           consultation_date: string
           consultation_result: string | null
           consultation_route_care_manager: boolean | null
+          consultation_route_care_manager_text: string | null
           consultation_route_disability_center: boolean | null
+          consultation_route_disability_center_text: string | null
           consultation_route_elderly_center: boolean | null
+          consultation_route_elderly_center_text: string | null
           consultation_route_family: boolean | null
+          consultation_route_family_text: string | null
           consultation_route_government: boolean | null
           consultation_route_government_other: string | null
           consultation_route_other: boolean | null
@@ -255,9 +279,13 @@ export type Database = {
           consultation_date: string
           consultation_result?: string | null
           consultation_route_care_manager?: boolean | null
+          consultation_route_care_manager_text?: string | null
           consultation_route_disability_center?: boolean | null
+          consultation_route_disability_center_text?: string | null
           consultation_route_elderly_center?: boolean | null
+          consultation_route_elderly_center_text?: string | null
           consultation_route_family?: boolean | null
+          consultation_route_family_text?: string | null
           consultation_route_government?: boolean | null
           consultation_route_government_other?: string | null
           consultation_route_other?: boolean | null
@@ -411,9 +439,13 @@ export type Database = {
           consultation_date?: string
           consultation_result?: string | null
           consultation_route_care_manager?: boolean | null
+          consultation_route_care_manager_text?: string | null
           consultation_route_disability_center?: boolean | null
+          consultation_route_disability_center_text?: string | null
           consultation_route_elderly_center?: boolean | null
+          consultation_route_elderly_center_text?: string | null
           consultation_route_family?: boolean | null
+          consultation_route_family_text?: string | null
           consultation_route_government?: boolean | null
           consultation_route_government_other?: string | null
           consultation_route_other?: boolean | null
@@ -922,9 +954,13 @@ export type Database = {
           consultation_date: string
           consultation_result: string
           consultation_route_care_manager: boolean
+          consultation_route_care_manager_text: string
           consultation_route_disability_center: boolean
+          consultation_route_disability_center_text: string
           consultation_route_elderly_center: boolean
+          consultation_route_elderly_center_text: string
           consultation_route_family: boolean
+          consultation_route_family_text: string
           consultation_route_government: boolean
           consultation_route_government_other: string
           consultation_route_other: boolean
@@ -1188,6 +1224,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       consultation_status: [
@@ -1203,3 +1242,4 @@ export const Constants = {
     },
   },
 } as const
+

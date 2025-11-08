@@ -320,10 +320,10 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
         <DetailItem label="相談ルート" fullWidth>
           <div className="flex flex-wrap gap-2">
             {consultation.consultation_route_self && <InfoTag color="blue">本人</InfoTag>}
-            {consultation.consultation_route_family && <InfoTag color="blue">家族</InfoTag>}
-            {consultation.consultation_route_care_manager && <InfoTag color="blue">ケアマネ</InfoTag>}
-            {consultation.consultation_route_elderly_center && <InfoTag color="blue">支援センター（高齢者）</InfoTag>}
-            {consultation.consultation_route_disability_center && <InfoTag color="blue">支援センター（障害者）</InfoTag>}
+            {consultation.consultation_route_family && <InfoTag color="blue">家族{consultation.consultation_route_family_text && `: ${consultation.consultation_route_family_text}`}</InfoTag>}
+            {consultation.consultation_route_care_manager && <InfoTag color="blue">ケアマネ{consultation.consultation_route_care_manager_text && `: ${consultation.consultation_route_care_manager_text}`}</InfoTag>}
+            {consultation.consultation_route_elderly_center && <InfoTag color="blue">支援センター（高齢者）{consultation.consultation_route_elderly_center_text && `: ${consultation.consultation_route_elderly_center_text}`}</InfoTag>}
+            {consultation.consultation_route_disability_center && <InfoTag color="blue">支援センター（障害者）{consultation.consultation_route_disability_center_text && `: ${consultation.consultation_route_disability_center_text}`}</InfoTag>}
             {consultation.consultation_route_government && <InfoTag color="blue">行政機関{consultation.consultation_route_government_other && `: ${consultation.consultation_route_government_other}`}</InfoTag>}
             {consultation.consultation_route_other && <InfoTag color="blue">その他{consultation.consultation_route_other_text && `: ${consultation.consultation_route_other_text}`}</InfoTag>}
           </div>

@@ -135,9 +135,16 @@ const createReplacements = (consultation: ConsultationWithStaff): Record<string,
         '{{consultation_date_year}}': cDate.getFullYear(), '{{consultation_date_month}}': cDate.getMonth() + 1, '{{consultation_date_day}}': cDate.getDate(),
         '{{staff_name}}': consultation.staff?.name || '',
         '{{route_self}}': check(consultation.consultation_route_self),
-        '{{route_family}}': check(consultation.consultation_route_family), '{{route_care_manager}}': check(consultation.consultation_route_care_manager),
-        '{{route_elderly_center}}': check(consultation.consultation_route_elderly_center), '{{route_disability_center}}': check(consultation.consultation_route_disability_center),
-        '{{route_government}}': check(consultation.consultation_route_government), '{{route_government_other}}': consultation.consultation_route_government_other || '',
+        '{{route_family}}': check(consultation.consultation_route_family),
+        '{{route_family_text}}': consultation.consultation_route_family_text || '', // ★ 追加
+        '{{route_care_manager}}': check(consultation.consultation_route_care_manager),
+        '{{route_care_manager_text}}': consultation.consultation_route_care_manager_text || '', // ★ 追加
+        '{{route_elderly_center}}': check(consultation.consultation_route_elderly_center),
+        '{{route_elderly_center_text}}': consultation.consultation_route_elderly_center_text || '', // ★ 追加
+        '{{route_disability_center}}': check(consultation.consultation_route_disability_center),
+        '{{route_disability_center_text}}': consultation.consultation_route_disability_center_text || '', // ★ 追加
+        '{{route_government}}': check(consultation.consultation_route_government),
+        '{{route_government_other}}': consultation.consultation_route_government_other || '',
         '{{route_other}}': check(consultation.consultation_route_other), '{{route_other_text}}': consultation.consultation_route_other_text || '',
         '{{attr_elderly}}': check(consultation.attribute_elderly), '{{attr_disability}}': check(consultation.attribute_disability),
         '{{attr_disability_mental}}': check(consultation.attribute_disability_mental), '{{attr_disability_physical}}': check(consultation.attribute_disability_physical),
