@@ -3,27 +3,26 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
-// ▼▼▼【修正】新しい型をインポート ▼▼▼
+// ▼▼▼【修正】redirect は不要になったため削除しました ▼▼▼
+// import { redirect } from 'next/navigation' 
+
 import {
   type Consultation,
   type ConsultationInsert,
   type ConsultationUpdate,
-  type ConsultationWithStaff, // getConsultationById でまだ使用
-  type ConsultationWithNextAction, // ★ 新しくインポート
-  type GetConsultationsArgs, // ★ 新しくインポート
+  type ConsultationWithStaff,
+  type ConsultationWithNextAction,
+  type GetConsultationsArgs,
 } from '@/types/consultation'
 
 // --- getConsultations (ページネーション対応版) ---
-// ▼▼▼【修正】返り値の型を更新 ▼▼▼
 type GetConsultationsReturnType = {
   success: boolean
-  data?: ConsultationWithNextAction[] // ★ 型を変更
+  data?: ConsultationWithNextAction[]
   count?: number | null
   error?: string
 }
 
-// ▼▼▼【修正】関数全体をRPC呼び出しに刷新 ▼▼▼
 export async function getConsultations({
   page,
   itemsPerPage,
@@ -33,13 +32,11 @@ export async function getConsultations({
   try {
     const offset = (page - 1) * itemsPerPage
 
-    // ★★★ RPC関数を呼び出す ★★★
     const { data, error } = await supabase.rpc('get_consultations_with_next_action', {
       page_limit: itemsPerPage,
       page_offset: offset,
     })
 
-    // テーブルの総数を別途取得
     const { count, error: countError } = await supabase
       .from('consultations')
       .select('*', { count: 'exact', head: true })
@@ -50,9 +47,6 @@ export async function getConsultations({
       return { success: false, error: '相談一覧の取得に失敗しました。' }
     }
     
-    // ★★★ 危険な型キャストは不要！ ★★★
-    // SupabaseのRPCの型推論は`any`になるため、ここでは安全なキャストを行う
-    // Zodを使えばさらに安全になるが、まずは基本的なキャストで対応
     return { success: true, data: data as ConsultationWithNextAction[], count }
     
   } catch (e) {
@@ -167,7 +161,7 @@ export async function updateConsultation(
   }
 }
 
-// --- deleteConsultation (変更なし) ---
+// --- deleteConsultation (修正箇所) ---
 type DeleteConsultationReturnType = {
   success: boolean
   error?: string
@@ -184,7 +178,9 @@ export async function deleteConsultation(id: string): Promise<DeleteConsultation
       return { success: false, error: '相談記録の削除に失敗しました。' }
     }
     revalidatePath('/consultations')
-    redirect('/consultations')
+    // ▼▼▼【修正】redirectを削除し、成功ステータスのみを返す ▼▼▼
+    // クライアント側で router.push を実行するため、ここで redirect する必要はありません。
+    return { success: true }
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : '予期せぬエラーが発生しました。'
     console.error('Unexpected Error in deleteConsultation:', errorMessage)
@@ -193,12 +189,6 @@ export async function deleteConsultation(id: string): Promise<DeleteConsultation
 }
 
 // --- getAllConsultationsForExport & getConsultationsByUserId ---
-// ★★★ NOTE ★★★
-// これらの関数も将来的にはRPC化を検討すると良いでしょう。
-// 今回は getConsultations のみがスコープのため、変更は加えていません。
-// もしこれらの関数も新しい次回アクション情報を必要とする場合は、
-// 同様のRPCを作成・呼び出す改修が必要です。
-// =================================================================
 
 // --- getAllConsultationsForExport (変更なし) ---
 type GetAllConsultationsReturnType = {

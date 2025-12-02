@@ -3,6 +3,7 @@
 
 import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createUser } from '@/app/actions/users'
 import { deleteConsultation } from '@/app/actions/consultations'
 import { Database } from '@/types/database'
@@ -28,25 +29,25 @@ const DetailItem: React.FC<{ label: string; children: React.ReactNode; fullWidth
   if (fullWidth) {
     return (
       <div className="px-4 py-3 sm:px-6">
-        <dt className="text-sm font-semibold text-gray-700">{label}</dt> {/* 変更: font-medium->semibold, text-gray-600->700 */}
-        <dd className="mt-2 text-base text-gray-900">{children}</dd> {/* 変更: mt-1->mt-2, font-mediumを削除 */}
+        <dt className="text-sm font-semibold text-gray-700">{label}</dt>
+        <dd className="mt-2 text-base text-gray-900">{children}</dd>
       </div>
     );
   }
 
   return (
     <div className="px-4 py-2 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-      <dt className="text-sm font-semibold text-gray-700 flex items-center">{label}</dt> {/* 変更: font-medium->semibold, text-gray-600->700 */}
-      <dd className="mt-1 text-base text-gray-900 sm:col-span-2 sm:mt-0">{children}</dd> {/* 変更: font-mediumを削除 */}
+      <dt className="text-sm font-semibold text-gray-700 flex items-center">{label}</dt>
+      <dd className="mt-1 text-base text-gray-900 sm:col-span-2 sm:mt-0">{children}</dd>
     </div>
   );
 };
 
 // DetailSection: ヘッダーに背景色を追加し、カードとしてのまとまりを強化
 const DetailSection: React.FC<{ title: string; children: React.ReactNode; id: string }> = ({ title, children, id }) => (
-    <div id={id} className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-lg scroll-mt-24 overflow-hidden"> {/* 変更: rounded-xl -> rounded-lg */}
-        <div className="px-4 py-4 sm:px-6 bg-gray-50 border-b border-gray-200"> {/* 変更: 背景色と下罫線を追加, padding調整 */}
-            <h2 className="text-base font-semibold leading-6 text-gray-800">{title}</h2> {/* 変更: text-lg->text-base, text-gray-900->800 */}
+    <div id={id} className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-lg scroll-mt-24 overflow-hidden">
+        <div className="px-4 py-4 sm:px-6 bg-gray-50 border-b border-gray-200">
+            <h2 className="text-base font-semibold leading-6 text-gray-800">{title}</h2>
         </div>
         <div className="border-t border-gray-200">
             <dl className="divide-y divide-gray-200">
@@ -72,12 +73,10 @@ const InfoTag: React.FC<{ children: React.ReactNode; color?: 'blue' | 'green' | 
     );
 };
 
-
 // ▲▲▲ ここまでデザイン改良 ▲▲▲
 
-
 const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation }) => {
-  // ... (ロジック部分は変更なし、長いため省略)
+  const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
 
@@ -95,6 +94,13 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
     return null;
   }, [consultation]);
 
+  const formatDate = (dateString: string | null | undefined): string => {
+    if (!dateString) return '未設定'
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '無効な日付';
+    return date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
   const handleDelete = async () => {
     if (!consultation) return;
 
@@ -106,22 +112,29 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
     setIsDeleting(true)
     try {
       const result = await deleteConsultation(consultation.id)
+      
       if (result && !result.success) {
         throw new Error(result.error || '削除に失敗しました。')
       }
-      // 成功時はServer Action内でredirectされる
-    } catch (err) {
+
+      // 成功時の処理：アラート表示後に一覧へ確実に遷移
+      alert('相談履歴を削除しました。一覧ページへ戻ります。')
+      router.refresh()
+      router.push('/consultations')
+
+    } catch (err: any) {
+      // Server Actionでredirect()が実行された場合のNEXT_REDIRECTエラーは無視する（正常動作のため）
+      if (
+        err?.message === 'NEXT_REDIRECT' || 
+        err?.digest?.startsWith('NEXT_REDIRECT')
+      ) {
+         return;
+      }
+
       console.error('相談履歴の削除エラー:', err)
       alert(err instanceof Error ? err.message : '相談履歴の削除に失敗しました。')
       setIsDeleting(false)
     }
-  }
-
-  const formatDate = (dateString: string | null | undefined): string => {
-    if (!dateString) return '未設定'
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '無効な日付';
-    return date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
   }
 
   const handleRegisterAsUser = async () => {
@@ -256,7 +269,7 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
             <h1 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
               相談詳細
             </h1>
-            <div className="mt-1 flex flex-col sm:mt-2 sm:flex-row sm:flex-wrap sm:space-x-6"> {/* 変更: mt-0->mt-2 */}
+            <div className="mt-1 flex flex-col sm:mt-2 sm:flex-row sm:flex-wrap sm:space-x-6">
               <div className="mt-2 flex items-center text-sm text-gray-500">
                 <svg className="mr-1.5 h-5 w-5 flex-shrink-0 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.75 2a.75.75 0 01.75.75v1.5h6.5v-1.5a.75.75 0 011.5 0v1.5h.75a3.25 3.25 0 013.25 3.25v6.5a3.25 3.25 0 01-3.25 3.25H4.75a3.25 3.25 0 01-3.25-3.25v-6.5A3.25 3.25 0 014.75 4h.75V2.75A.75.75 0 015.75 2zM4 9.75a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75a.75.75 0 01-.75-.75z" clipRule="evenodd" /></svg>
                 相談日: {formatDate(consultation.consultation_date)}
@@ -268,7 +281,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
             </div>
           </div>
           <div className="mt-5 flex lg:ml-4 lg:mt-0">
-            {/* ボタン群は変更なし */}
             <span className="sm:ml-3">
                 <Link
                 href={`/consultations/${consultation.id}/edit`}
@@ -316,7 +328,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
           {consultation.phone_home && <div>自宅: {consultation.phone_home}</div>}
           {consultation.phone_mobile && <div>携帯: {consultation.phone_mobile}</div>}
         </DetailItem>
-        {/* ▼▼▼ タグのデザインを改良 ▼▼▼ */}
         <DetailItem label="相談ルート" fullWidth>
           <div className="flex flex-wrap gap-2">
             {consultation.consultation_route_self && <InfoTag color="blue">本人</InfoTag>}
