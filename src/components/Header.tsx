@@ -1,3 +1,4 @@
+// src/components/Header.tsx
 'use client'
 
 import React, { useState } from 'react'
@@ -6,9 +7,17 @@ import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { Menu, Database, NotebookPen, PlusCircle, FilePlus2 } from 'lucide-react'
+import { 
+  Menu, 
+  PlusCircle, 
+  FilePlus2,
+  Home,
+  MessageSquareText,
+  FileHeart,
+  Users,
+  Settings
+} from 'lucide-react'
 
-// ★ 修正点: onMenuClickを受け取るためのPropsの型定義を復活させます
 interface HeaderProps {
   onMenuClick?: () => void;
 }
@@ -16,20 +25,51 @@ interface HeaderProps {
 type NavLink = {
   href: string;
   label: string;
+  icon: React.ElementType;
+  activeColorClass: string; 
+  iconColorClass: string;
 }
 
-// ★ 修正点: propsとして onMenuClick を受け取るように修正します
 const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const pathname = usePathname();
-
-  const dailyLogUrl = process.env.NEXT_PUBLIC_DAILY_LOG_APP_URL || "/";
+  
   const navLinks: NavLink[] = [
-    { href: "/", label: "ホーム" },
-    { href: "/consultations", label: "相談履歴" },
-    { href: "/support-plans", label: "支援計画一覧" },
-    { href: "/users", label: "利用者さま一覧" },
-    { href: "/data-management", label: "データ管理" },
+    { 
+      href: "/", 
+      label: "ホーム", 
+      icon: Home,
+      activeColorClass: "bg-sky-100 text-sky-800 ring-1 ring-sky-300",
+      iconColorClass: "text-sky-600"
+    },
+    { 
+      href: "/consultations", 
+      label: "相談履歴", 
+      icon: MessageSquareText,
+      activeColorClass: "bg-orange-100 text-orange-800 ring-1 ring-orange-300",
+      iconColorClass: "text-orange-600"
+    },
+    { 
+      href: "/support-plans", 
+      label: "支援計画", 
+      icon: FileHeart,
+      activeColorClass: "bg-rose-100 text-rose-800 ring-1 ring-rose-300",
+      iconColorClass: "text-rose-600"
+    },
+    { 
+      href: "/users", 
+      label: "利用者一覧", 
+      icon: Users,
+      activeColorClass: "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300",
+      iconColorClass: "text-emerald-600"
+    },
+    { 
+      href: "/data-management", 
+      label: "データ管理", 
+      icon: Settings,
+      activeColorClass: "bg-slate-200 text-slate-800 ring-1 ring-slate-400",
+      iconColorClass: "text-slate-600"
+    },
   ];
 
   const isActive = (href: string) => {
@@ -39,16 +79,16 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
   
   const ActionButtons = () => (
     <>
-      <Button asChild style={{ backgroundColor: '#1D4ED8', color: 'white' }}>
+      <Button asChild size="sm" className="bg-blue-700 hover:bg-blue-800 text-white shadow-sm font-bold h-9">
         <Link href="/consultations/new">
-          <PlusCircle className="h-4 w-4 sm:mr-2" />
-          <span className="hidden sm:inline">新規相談</span>
+          <PlusCircle className="h-4 w-4 sm:mr-1.5" />
+          <span className="hidden sm:inline text-sm">新規相談</span>
         </Link>
       </Button>
-      <Button asChild style={{ backgroundColor: '#7E22CE', color: 'white' }}>
+      <Button asChild size="sm" className="bg-purple-700 hover:bg-purple-800 text-white shadow-sm font-bold h-9">
         <Link href="/support-plans/new">
-          <FilePlus2 className="h-4 w-4 sm:mr-2" />
-          <span className="hidden sm:inline">支援計画作成</span>
+          <FilePlus2 className="h-4 w-4 sm:mr-1.5" />
+          <span className="hidden sm:inline text-sm">支援計画</span>
         </Link>
       </Button>
     </>
@@ -56,53 +96,63 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
 
   return (
     <div className="mb-8">
-      <header className="bg-slate-50 shadow-sm border-b sticky top-0 z-50">
+      <header className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-14 sm:h-16">
             
-            <div className="flex items-center space-x-4">
-              {/* ★ 修正点: モバイル用メニューの表示を、onMenuClickの有無で条件分岐させます */}
+            <div className="flex items-center gap-3">
+              {/* モバイルメニュー */}
               <div className="md:hidden">
                 {onMenuClick ? (
-                  // onMenuClickが渡された場合（ConsultationFormLayoutなど）
-                  <Button variant="ghost" size="icon" aria-label="サイドバーを開く" onClick={onMenuClick}>
+                  <Button variant="ghost" size="icon" onClick={onMenuClick} className="text-gray-700 h-9 w-9">
                     <Menu className="w-6 h-6" />
                   </Button>
                 ) : (
-                  // onMenuClickが渡されない場合（通常のページ）
                   <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                     <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon" aria-label="ナビゲーションメニューを開く">
+                      <Button variant="ghost" size="icon" className="text-gray-700 h-9 w-9">
                         <Menu className="w-6 h-6" />
                       </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="w-[280px]">
-                      <SheetHeader>
-                        <SheetTitle>メニュー</SheetTitle>
+                      <SheetHeader className="mb-4">
+                        <SheetTitle className="text-left text-lg font-bold text-gray-800 flex items-center gap-2">
+                          {/* ▼▼▼ モバイルメニュータイトルも変更 ▼▼▼ */}
+                          <Home className="h-5 w-5 text-orange-600" />
+                          メニュー
+                        </SheetTitle>
                       </SheetHeader>
-                      <div className="py-4 flex flex-col h-full">
+                      <div className="flex flex-col h-full">
                         <nav className="flex flex-col space-y-2">
-                          {navLinks.map((link) => (
-                             <Button 
-                                key={link.href} 
-                                asChild 
-                                variant={isActive(link.href) ? "secondary" : "ghost"}
-                                className="justify-start text-base py-6"
-                             >
-                              <Link href={link.href} onClick={() => setIsSheetOpen(false)}>
-                                {link.label}
-                              </Link>
-                            </Button>
-                          ))}
+                          {navLinks.map((link) => {
+                             const active = isActive(link.href);
+                             return (
+                               <Link 
+                                  key={link.href} 
+                                  href={link.href} 
+                                  onClick={() => setIsSheetOpen(false)}
+                                  className={`
+                                    flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium transition-all duration-200
+                                    ${active 
+                                      ? link.activeColorClass 
+                                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                    }
+                                  `}
+                               >
+                                 <link.icon className={`h-5 w-5 ${active ? "" : link.iconColorClass}`} />
+                                 {link.label}
+                               </Link>
+                             )
+                          })}
                         </nav>
                         <Separator className="my-4" />
-                        <div className="space-y-3 mt-auto">
-                          <Button asChild style={{ backgroundColor: '#1D4ED8', color: 'white' }} className="w-full justify-center text-base py-6">
+                        <div className="space-y-3">
+                          <Button asChild className="w-full justify-start text-base py-5 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm">
                               <Link href="/consultations/new" onClick={() => setIsSheetOpen(false)}>
                                   <PlusCircle className="mr-2 h-5 w-5" /> 新規相談を登録
                               </Link>
                           </Button>
-                          <Button asChild style={{ backgroundColor: '#7E22CE', color: 'white' }} className="w-full justify-center text-base py-6">
+                          <Button asChild className="w-full justify-start text-base py-5 bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-sm">
                               <Link href="/support-plans/new" onClick={() => setIsSheetOpen(false)}>
                                   <FilePlus2 className="mr-2 h-5 w-5" /> 支援計画を作成
                               </Link>
@@ -114,40 +164,50 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
                 )}
               </div>
               
-              <Link href="/" className="flex items-center gap-2 font-semibold text-gray-900 hover:text-green-600 transition-colors">
-                <Database className="h-6 w-6 sm:h-7 sm:w-7 text-green-600" />
-                <h1 className="text-lg sm:text-xl">
-                  居住支援管理マスター
+              {/* ▼▼▼ ロゴエリアの刷新 ▼▼▼ */}
+              <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+                {/* 暖かいオレンジ色の背景とホームアイコン */}
+                <div className="bg-orange-100 p-1.5 rounded-lg border border-orange-200">
+                  <Home className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600" />
+                </div>
+                {/* 柔らかい印象のタイトル */}
+                <h1 className="text-base sm:text-lg font-bold text-gray-800 tracking-tight leading-none">
+                  居住支援管理ハブ
                 </h1>
               </Link>
             </div>
             
-            <nav className="hidden md:flex items-center space-x-1">
-              {navLinks.map((link) => (
+            {/* デスクトップナビゲーション */}
+            <nav className="hidden md:flex items-center gap-1">
+              {navLinks.map((link) => {
+                const active = isActive(link.href);
+                return (
                   <Button 
                     key={link.href} 
                     asChild 
-                    variant={isActive(link.href) ? "secondary" : "ghost"}
-                    size="sm"
+                    variant="ghost"
+                    className={`
+                      h-9 px-3 text-sm font-medium transition-all duration-200
+                      ${active 
+                        ? link.activeColorClass + " shadow-sm"
+                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                      }
+                    `}
                   >
-                  <Link href={link.href}>
+                  <Link href={link.href} className="flex items-center gap-2">
+                    <link.icon className={`h-4 w-4 ${active ? "" : link.iconColorClass}`} />
                     {link.label}
                   </Link>
                 </Button>
-              ))}
+                )
+              })}
             </nav>
 
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <div className="hidden md:flex items-center space-x-2">
+            {/* 右側アクションエリア */}
+            <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2">
                 <ActionButtons />
               </div>
-
-              <Button asChild variant="outline" size="sm" className="border-gray-300">
-                <a href={dailyLogUrl} target="_blank" rel="noopener noreferrer">
-                  <NotebookPen className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">活動日報</span>
-                </a>
-              </Button>
             </div>
 
           </div>
