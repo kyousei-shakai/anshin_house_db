@@ -1,10 +1,10 @@
-//src/components/SupportPlanForm.tsx
+// src/components/SupportPlanForm.tsx
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createSupportPlan, updateSupportPlan } from '@/app/actions/supportPlans'
-import { getStaffForSelection } from '@/app/actions/staff' // ★ 変更点: スタッフ取得用のServer Actionをインポート
+import { getStaffForSelection } from '@/app/actions/staff'
 import { Database } from '@/types/database'
 import { calculateAge } from '@/utils/date'
 
@@ -13,7 +13,7 @@ type User = Database['public']['Tables']['users']['Row']
 type SupportPlan = Database['public']['Tables']['support_plans']['Row']
 type SupportPlanInsert = Database['public']['Tables']['support_plans']['Insert']
 type SupportPlanUpdate = Partial<Database['public']['Tables']['support_plans']['Update']>
-type Staff = { id: string; name: string | null } // ★ 変更点: Staffの型を定義
+type Staff = { id: string; name: string | null }
 
 interface SupportPlanFormProps {
   editMode?: boolean
@@ -21,17 +21,149 @@ interface SupportPlanFormProps {
   users: User[]
 }
 
+// ▼▼▼ 追加: 検索機能付き利用者選択コンポーネント ▼▼▼
+interface SearchableUserSelectProps {
+  users: User[]
+  selectedUserId: string
+  onChange: (userId: string) => void
+  disabled: boolean
+  error?: boolean
+}
+
+const SearchableUserSelect: React.FC<SearchableUserSelectProps> = ({ 
+  users, 
+  selectedUserId, 
+  onChange, 
+  disabled,
+  error 
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  // 選択されているユーザーの情報を取得
+  const selectedUser = useMemo(() => 
+    users.find(u => u.id === selectedUserId), 
+  [users, selectedUserId])
+
+  // 初期表示や外部からの変更時に検索語句をリセット（選択中の名前を表示）
+  useEffect(() => {
+    if (selectedUser) {
+      setSearchTerm(selectedUser.name || '')
+    } else {
+      setSearchTerm('')
+    }
+  }, [selectedUser])
+
+  // クリック外のイベントハンドリング（ドロップダウンを閉じる）
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+        // 閉じたとき、入力内容が選択中のユーザーと一致しなければリセット
+        if (selectedUser) {
+          setSearchTerm(selectedUser.name || '')
+        } else if (!selectedUserId) {
+          setSearchTerm('')
+        }
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [selectedUser, selectedUserId])
+
+  // 検索フィルター（名前、UIDで検索可能）※フリガナを除外
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm) return users
+    const lowerTerm = searchTerm.toLowerCase().replace(/\s+/g, '') // 空白除去して検索
+    
+    // すでに選択済みのユーザー名と完全一致している場合は、全件表示（選択後の状態）
+    if (selectedUser && searchTerm === selectedUser.name) return users;
+
+    return users.filter(user => {
+      const name = (user.name || '').toLowerCase()
+      // user.furigana は存在しないため削除
+      const uid = String(user.uid || '')
+      
+      return name.includes(lowerTerm) || 
+             uid.includes(lowerTerm)
+    })
+  }, [users, searchTerm, selectedUser])
+
+  const handleSelect = (userId: string) => {
+    onChange(userId)
+    setIsOpen(false)
+  }
+
+  return (
+    <div className="relative" ref={wrapperRef}>
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(e) => {
+          setSearchTerm(e.target.value)
+          setIsOpen(true)
+          // 入力が空になったら選択解除とみなす場合
+          if (e.target.value === '') {
+            onChange('')
+          }
+        }}
+        onFocus={() => setIsOpen(true)}
+        disabled={disabled}
+        placeholder={disabled ? "変更不可" : "名前またはUIDで検索..."}
+        className={`w-full px-3 py-2 border rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 ${error ? 'border-red-500' : 'border-gray-300'}`}
+      />
+      
+      {/* 検索アイコン（飾り） */}
+      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+        <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+
+      {/* ドロップダウンリスト */}
+      {isOpen && !disabled && (
+        <ul className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+          {filteredUsers.length === 0 ? (
+            <li className="text-gray-500 cursor-default select-none relative py-2 pl-3 pr-9">
+              該当する利用者がいません
+            </li>
+          ) : (
+            filteredUsers.map((user) => (
+              <li
+                key={user.id}
+                onClick={() => handleSelect(user.id)}
+                className={`cursor-pointer select-none relative py-2 pl-3 pr-9 hover:bg-blue-50 ${user.id === selectedUserId ? 'bg-blue-100 text-blue-900' : 'text-gray-900'}`}
+              >
+                <div className="flex items-center">
+                  <span className="font-medium block truncate">
+                    {user.name}
+                  </span>
+                  <span className="ml-2 text-gray-500 truncate text-xs">
+                    (UID: {user.uid})
+                  </span>
+                </div>
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
+  )
+}
+// ▲▲▲ 追加ここまで ▲▲▲
+
+
 const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, supportPlan, users }) => {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [staffList, setStaffList] = useState<Staff[]>([]) // ★ 変更点: スタッフリスト用のstateを追加
+  const [staffList, setStaffList] = useState<Staff[]>([])
   
-  // ★ 変更点: フォームのstateから staff_name を削除し、staff_id を追加
   const [formData, setFormData] = useState({
     user_id: '',
     creation_date: new Date().toISOString().split('T')[0],
-    staff_id: '', // staff_name から staff_id へ変更
+    staff_id: '', 
     name: '',
     furigana: '',
     birth_date: '',
@@ -83,7 +215,6 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
     evacuation_plan_other_details: ''
   })
 
-  // ★ 変更点: スタッフリストを取得するuseEffectを追加
   useEffect(() => {
     const fetchStaff = async () => {
       const result = await getStaffForSelection();
@@ -101,13 +232,12 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
     fetchStaff();
   }, []);
 
-  // ★ 変更点: 既存のuseEffectを、staff_idを扱うように修正
   useEffect(() => {
     if (editMode && supportPlan) {
       setFormData({
         user_id: supportPlan.user_id,
         creation_date: supportPlan.creation_date.split('T')[0],
-        staff_id: supportPlan.staff_id || '', // staff_name を staff_id に変更
+        staff_id: supportPlan.staff_id || '',
         name: supportPlan.name,
         furigana: supportPlan.furigana,
         birth_date: supportPlan.birth_date.split('T')[0],
@@ -170,7 +300,7 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
         ...prev,
         user_id: userId,
         name: selectedUser.name,
-        furigana: selectedUser.name, // 暫定で名前を入れる
+        furigana: selectedUser.name, // データ構造にfuriganaがないため、暫定でnameを入れる
         birth_date: selectedUser.birth_date ? selectedUser.birth_date.split('T')[0] : '',
         residence: selectedUser.property_address || '',
         phone_mobile: selectedUser.resident_contact || ''
@@ -211,22 +341,20 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
     }));
   }
 
-  // ★ 変更点: handleSubmitを、staff_idを扱うように修正
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!formData.user_id) { setError('利用者を選択してください'); return; }
-    if (!formData.staff_id) { setError('担当スタッフを選択してください'); return; } // staff_name を staff_id に変更
+    if (!formData.staff_id) { setError('担当スタッフを選択してください'); return; }
     if (!formData.name.trim()) { setError('利用者名を入力してください'); return; }
 
     setLoading(true);
     setError(null);
       
     try {
-      // ★ 変更点: commonDataから staff_name を削除し、staff_id を追加
       const commonData: Omit<SupportPlanInsert, 'user_id' | 'id' | 'created_at' | 'updated_at' | 'staff_name'> & { staff_id: string } = {
         creation_date: formData.creation_date,
-        staff_id: formData.staff_id, // staff_name を staff_id に変更
+        staff_id: formData.staff_id,
         name: formData.name,
         furigana: formData.furigana,
         birth_date: formData.birth_date,
@@ -315,26 +443,20 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">利用者選択 <span className="text-red-500">*</span></label>
-            <select
-              name="user_id"
-              value={formData.user_id}
-              onChange={(e) => handleUserChange(e.target.value)}
-              required
+            {/* ▼▼▼ 修正点: 検索機能付きセレクトボックスへの置き換え ▼▼▼ */}
+            <SearchableUserSelect
+              users={users}
+              selectedUserId={formData.user_id}
+              onChange={handleUserChange}
               disabled={editMode || loading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-            >
-              <option value="">利用者を選択してください</option>
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>{user.name} (UID: {user.uid})</option>
-              ))}
-            </select>
+            />
+            {/* ▲▲▲ 修正点ここまで ▲▲▲ */}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">作成日 <span className="text-red-500">*</span></label>
             <input type="date" name="creation_date" value={formData.creation_date} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" required />
           </div>
           <div>
-            {/* ★ 変更点: input を select に完全に置換 */}
             <label htmlFor="staff_id" className="block text-sm font-medium text-gray-700 mb-1">担当スタッフ <span className="text-red-500">*</span></label>
             <select
               id="staff_id"
@@ -388,7 +510,7 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
           </div>
         </div>
       </div>
-
+      {/* ... 以降のフォーム項目は変更なし ... */}
       {/* 2. 生活保護・介護保険 */}
       <div className="bg-gray-50 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-800 mb-4">2. 生活保護・介護保険</h2>
