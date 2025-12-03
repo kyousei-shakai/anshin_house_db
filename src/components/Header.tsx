@@ -15,12 +15,17 @@ import {
   MessageSquareText,
   FileHeart,
   Users,
-  Settings
+  Settings,
+  // ▼▼▼ 追加: マニュアル用アイコン ▼▼▼
+  BookOpen
 } from 'lucide-react'
 
 interface HeaderProps {
   onMenuClick?: () => void;
 }
+
+// ▼▼▼ 追加: マニュアルサイトのURL ▼▼▼
+const MANUAL_URL = "https://script.google.com/macros/s/AKfycbw1folK-LY9MjwRwMgrzF7HI6n8duOnbLumj1h-0MpxkJZIEemgt8zzy5gLRFZNMs1J-A/exec";
 
 type NavLink = {
   href: string;
@@ -28,6 +33,8 @@ type NavLink = {
   icon: React.ElementType;
   activeColorClass: string; 
   iconColorClass: string;
+  // ▼▼▼ 追加: 外部リンク判定用フラグ ▼▼▼
+  isExternal?: boolean;
 }
 
 const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
@@ -70,9 +77,19 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
       activeColorClass: "bg-slate-200 text-slate-800 ring-1 ring-slate-400",
       iconColorClass: "text-slate-600"
     },
+    // ▼▼▼ 追加: マニュアルリンク（外部リンク設定） ▼▼▼
+    { 
+      href: MANUAL_URL, 
+      label: "マニュアル", 
+      icon: BookOpen,
+      activeColorClass: "bg-indigo-100 text-indigo-800 ring-1 ring-indigo-300",
+      iconColorClass: "text-indigo-600",
+      isExternal: true // これがtrueなら別タブで開く
+    },
   ];
 
   const isActive = (href: string) => {
+    if (href.startsWith("http")) return false; // 外部リンクはアクティブ判定しない
     if (href === "/") return pathname === href;
     return pathname.startsWith(href);
   }
@@ -117,7 +134,6 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
                     <SheetContent side="left" className="w-[280px]">
                       <SheetHeader className="mb-4">
                         <SheetTitle className="text-left text-lg font-bold text-gray-800 flex items-center gap-2">
-                          {/* ▼▼▼ モバイルメニュータイトルも変更 ▼▼▼ */}
                           <Home className="h-5 w-5 text-orange-600" />
                           メニュー
                         </SheetTitle>
@@ -128,8 +144,11 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
                              const active = isActive(link.href);
                              return (
                                <Link 
-                                  key={link.href} 
+                                  key={link.label} // 外部リンクはhrefが重複する可能性が低いが一応labelに変更
                                   href={link.href} 
+                                  // ▼▼▼ 外部リンク用の属性付与 ▼▼▼
+                                  target={link.isExternal ? "_blank" : undefined}
+                                  rel={link.isExternal ? "noopener noreferrer" : undefined}
                                   onClick={() => setIsSheetOpen(false)}
                                   className={`
                                     flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium transition-all duration-200
@@ -164,13 +183,11 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
                 )}
               </div>
               
-              {/* ▼▼▼ ロゴエリアの刷新 ▼▼▼ */}
+              {/* ロゴエリア */}
               <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-                {/* 暖かいオレンジ色の背景とホームアイコン */}
                 <div className="bg-orange-100 p-1.5 rounded-lg border border-orange-200">
                   <Home className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600" />
                 </div>
-                {/* 柔らかい印象のタイトル */}
                 <h1 className="text-base sm:text-lg font-bold text-gray-800 tracking-tight leading-none">
                   居住支援管理ハブ
                 </h1>
@@ -183,7 +200,7 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
                 const active = isActive(link.href);
                 return (
                   <Button 
-                    key={link.href} 
+                    key={link.label}
                     asChild 
                     variant="ghost"
                     className={`
@@ -194,7 +211,13 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
                       }
                     `}
                   >
-                  <Link href={link.href} className="flex items-center gap-2">
+                  <Link 
+                    href={link.href} 
+                    // ▼▼▼ 外部リンク用の属性付与 ▼▼▼
+                    target={link.isExternal ? "_blank" : undefined}
+                    rel={link.isExternal ? "noopener noreferrer" : undefined}
+                    className="flex items-center gap-2"
+                  >
                     <link.icon className={`h-4 w-4 ${active ? "" : link.iconColorClass}`} />
                     {link.label}
                   </Link>
