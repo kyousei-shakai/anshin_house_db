@@ -1,5 +1,4 @@
 // src/components/UserEditForm.tsx
-
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -8,8 +7,9 @@ import { updateUser, createUser } from '@/app/actions/users'
 import { Database } from '@/types/database'
 
 type User = Database['public']['Tables']['users']['Row']
-// type UserUpdate = Partial<Database['public']['Tables']['users']['Update']> // ★ 修正点: この行を削除
 type UserInsert = Omit<Database['public']['Tables']['users']['Insert'], 'uid' | 'id' | 'created_at' | 'updated_at'>
+// ▼▼▼ 型定義の追加: ステータス型をDB定義から取得 ▼▼▼
+type UserStatus = Database['public']['Enums']['user_status']
 
 interface UserEditFormProps {
   user?: User
@@ -51,7 +51,10 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
     proxy_payment_eligible: false,
     welfare_recipient: false,
     posthumous_affairs: false,
-    registered_at: ''
+    registered_at: '',
+    // ▼▼▼ 新規フィールド追加 ▼▼▼
+    status: '利用中' as UserStatus,
+    end_date: '',
   })
 
   useEffect(() => {
@@ -86,10 +89,18 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
         proxy_payment_eligible: user.proxy_payment_eligible || false,
         welfare_recipient: user.welfare_recipient || false,
         posthumous_affairs: user.posthumous_affairs || false,
-        registered_at: user.registered_at?.split('T')[0] || ''
+        registered_at: user.registered_at?.split('T')[0] || '',
+        // ▼▼▼ 既存データのマッピング追加 ▼▼▼
+        status: user.status || '利用中',
+        end_date: user.end_date || '',
       })
     } else if (!editMode) {
-      setFormData(prev => ({ ...prev, registered_at: new Date().toISOString().split('T')[0] }));
+      setFormData(prev => ({ 
+        ...prev, 
+        registered_at: new Date().toISOString().split('T')[0],
+        // ▼▼▼ 新規作成時の初期値は必ず「利用中」 ▼▼▼
+        status: '利用中'
+      }));
     }
   }, [user, editMode])
 
@@ -135,7 +146,10 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
         proxy_payment_eligible: formData.proxy_payment_eligible,
         welfare_recipient: formData.welfare_recipient,
         posthumous_affairs: formData.posthumous_affairs,
-        registered_at: formData.registered_at || undefined
+        registered_at: formData.registered_at || undefined,
+        // ▼▼▼ ステータス情報の送信データ追加 ▼▼▼
+        status: formData.status,
+        end_date: formData.end_date || null, // 空文字の場合はnullを送信
       }
       
       if (editMode && user) {
@@ -187,6 +201,53 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
+        
+        {/* ▼▼▼ ステータス管理セクション（目立つように上部に配置） ▼▼▼ */}
+        <div className="bg-blue-50 border border-blue-100 rounded-lg p-6">
+           <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
+             <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded mr-2">必須</span>
+             ステータス管理
+           </h3>
+           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  現在の状態
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="利用中">利用中</option>
+                  <option value="逝去">逝去</option>
+                  <option value="解約">解約</option>
+                </select>
+              </div>
+
+              {/* ステータスが「利用中」以外の時だけ動的に表示 */}
+              {formData.status !== '利用中' && (
+                <div className="md:col-span-2 animate-in fade-in slide-in-from-left-4 duration-300">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {formData.status === '逝去' ? '逝去日' : '解約日/終了日'} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="end_date"
+                    value={formData.end_date}
+                    onChange={handleChange}
+                    required={true} // ← 修正: このブロック内では常に必須なので true に固定
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    ※ 一覧画面のフィルタリングや集計に使用されます。
+                  </p>
+                </div>
+              )}
+           </div>
+        </div>
+        {/* ▲▲▲ 追加ここまで ▲▲▲ */}
+
         {/* 基本情報 */}
         <div className="bg-gray-50 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">基本情報</h3>

@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       consultation_events: {
@@ -815,6 +790,7 @@ export type Database = {
           deposit: number | null
           emergency_contact: string | null
           emergency_contact_name: string | null
+          end_date: string | null
           fire_insurance: number | null
           gender: string | null
           id: string
@@ -839,6 +815,7 @@ export type Database = {
           rent_difference: number | null
           resident_contact: string | null
           room_number: string | null
+          status: Database["public"]["Enums"]["user_status"]
           support_medical_institution: string | null
           uid: string
           updated_at: string
@@ -851,6 +828,7 @@ export type Database = {
           deposit?: number | null
           emergency_contact?: string | null
           emergency_contact_name?: string | null
+          end_date?: string | null
           fire_insurance?: number | null
           gender?: string | null
           id?: string
@@ -875,6 +853,7 @@ export type Database = {
           rent_difference?: number | null
           resident_contact?: string | null
           room_number?: string | null
+          status?: Database["public"]["Enums"]["user_status"]
           support_medical_institution?: string | null
           uid: string
           updated_at?: string
@@ -887,6 +866,7 @@ export type Database = {
           deposit?: number | null
           emergency_contact?: string | null
           emergency_contact_name?: string | null
+          end_date?: string | null
           fire_insurance?: number | null
           gender?: string | null
           id?: string
@@ -911,6 +891,7 @@ export type Database = {
           rent_difference?: number | null
           resident_contact?: string | null
           room_number?: string | null
+          status?: Database["public"]["Enums"]["user_status"]
           support_medical_institution?: string | null
           uid?: string
           updated_at?: string
@@ -1104,6 +1085,7 @@ export type Database = {
         | "入居後フォロー中"
         | "支援終了"
         | "対象外・辞退"
+      user_status: "利用中" | "逝去" | "解約"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1229,9 +1211,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       consultation_status: [
@@ -1244,6 +1223,7 @@ export const Constants = {
         "支援終了",
         "対象外・辞退",
       ],
+      user_status: ["利用中", "逝去", "解約"],
     },
   },
 } as const
