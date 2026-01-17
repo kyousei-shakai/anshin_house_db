@@ -6,7 +6,6 @@ import { createClient } from '@/utils/supabase/server'
 import { Consultation, User } from '@/types/custom'
 
 export async function getDashboardData() {
-  // ★ 変更点: createClient()の呼び出しにawaitを追加
   const supabase = await createClient()
 
   try {
@@ -24,7 +23,8 @@ export async function getDashboardData() {
       supabase.from('users').select('*', { count: 'exact', head: true }).gte('registered_at', firstDayOfMonth),
       supabase.from('consultations').select('*', { count: 'exact', head: true }).gte('consultation_date', firstDayOfMonth),
       supabase.from('support_plans').select('*', { count: 'exact', head: true }).gte('creation_date', firstDayOfMonth),
-      supabase.from('consultations').select('consultation_date, consultation_route_self, consultation_route_family, consultation_route_care_manager, consultation_route_elderly_center, consultation_route_disability_center, consultation_route_government, consultation_route_other, consultation_route_government_other, consultation_route_other_text, attribute_elderly, attribute_disability, attribute_poverty, attribute_single_parent, attribute_childcare, attribute_dv, attribute_foreigner, attribute_low_income, attribute_lgbt, attribute_welfare'),
+      // ▼▼▼ 修正: gender, birth_year, birth_month, birth_day を追加 ▼▼▼
+      supabase.from('consultations').select('consultation_date, gender, birth_year, birth_month, birth_day, consultation_route_self, consultation_route_family, consultation_route_care_manager, consultation_route_elderly_center, consultation_route_disability_center, consultation_route_government, consultation_route_other, consultation_route_government_other, consultation_route_other_text, attribute_elderly, attribute_disability, attribute_poverty, attribute_single_parent, attribute_childcare, attribute_dv, attribute_foreigner, attribute_low_income, attribute_lgbt, attribute_welfare'),
       supabase.from('users').select('registered_at')
     ]);
 

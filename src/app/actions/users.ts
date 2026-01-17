@@ -6,10 +6,12 @@ import { revalidatePath } from 'next/cache'
 import { Database } from '@/types/database'
 import { generateNewUID } from '@/utils/uid'
 
-// 型定義 (変更なし)
+// 型定義
 type User = Database['public']['Tables']['users']['Row']
 type UserInsert = Database['public']['Tables']['users']['Insert']
 type UserUpdate = Database['public']['Tables']['users']['Update']
+// ステータスのENUM型を定義（DB型から抽出）
+type UserStatus = Database['public']['Enums']['user_status']
 
 // --- getUsers ---
 type GetUsersReturnType = {
@@ -17,11 +19,25 @@ type GetUsersReturnType = {
   data?: User[]
   error?: string
 }
-// ▼▼▼ ここからが変更箇所です（元の状態に戻します） ▼▼▼
-export async function getUsers(): Promise<GetUsersReturnType> {
+
+/**
+ * 利用者一覧を取得する
+ * @param status - フィルタリングするステータス (省略時は '利用中' のみ取得)
+ *                 'all' を指定すると全件取得
+ */
+export async function getUsers(status: UserStatus | 'all' = '利用中'): Promise<GetUsersReturnType> {
   const supabase = await createClient()
   try {
-    const { data, error } = await supabase.from('users').select('*').order('name', { ascending: true })
+    // クエリの構築
+    let query = supabase.from('users').select('*').order('name', { ascending: true })
+
+    // 'all' 以外が指定された場合はステータスでフィルタリング
+    if (status !== 'all') {
+      query = query.eq('status', status)
+    }
+
+    const { data, error } = await query
+
     if (error) {
       console.error('Get Users Server Action Error:', error)
       return { success: false, error: '利用者一覧の取得に失敗しました。' }
@@ -33,9 +49,8 @@ export async function getUsers(): Promise<GetUsersReturnType> {
     return { success: false, error: '予期せぬエラーが発生しました。' }
   }
 }
-// ▲▲▲ ここまでが変更箇所です ▲▲▲
 
-// --- createUser --- (変更なし)
+// --- createUser ---
 type CreateUserReturnType = {
   success: boolean
   data?: User
@@ -49,6 +64,7 @@ export async function createUser(
 
   try {
     const newUID = await generateNewUID()
+    // 新規作成時はデフォルトで status='利用中' が入るが、明示的に含めても良い
     const finalUserData: UserInsert = { ...userData, uid: newUID }
 
     const { data: newUser, error: userError } = await supabase
@@ -68,7 +84,7 @@ export async function createUser(
     if (consultationId) {
       const { error: consultationError } = await supabase
         .from('consultations')
-        .update({ user_id: newUser.id, status: '利用者登録済み' })
+        .update({ user_id: newUser.id, status: '利用者登録済み' }) // statusの型エラーが出る場合はキャストが必要だが、文字列リテラルならOK
         .eq('id', consultationId)
 
       if (consultationError) {
@@ -88,7 +104,7 @@ export async function createUser(
   }
 }
 
-// --- deleteUser --- (変更なし)
+// --- deleteUser ---
 export async function deleteUser(uid: string) {
   const supabase = await createClient()
   try {
@@ -107,7 +123,7 @@ export async function deleteUser(uid: string) {
   redirect('/users')
 }
 
-// --- getUserByUid --- (変更なし)
+// --- getUserByUid ---
 type GetUserByUidReturnType = {
   success: boolean
   data?: User
@@ -132,7 +148,7 @@ export async function getUserByUid(uid: string): Promise<GetUserByUidReturnType>
   }
 }
 
-// --- updateUser --- (変更なし)
+// --- updateUser ---
 type UpdateUserReturnType = {
   success: boolean
   data?: User
@@ -168,10 +184,11 @@ export async function updateUser(
   }
 }
 
-// --- getAllUsersForExport --- (変更なし)
+// --- getAllUsersForExport ---
 export async function getAllUsersForExport(): Promise<GetUsersReturnType> {
   const supabase = await createClient()
   try {
+    // エクスポート時は全ステータスを取得する
     const { data, error } = await supabase.from('users').select('*').order('uid', { ascending: true })
     if (error) {
       console.error('Get All Users For Export Error:', error)

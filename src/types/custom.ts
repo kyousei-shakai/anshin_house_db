@@ -5,6 +5,12 @@ import { Database } from './database';
 export type Consultation = Pick<
   Database['public']['Tables']['consultations']['Row'],
   | 'consultation_date'
+    // ▼▼▼ 追加: 性別・年齢分析用 ▼▼▼
+  | 'gender'
+  | 'birth_year'
+  | 'birth_month'
+  | 'birth_day'
+  // ▲▲▲ 追加ここまで ▲▲▲
   | 'consultation_route_self'
   | 'consultation_route_family'
   | 'consultation_route_care_manager'

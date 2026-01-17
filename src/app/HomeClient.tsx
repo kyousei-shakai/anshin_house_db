@@ -1,13 +1,15 @@
-// app/HomeClient.tsx (修正後)
+// src/app/HomeClient.tsx
 
 'use client'
 
 import Link from 'next/link'
 import React, { useState } from 'react'
-// import QuickUserAccess from '@/components/QuickUserAccess' // 削除
 import { Consultation, User } from '@/types/custom'
 import dynamic from 'next/dynamic'
+// デザイン用アイコンのインポート
+import { Users, MessageSquareText, FileHeart, ChevronRight } from 'lucide-react'
 
+// データ分析ダッシュボードの動的インポート（ローディング表示は元のリッチな状態を維持）
 const AnalyticsDashboard = dynamic(
   () => import('@/components/AnalyticsDashboard'),
   { 
@@ -54,78 +56,105 @@ export default function HomeClient({ stats, initialAnalyticsData }: HomeClientPr
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* ▼▼▼ QuickUserAccessの呼び出しを削除 ▼▼▼ */}
-      {/* 
-      <div className="lg:hidden mb-6">
-        <QuickUserAccess />
-      </div>
-      */}
 
-      <div className="mb-12 pt-4"> 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Link href="/consultations/new" className="group bg-blue-600 text-white rounded-lg shadow-md p-6 flex items-center hover:bg-blue-700 transition-all duration-200 transform hover:scale-105">
-            <PlusCircleIcon />
+      {/* アクションボタンエリア */}
+      <div className="mb-10 pt-2"> 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <Link href="/consultations/new" className="group bg-blue-700 text-white rounded-md shadow p-5 flex items-center hover:bg-blue-800 transition-colors">
+            <div className="p-2 bg-blue-800 rounded mr-4"><PlusCircleIcon /></div>
             <div>
-              <h3 className="text-xl font-semibold">新規相談を登録する</h3>
-              <p className="text-blue-100 text-sm mt-1">新しい相談や問い合わせを記録します。</p>
+              <h3 className="text-lg font-bold">新規相談を登録する</h3>
+              <p className="text-blue-100 text-xs mt-1">新しい相談や問い合わせを記録します。</p>
             </div>
           </Link>
-          <Link href="/support-plans/new" className="group bg-purple-600 text-white rounded-lg shadow-md p-6 flex items-center hover:bg-purple-700 transition-all duration-200 transform hover:scale-105">
-            <DocumentPlusIcon />
+          <Link href="/support-plans/new" className="group bg-purple-700 text-white rounded-md shadow p-5 flex items-center hover:bg-purple-800 transition-colors">
+            <div className="p-2 bg-purple-800 rounded mr-4"><DocumentPlusIcon /></div>
             <div>
-              <h3 className="text-xl font-semibold">支援計画を作成する</h3>
-              <p className="text-purple-100 text-sm mt-1">新しい支援計画書を作成します。</p>
+              <h3 className="text-lg font-bold">支援計画を作成する</h3>
+              <p className="text-purple-100 text-xs mt-1">新しい支援計画書を作成します。</p>
             </div>
           </Link>
         </div>
       </div>
       
+      {/* 状況カード：パターンB（背景色付き・ソフト）のデザイン適用 */}
       <div className="mb-12">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">全体の状況</h2>
+        <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-gray-500 pl-3">
+          全体の状況
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">利用者情報ハブ</h3>
-            <div className="space-y-2 mb-4 flex-grow">
-              <div className="flex justify-between text-sm"><span className="text-gray-600">総登録者数:</span> <span className="font-bold text-lg text-gray-600">{stats.totalUsers} 人</span></div>
-              <div className="flex justify-between text-sm"><span className="text-gray-600">今月の新規登録:</span> <span className="font-bold text-lg text-gray-600">{stats.newUsersThisMonth} 人</span></div>
+          {/* 利用者情報カード */}
+          <Link href="/users" className="group block rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 transition-colors p-5">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-base font-bold text-emerald-900 flex items-center gap-2">
+                <Users className="h-5 w-5" /> 利用者情報ハブ
+              </h3>
+              <ChevronRight className="h-5 w-5 text-emerald-400 group-hover:text-emerald-600 transition-colors" />
             </div>
-            <Link href="/users" className="text-sm font-medium text-blue-600 hover:text-blue-800 self-end mt-2">名簿全体を見る →</Link>
-          </div>
+            <div className="flex items-end justify-between px-1">
+              <div>
+                <p className="text-xs text-emerald-700 font-medium mb-1">総登録者数</p>
+                <p className="text-3xl font-bold text-emerald-800 leading-none">{stats.totalUsers}<span className="text-sm font-normal ml-1">人</span></p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-emerald-600">今月の新規</p>
+                <p className="text-lg font-bold text-emerald-700">+{stats.newUsersThisMonth}<span className="text-sm font-normal ml-1">人</span></p>
+              </div>
+            </div>
+          </Link>
 
-          <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">相談記録</h3>
-            <div className="space-y-2 mb-4 flex-grow">
-              <div className="flex justify-between text-sm"><span className="text-gray-600">今月の相談件数:</span> <span className="font-bold text-lg text-gray-600">{stats.consultationsThisMonth} 件</span></div>
+          {/* 相談記録カード */}
+          <Link href="/consultations" className="group block rounded-xl border border-orange-200 bg-orange-50/50 hover:bg-orange-50 transition-colors p-5">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-base font-bold text-orange-900 flex items-center gap-2">
+                <MessageSquareText className="h-5 w-5" /> 相談記録
+              </h3>
+              <ChevronRight className="h-5 w-5 text-orange-400 group-hover:text-orange-600 transition-colors" />
             </div>
-            <Link href="/consultations" className="text-sm font-medium text-blue-600 hover:text-blue-800 self-end mt-2">履歴を詳しく見る →</Link>
-          </div>
+            <div className="flex items-end justify-between px-1">
+              <div>
+                <p className="text-xs text-orange-700 font-medium mb-1">今月の相談件数</p>
+                <p className="text-3xl font-bold text-orange-800 leading-none">{stats.consultationsThisMonth}<span className="text-sm font-normal ml-1">件</span></p>
+              </div>
+            </div>
+          </Link>
 
-          <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3">支援計画</h3>
-            <div className="space-y-2 mb-4 flex-grow">
-              <div className="flex justify-between text-sm"><span className="text-gray-600">今月の作成計画数:</span> <span className="font-bold text-lg text-gray-600">{stats.supportPlansThisMonth} 件</span></div>
+          {/* 支援計画カード */}
+          <Link href="/support-plans" className="group block rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-50 transition-colors p-5">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-base font-bold text-rose-900 flex items-center gap-2">
+                <FileHeart className="h-5 w-5" /> 支援計画
+              </h3>
+              <ChevronRight className="h-5 w-5 text-rose-400 group-hover:text-rose-600 transition-colors" />
             </div>
-            <Link href="/support-plans" className="text-sm font-medium text-blue-600 hover:text-blue-800 self-end mt-2">計画一覧へ →</Link>
-          </div>
+            <div className="flex items-end justify-between px-1">
+              <div>
+                <p className="text-xs text-rose-700 font-medium mb-1">今月の作成計画数</p>
+                <p className="text-3xl font-bold text-rose-800 leading-none">{stats.supportPlansThisMonth}<span className="text-sm font-normal ml-1">件</span></p>
+              </div>
+            </div>
+          </Link>
 
         </div>
       </div>
       
+      {/* グラフコンポーネント（変更なし） */}
       <AnalyticsDashboard 
         consultations={initialAnalyticsData.consultations}
         users={initialAnalyticsData.users}
       />
 
-      <div>
-        <h2 className="text-xl font-bold text-gray-800 mb-4 mt-12">お知らせ & 開発情報</h2>
-        <div className="bg-white rounded-lg shadow">
-          <div className="border-b border-gray-200">
+      {/* お知らせセクション（元のロジックと文言を維持） */}
+      <div className="mt-12">
+        <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-gray-500 pl-3">お知らせ & 開発情報</h2>
+        <div className="bg-white rounded-md shadow-sm border border-gray-200">
+          <div className="border-b border-gray-200 bg-gray-50">
             <nav className="-mb-px flex space-x-6 px-6" aria-label="Tabs">
-              <button onClick={() => setActiveTab('notifications')} className={`${activeTab === 'notifications' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>
+              <button onClick={() => setActiveTab('notifications')} className={`${activeTab === 'notifications' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors`}>
                 お知らせ
               </button>
-              <button onClick={() => setActiveTab('future')} className={`${activeTab === 'future' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}>
+              <button onClick={() => setActiveTab('future')} className={`${activeTab === 'future' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors`}>
                 今後の機能について
               </button>
             </nav>
