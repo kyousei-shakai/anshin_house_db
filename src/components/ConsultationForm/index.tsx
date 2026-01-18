@@ -14,6 +14,7 @@ import Section4_Relocation from './Section4_Relocation'
 import Section5_ADL from './Section5_ADL'
 import Section6_CurrentHouse from './Section6_CurrentHouse'
 import Section7_ConsultationContent from './Section7_ConsultationContent'
+import { getAgeGroupLabel } from '@/utils/age-utils'
 
 // 型エイリアス
 type Consultation = Database['public']['Tables']['consultations']['Row']
@@ -101,6 +102,7 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
           birth_year: '',
           birth_month: '',
           birth_day: '',
+          age_group: '', // ★追加：新規作成時の初期値
           physical_condition: '',
           mental_disability_certificate: false,
           mental_disability_level: '',
@@ -236,6 +238,7 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
         birth_year: data.birth_year || '',
         birth_month: data.birth_month || '',
         birth_day: data.birth_day || '',
+        age_group: data.age_group || '', // ★追加：既存データの復元
         physical_condition: data.physical_condition as ConsultationFormData['physical_condition'] || '',
         mental_disability_certificate: data.mental_disability_certificate || false,
         mental_disability_level: data.mental_disability_level || '',
@@ -334,18 +337,28 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
         setLoading(true);
         setError(null);
 
-        const dataToSubmit: Omit<ConsultationUpdate, 'staff_name'> & { staff_id?: string | null } = {
+        // ★最高峰のデータ整合性確保：保存直前に「年代」を確定させる
+        // 生年月日（年・月・日）が入力されていれば自動計算値を優先、なければ手動入力値を採用
+        const autoAgeGroup = getAgeGroupLabel(formData.birth_year, formData.birth_month, formData.birth_day);
+        const finalAgeGroup = autoAgeGroup || formData.age_group || null;
+
+        // DB送信用のデータ整形
+        // 型定義に age_group を含めるため、一時的に型を拡張して定義
+        const dataToSubmit: Omit<ConsultationUpdate, 'staff_name'> & { 
+          staff_id?: string | null,
+          age_group?: string | null 
+        } = {
           consultation_date: formData.consultation_date,
           staff_id: formData.staff_id || null,
           consultation_route_self: formData.consultation_route_self,
           consultation_route_family: formData.consultation_route_family,
-          consultation_route_family_text: formData.consultation_route_family_text || null, // ★ 変更点
+          consultation_route_family_text: formData.consultation_route_family_text || null,
           consultation_route_care_manager: formData.consultation_route_care_manager,
-          consultation_route_care_manager_text: formData.consultation_route_care_manager_text || null, // ★ 変更点
+          consultation_route_care_manager_text: formData.consultation_route_care_manager_text || null,
           consultation_route_elderly_center: formData.consultation_route_elderly_center,
-          consultation_route_elderly_center_text: formData.consultation_route_elderly_center_text || null, // ★ 変更点
+          consultation_route_elderly_center_text: formData.consultation_route_elderly_center_text || null,
           consultation_route_disability_center: formData.consultation_route_disability_center,
-          consultation_route_disability_center_text: formData.consultation_route_disability_center_text || null, // ★ 変更点
+          consultation_route_disability_center_text: formData.consultation_route_disability_center_text || null,
           consultation_route_government: formData.consultation_route_government,
           consultation_route_government_other: formData.consultation_route_government_other || null,
           consultation_route_other: formData.consultation_route_other,
@@ -381,6 +394,10 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
           birth_year: formData.birth_year ? Number(formData.birth_year) : null,
           birth_month: formData.birth_month ? Number(formData.birth_month) : null,
           birth_day: formData.birth_day ? Number(formData.birth_day) : null,
+          
+          // ★年代情報をセット
+          age_group: finalAgeGroup,
+
           physical_condition: formData.physical_condition || null,
           mental_disability_certificate: formData.mental_disability_certificate,
           mental_disability_level: formData.mental_disability_level || null,
@@ -473,6 +490,7 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
           emergency_contact_email: formData.emergency_contact_email || null,
           consultation_result: formData.consultation_result || null
         };
+
         if (editMode && initialData?.id) {
           const result = await updateConsultation(initialData.id, dataToSubmit as ConsultationUpdate);
           if (!result.success) {

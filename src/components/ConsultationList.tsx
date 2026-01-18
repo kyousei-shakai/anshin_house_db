@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { type ConsultationWithNextAction } from '@/types/consultation'
 import { type Database } from '@/types/database'
 import { calculateAge } from '@/utils/date'
+import { getAgeGroupLabel } from '@/utils/age-utils'
 import {
   STATUS_FILTERS,
   STATUS_COLORS,
@@ -21,6 +22,7 @@ import {
 import SupportEventForm, { type SupportEventFormData } from '@/components/forms/SupportEventForm'
 import { createSupportEvent } from '@/app/actions/consultationEvents'
 import { createUser } from '@/app/actions/users'
+
 
 type UserInsert = Database['public']['Tables']['users']['Insert']
 
@@ -52,9 +54,9 @@ type ConsultationListProps = {
   staffs: Pick<Staff, 'id' | 'name'>[]
 }
 
-const ConsultationList: React.FC<ConsultationListProps> = ({ 
+const ConsultationList: React.FC<ConsultationListProps> = ({
   initialConsultations,
-  staffs 
+  staffs
 }) => {
   const [allConsultations, setAllConsultations] = useState<ConsultationWithNextAction[]>(initialConsultations);
   const [loading, setLoading] = useState(false)
@@ -79,10 +81,10 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
         filtered = filtered.filter(c => c.status === activeFilter && !c.user_id);
       }
     } else if (activeFilter === null) {
-       const inactiveStatuses: string[] = ["支援終了", "対象外・辞退"];
-       filtered = filtered.filter(c => !inactiveStatuses.includes(c.status || '') && !c.user_id);
+      const inactiveStatuses: string[] = ["支援終了", "対象外・辞退"];
+      filtered = filtered.filter(c => !inactiveStatuses.includes(c.status || '') && !c.user_id);
     }
-    
+
     if (staffFilter) {
       filtered = filtered.filter(consultation => consultation.staff_id === staffFilter);
     }
@@ -97,7 +99,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
         if (consultation.phone_home?.replace(/-/g, '').includes(filterWithoutHyphen)) return true;
         if (consultation.phone_mobile?.replace(/-/g, '').includes(filterWithoutHyphen)) return true;
         if (consultation.address?.toLowerCase().includes(lowercasedFilter)) return true;
-        
+
         // --- 緊急連絡先の情報 ---
         if (consultation.emergency_contact_name?.toLowerCase().includes(lowercasedFilter)) return true;
         if (consultation.emergency_contact_phone_home?.replace(/-/g, '').includes(filterWithoutHyphen)) return true;
@@ -135,7 +137,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
     const defaultInactiveStatuses: string[] = ["支援終了", "対象外・辞退"];
     counts['active'] = allConsultations.filter(c => !defaultInactiveStatuses.includes(c.status || '') && !c.user_id).length;
     for (const filter of STATUS_FILTERS) {
-      if(filter === null) continue;
+      if (filter === null) continue;
       if (filter === 'すべて表示') {
         counts[filter] = allConsultations.length;
       } else if (filter === '利用者登録済み') {
@@ -177,7 +179,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
     }
     setIsSaving(false);
   };
-  
+
   const formatDate = (dateString: string | null) => {
     if (!dateString) return ''
     return new Date(dateString).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '.');
@@ -223,70 +225,70 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
     }
   }
 
-  if (loading) { return ( <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div> ) }
-  if (error) { return ( <div className="bg-red-50 border border-red-200 rounded-lg p-4"><div className="text-red-500 text-sm">エラーが発生しました: {error}</div></div> ) }
+  if (loading) { return (<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>) }
+  if (error) { return (<div className="bg-red-50 border border-red-200 rounded-lg p-4"><div className="text-red-500 text-sm">エラーが発生しました: {error}</div></div>) }
   return (
     <Fragment>
       <div className="space-y-6">
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="lg:col-span-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">進捗ステータスで絞り込み</label>
-                  <div className="hidden sm:flex flex-wrap gap-2">
-                      {STATUS_FILTERS.map(filter => (
-                      <button key={filter || 'active'} onClick={() => setActiveFilter(filter)}
-                          className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex items-center gap-x-2 ${ activeFilter === filter ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-200 ring-1 ring-inset ring-gray-300'}`}>
-                          {filter || 'アクティブ'}
-                          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${ activeFilter === filter ? 'bg-blue-700 text-white' : 'bg-gray-200 text-gray-600' }`}>
-                          {statusCounts[filter || 'active'] ?? 0}
-                          </span>
-                      </button>
-                      ))}
-                  </div>
-                  <div className="sm:hidden">
-                      <select
-                          value={activeFilter === null ? 'active' : activeFilter}
-                          onChange={(e) => {
-                              const value = e.target.value;
-                              setActiveFilter(value === 'active' ? null : value as StatusFilter);
-                          }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      >
-                          <option value="active">アクティブ ({statusCounts['active'] ?? 0})</option>
-                          {STATUS_FILTERS.filter(f => f !== null).map(filter => (
-                              <option key={filter} value={filter}>{filter} ({statusCounts[filter] ?? 0})</option>
-                          ))}
-                      </select>
-                  </div>
+            <div className="lg:col-span-3">
+              <label className="block text-sm font-medium text-gray-700 mb-2">進捗ステータスで絞り込み</label>
+              <div className="hidden sm:flex flex-wrap gap-2">
+                {STATUS_FILTERS.map(filter => (
+                  <button key={filter || 'active'} onClick={() => setActiveFilter(filter)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex items-center gap-x-2 ${activeFilter === filter ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-200 ring-1 ring-inset ring-gray-300'}`}>
+                    {filter || 'アクティブ'}
+                    <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${activeFilter === filter ? 'bg-blue-700 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                      {statusCounts[filter || 'active'] ?? 0}
+                    </span>
+                  </button>
+                ))}
               </div>
-              <div className="lg:col-span-3 pt-4 border-t grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                      <label htmlFor="staff-filter" className="block text-sm font-medium text-gray-700 mb-2">担当スタッフ</label>
-                      <select 
-                        id="staff-filter" 
-                        value={staffFilter} 
-                        onChange={(e) => setStaffFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      >
-                        <option value="">すべて</option>
-                        {staffs.map(staff => (
-                          <option key={staff.id} value={staff.id}>{staff.name}</option>
-                        ))}
-                      </select>
-                  </div>
-                  <div>
-                      <label htmlFor="search-term" className="block text-sm font-medium text-gray-700 mb-2">キーワード検索</label>
-                      <input id="search-term" type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                          placeholder="氏名, 電話番号, 住所, 関連機関名など" className="w-full px-3 py-2 border border-gray-300 rounded-md"/>
-                  </div>
-                  <div>
-                      <label htmlFor="date-filter" className="block text-sm font-medium text-gray-700 mb-2">相談月で絞り込み</label>
-                      <input id="date-filter" type="month" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md"/>
-                  </div>
+              <div className="sm:hidden">
+                <select
+                  value={activeFilter === null ? 'active' : activeFilter}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setActiveFilter(value === 'active' ? null : value as StatusFilter);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="active">アクティブ ({statusCounts['active'] ?? 0})</option>
+                  {STATUS_FILTERS.filter(f => f !== null).map(filter => (
+                    <option key={filter} value={filter}>{filter} ({statusCounts[filter] ?? 0})</option>
+                  ))}
+                </select>
               </div>
+            </div>
+            <div className="lg:col-span-3 pt-4 border-t grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="staff-filter" className="block text-sm font-medium text-gray-700 mb-2">担当スタッフ</label>
+                <select
+                  id="staff-filter"
+                  value={staffFilter}
+                  onChange={(e) => setStaffFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">すべて</option>
+                  {staffs.map(staff => (
+                    <option key={staff.id} value={staff.id}>{staff.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="search-term" className="block text-sm font-medium text-gray-700 mb-2">キーワード検索</label>
+                <input id="search-term" type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="氏名, 電話番号, 住所, 関連機関名など" className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+              </div>
+              <div>
+                <label htmlFor="date-filter" className="block text-sm font-medium text-gray-700 mb-2">相談月で絞り込み</label>
+                <input id="date-filter" type="month" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md" />
+              </div>
+            </div>
           </div>
-          
+
           <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-4">
             <div className="relative flex items-start">
               <div className="flex h-6 items-center">
@@ -306,7 +308,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                 </label>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-x-4">
               <div className="text-sm text-gray-600">{filteredConsultations.length} 件表示</div>
               <button
@@ -330,16 +332,16 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
             {filteredConsultations.map((consultation) => {
               let age = null;
               if (consultation.birth_year && consultation.birth_month && consultation.birth_day) {
-                  try {
-                      const birthDateStr = `${consultation.birth_year}-${String(consultation.birth_month).padStart(2, '0')}-${String(consultation.birth_day).padStart(2, '0')}`;
-                      if (!isNaN(new Date(birthDateStr).getTime())) {
-                          age = calculateAge(birthDateStr);
-                      }
-                  } catch {}
+                try {
+                  const birthDateStr = `${consultation.birth_year}-${String(consultation.birth_month).padStart(2, '0')}-${String(consultation.birth_day).padStart(2, '0')}`;
+                  if (!isNaN(new Date(birthDateStr).getTime())) {
+                    age = calculateAge(birthDateStr);
+                  }
+                } catch { }
               }
               const displayStatus = consultation.user_id ? '利用者登録済み' : consultation.status;
               const statusColor = STATUS_COLORS[displayStatus as keyof typeof STATUS_COLORS] || STATUS_COLORS['進行中'];
-              
+
               const daysUntil = getDaysUntil(consultation.next_action_date);
 
               const cardStyle = daysUntil !== null && daysUntil < 0
@@ -349,11 +351,11 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
               const dateStyle = daysUntil !== null && daysUntil < 0
                 ? 'text-gray-600 font-semibold'
                 : 'text-rose-800 font-semibold';
-              
+
               return (
                 <div key={consultation.id} className="p-4 sm:p-6">
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-x-3 flex-wrap">
                         <span className={`rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusColor}`}>{displayStatus}</span>
@@ -361,8 +363,18 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                       </div>
                       <div className="mt-1 flex items-center gap-x-2 text-xs leading-5 text-gray-500">
                         <p>相談日: {formatDate(consultation.consultation_date)}</p>
-                        <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current"><circle cx={1} cy={1} r={1} /></svg>
-                        {age !== null && <p>年齢: {age}歳</p>}
+
+                        {/* ★最高峰のヒント表示ロジック：生年月日優先、なければ年代 */}
+                        {(age !== null || consultation.age_group) && (
+                          <>
+                            <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current"><circle cx={1} cy={1} r={1} /></svg>
+                            <p>
+                              {age !== null
+                                ? `年齢: ${age}歳`
+                                : `年代: ${consultation.age_group}`}
+                            </p>
+                          </>
+                        )}
                       </div>
                       {consultation.consultation_content && (<p className="mt-2 text-sm text-gray-600 line-clamp-2">{consultation.consultation_content}</p>)}
 
@@ -371,7 +383,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                           <div className="flex items-center gap-x-3 p-2 sm:p-2.5">
                             <span className="text-xl">📅</span>
                             <div className="flex-1 min-w-0">
-                               <p className={`text-sm ${dateStyle}`}>
+                              <p className={`text-sm ${dateStyle}`}>
                                 {formatDate(consultation.next_action_date)}
                               </p>
                               {consultation.next_action_memo && (
@@ -384,7 +396,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                         </div>
                       )}
                     </div>
-                    
+
                     <div className="mt-4 sm:mt-0 sm:ml-4 flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                       {!consultation.user_id && (
                         <button
@@ -409,7 +421,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                           type="button"
                           className="w-full sm:w-auto inline-flex items-center justify-center gap-x-2 rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                         >
-                           <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M11 5a3 3 0 11-6 0 3 3 0 016 0zM2.047 14.5a.75.75 0 001.06 1.061l4.94-4.939a.75.75 0 00-1.06-1.06l-4.94 4.938zM17.953 14.5a.75.75 0 01-1.06 1.061l-4.94-4.939a.75.75 0 111.06-1.06l4.94 4.938z" /></svg>
+                          <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M11 5a3 3 0 11-6 0 3 3 0 016 0zM2.047 14.5a.75.75 0 001.06 1.061l4.94-4.939a.75.75 0 00-1.06-1.06l-4.94 4.938zM17.953 14.5a.75.75 0 01-1.06 1.061l-4.94-4.939a.75.75 0 111.06-1.06l4.94 4.938z" /></svg>
                           利用者登録
                         </button>
                       )}

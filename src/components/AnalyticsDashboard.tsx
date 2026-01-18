@@ -1,5 +1,4 @@
-// src/components/AnalyticsDashboard.tsx
-'use client'
+// src/components/AnalyticsDashboard.tsx'use client'
 
 import React, { useState, useMemo } from 'react';
 import { 
@@ -200,15 +199,34 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
     };
   }, [filteredData.consultations]);
 
-  // --- 4. 年齢分布データ作成 ---
+  // --- 4. 年齢分布データ作成（★ハイブリッド方式へ改修） ---
   const ageChartData = useMemo(() => {
     const ageGroups = new Array(10).fill(0); 
     const labels = ['0-9', '10代', '20代', '30代', '40代', '50代', '60代', '70代', '80代', '90以上'];
 
     filteredData.consultations.forEach(c => {
+      let index = -1;
+
+      // A. まず生年月日からの年齢計算を試みる
       const age = calculateAge(c.birth_year, c.birth_month, c.birth_day);
+      
       if (age !== null) {
-        const index = Math.min(Math.floor(age / 10), 9);
+        index = Math.min(Math.floor(age / 10), 9);
+      } 
+      // B. 生年月日がない場合は、DB保存済みの年代(age_group)を参照する
+      else if ((c as any).age_group) {
+        const group = (c as any).age_group;
+        if (group === '20代未満') index = 1; // 10代枠へ
+        else if (group === '20代') index = 2;
+        else if (group === '30代') index = 3;
+        else if (group === '40代') index = 4;
+        else if (group === '50代') index = 5;
+        else if (group === '60代') index = 6;
+        else if (group === '70代') index = 7;
+        else if (group === '80代以上') index = 8; // 80代枠へ
+      }
+
+      if (index !== -1) {
         ageGroups[index]++;
       }
     });
@@ -277,7 +295,6 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
   
   return (
     <div className="mt-12">
-      {/* フィルターヘッダー: アイコンを削除しスッキリと */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
           <h2 className="text-xl font-bold text-gray-800">
             データ分析ダッシュボード
@@ -292,7 +309,6 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
                 onChange={(e) => setPeriod(e.target.value as Period)}
                 className="appearance-none bg-white border border-gray-300 text-gray-700 py-2.5 pl-4 pr-10 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-medium hover:border-indigo-400 transition-all cursor-pointer"
             >
-                {/* ▼▼▼ アイコン(📅)を削除 ▼▼▼ */}
                 <option value="thisMonth">今月</option>
                 <option value="lastMonth">先月</option>
                 <option value="3months">過去3ヶ月</option>
@@ -302,10 +318,6 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        
-        {/* === 1行目 === */}
-
-        {/* 1. 相談ルート分析 (2/5) */}
         <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow flex flex-col">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">相談ルート分析</h3>
           <div className="flex-grow flex items-center justify-center min-h-0" style={{ height: '150px' }}>
@@ -351,7 +363,6 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
           </div>
         </div>
 
-        {/* 2. 相談者属性分析 (3/5) */}
         <div className="lg:col-span-3 bg-white p-6 rounded-lg shadow">
            <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">相談者属性分析 (複数回答可)</h3>
            <div className="h-64">
@@ -359,9 +370,6 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
            </div>
         </div>
 
-        {/* === 2行目（新規追加） === */}
-
-        {/* 3. 性別分布 (2/5) */}
         <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow flex flex-col">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">相談者性別</h3>
           <div className="flex-grow flex items-center justify-center min-h-0" style={{ height: '150px' }}>
@@ -386,7 +394,6 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
           </div>
         </div>
 
-        {/* 4. 年齢層分布 (3/5) */}
         <div className="lg:col-span-3 bg-white p-6 rounded-lg shadow">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">年齢層分布</h3>
           <div className="h-64">
@@ -401,16 +408,12 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
           </div>
         </div>
 
-        {/* === 3行目 === */}
-
-        {/* 5. 月別推移 (5/5) */}
         <div className="lg:col-span-5 bg-white p-6 rounded-lg shadow">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">月別推移</h3>
             <div className="h-80">
                 <Chart type='bar' data={monthlyChartData} options={{ maintainAspectRatio: false, responsive: true, scales: { y: { type: 'linear', display: true, position: 'left', title: { display: true, text: '相談件数' } }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '新規利用者数' } } } }} />
             </div>
         </div>
-
       </div>
     </div>
   );
