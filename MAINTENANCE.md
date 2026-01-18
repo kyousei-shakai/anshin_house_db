@@ -1,6 +1,6 @@
 # 居住支援管理マスター - 保守管理ドキュメント
 
-最終更新: 2025年11月1日
+最終更新: 2026年1月17日
 
 ---
 
@@ -13,7 +13,7 @@
 5. [データベース構造](#データベース構造)
 6. [開発フロー](#開発フロー)
 7. [デプロイフロー](#デプロイフロー)
-8. [今回実施した作業（2025年11月1日）](#今回実施した作業2025年11月1日)
+8. [今回実施した作業（2026年1月17日）](#今回実施した作業2026年1月17日)
 9. [トラブルシューティング](#トラブルシューティング)
 10. [今後の注意事項](#今後の注意事項)
 
@@ -38,6 +38,7 @@
    - 利用者基本情報の登録・編集
    - 身体状況、介護度、医療情報の管理
    - 居住情報（物件名、住所、家賃等）の記録
+   - **【NEW】利用者ステータス管理（利用中/逝去/解約）**
 
 3. **支援計画管理**
    - 個別支援計画の作成・編集
@@ -175,7 +176,8 @@ anshin-house-db/
 │   │   ├── 20251019102038_create_policy_for_consultations_update.sql
 │   │   ├── 20251020031028_set_secure_rls_policies_for_all_tables.sql
 │   │   ├── 20251028022734_unify_staff_management.sql
-│   │   └── 20251101_add_status_transition_columns.sql  # 最新
+│   │   ├── 20251101_add_status_transition_columns.sql
+│   │   └── 20260117_add_user_status.sql  # 最新
 │   └── seed.sql                  # 初期データ
 ├── public/                       # 静的ファイル
 ├── next.config.mjs               # Next.js設定
@@ -232,6 +234,8 @@ Next.js設定ファイル。**Next.js 14では`.ts`ではなく`.mjs`を使用**
 - `rent`, `deposit`, `common_fee`: 家賃情報
 - `care_level_*`: 介護度フラグ
 - `registered_at` (text): 利用者登録日
+- `status` (enum): 利用者ステータス (`利用中` | `逝去` | `解約`) ※2026/01/17追加
+- `end_date` (date): 終了日/逝去日 ※2026/01/17追加
 
 #### 2. `consultations` (相談)
 相談記録を管理。
@@ -304,6 +308,11 @@ staff (スタッフ)
 ```sql
 '初回面談' | '支援検討中' | '物件探し中' | '申込・審査中' |
 '入居後フォロー中' | '支援終了' | '対象外・辞退' | '進行中'
+```
+
+#### `user_status` (2026/01/17追加)
+```sql
+'利用中' | '逝去' | '解約'
 ```
 
 ---
@@ -454,879 +463,66 @@ vercel --prod
 
 ---
 
-## 今回実施した作業（2025年11月1日）
+## 今回実施した作業（2026年1月17日）
 
 ### 背景
 
-**問題**: Next.js v15 Canary / React v19環境で`pnpm build`が失敗。Supabaseクエリが`never`型を返し、57個の型エラーが発生。本番環境へのデプロイが不可能な状態。
+**問題**: 利用者名簿がフラットな状態で、「お亡くなりになった方」や「解約者」を除外して表示する機能がなかった。これにより日常業務での視認性が悪く、また過去データの正確な抽出も困難だった。
 
-**目標**: 安全に本番環境へデプロイできる状態にする。
+**目標**: 利用者のライフサイクル（開始〜終了）を管理し、デフォルトでは「利用中」のみを表示しつつ、必要に応じて過去データも参照できる仕組みを構築する。
 
 ### 実施した作業の詳細
 
-#### フェーズ1: 根本原因の特定
+#### フェーズ1: データベーススキーマ改修
 
-1. **調査結果**
-   - Next.js 15 Canary / React 19 Canaryの不安定性
-   - `@supabase/ssr@0.6.1`がNext.js 14と非互換
+1. **マイグレーション作成**:
+   - `users` テーブルに以下のカラムを追加:
+     - `status` (ENUM: '利用中', '逝去', '解約') - デフォルト '利用中'
+     - `end_date` (DATE) - 終了日または逝去日
 
-2. **決定**: 安定版へダウングレード
-   - Next.js: 15.3.5 → **14.2.18**
-   - React: 19 → **18.3.1**
-   - @supabase/ssr: 0.6.1 → **0.3.0**
-   - @supabase/supabase-js: → **2.42.7**
+2. **型定義更新**:
+   - `supabase gen types typescript` を実行し、新しいENUM型とカラム定義をTypeScript型に反映。
 
-#### フェーズ2: 設定ファイルの修正
+#### フェーズ2: バックエンドロジック (Server Actions)
 
-1. **next.config.ts → next.config.mjs**
-   - Next.js 14は`.ts`設定ファイル非対応
-   - JavaScriptの`.mjs`形式に変換
+1. **`src/app/actions/users.ts` の修正**:
+   - `getUsers` 関数に `status` 引数を追加。
+   - デフォルトで `status = '利用中'` のクエリを発行するよう変更し、サーバーサイドでのフィルタリングを実装。
 
-2. **フォントの置き換え**
-   - Geist, Geist_Mono（Next.js 15専用）
-   - → **Inter, Roboto_Mono**に変更
-   - ファイル: `src/app/layout.tsx`
+#### フェーズ3: フロントエンド実装
 
-3. **Layout.tsxの修正**
-   - 重複する`<html>`と`<body>`タグ削除
-   - `src/components/Layout.tsx`をシンプルなラッパーに変更
+1. **利用者一覧画面 (`src/app/users/page.tsx`, `UsersClientPage.tsx`)**:
+   - タブ切り替えUI（利用中 | すべて | 逝去 | 解約）を追加。
+   - URLクエリパラメータ (`?status=...`) によるフィルタリングに対応。
+   - `useEffect` を追加し、サーバーからのデータ更新時にクライアント側の表示リストも同期されるよう修正（ブラウザバック時の整合性確保）。
+   - ステータスに応じた行の背景色変更（グレーアウト等）を実装。
 
-#### フェーズ3: 型システムの統一
-
-1. **中央集権的な型定義ファイル作成**
-   - ファイル: `src/types/consultation.ts`
-   - Supabase JOINクエリの型推論問題を解決
-
-   ```typescript
-   export type ConsultationWithStaff = Consultation & {
-     staff: {
-       name: string | null
-     } | null
-   }
-   ```
-
-2. **型の置き換え**
-   - `src/app/actions/consultations.ts`
-   - `src/components/ConsultationList.tsx`
-   - その他主要ファイル
-
-#### フェーズ4: データベーススキーマ拡張
-
-**問題発見**: コードが存在しないDBカラムを参照
-- `consultation_events`テーブルに以下のカラムが不足:
-  - `status_from` (遷移前ステータス)
-  - `status_to` (遷移後ステータス)
-  - `next_action_memo` (次回アクション内容)
-
-**対応**:
-1. マイグレーションファイル作成
-   ```
-   supabase/migrations/20251101_add_status_transition_columns.sql
-   ```
-
-2. SQL内容:
-   ```sql
-   ALTER TABLE "public"."consultation_events"
-   ADD COLUMN IF NOT EXISTS "status_from" text,
-   ADD COLUMN IF NOT EXISTS "status_to" text,
-   ADD COLUMN IF NOT EXISTS "next_action_memo" text;
-   ```
-
-3. ローカル環境に適用
-   ```bash
-   supabase db reset
-   ```
-
-4. 型定義再生成
-   ```bash
-   supabase gen types typescript --local > src/types/database.ts
-   ```
-
-#### フェーズ5: コードの修正
-
-1. **SupportTimeline.tsx**
-   - `staff_name` → `staff?.name` (JOIN型に対応)
-   - `note` → `event_note` (実際のカラム名)
-   - `next_action_due_date` → `next_action_date`
-
-2. **UserEditForm.tsx**
-   - `registered_at: null` → `undefined` (Supabase型に合わせる)
-
-3. **UserSupportPlans.tsx**
-   - `staff_name` → `staff?.name`
-
-4. **ConsultationList.tsx**
-   - 型アノテーション修正: `(string | null)` → `string[]`
-
-5. **DataManagement.tsx**
-   - ジェネリック関数に変更して型を保持
-
-#### フェーズ6: ビルド検証
-
-```bash
-pnpm build
-```
-
-**結果**: ✅ 成功
-
-```
-✓ Compiled successfully
-✓ Linting and checking validity of types
-✓ Generating static pages (15/15)
-```
+2. **利用者編集画面 (`src/components/UserEditForm.tsx`)**:
+   - ステータス変更用のドロップダウンを追加。
+   - ステータスが「利用中」以外の場合のみ、終了日入力欄を動的に表示する制御を追加。
+   - TypeScriptの型推論エラー (`required` 属性の矛盾) を解決。
 
 ### 解決した問題の総括
 
 | 問題 | 原因 | 解決策 |
 |------|------|--------|
-| Never型エラー57個 | Next.js 15 Canary + Supabase SSR 0.6.1 | Next.js 14.2.18 + Supabase SSR 0.3.0 |
-| next.config.ts非対応 | Next.js 14の制限 | .mjsに変換 |
-| Geistフォント不明 | Next.js 15専用フォント | Inter/Roboto_Monoに変更 |
-| 重複bodyタグ | Layout.tsxの構造問題 | シンプルなラッパーに変更 |
-| JOINクエリ型推論 | Supabase SSR 0.3.0の制限 | カスタム型定義作成 |
-| 存在しないDBカラム | コードとDBの乖離 | マイグレーション追加 |
-| 型アノテーションミス | コーディングミス | 個別修正 |
+| 除外フィルタ不可 | DBにステータスカラム不在 | `status` ENUMカラム追加とサーバーサイドフィルタ実装 |
+| 一覧のデータ同期ズレ | `useState` の初期値のみ使用 | `useEffect` で `initialUsers` の変更を監視・同期 |
+| 型エラー | TypeScriptの過剰な型絞り込み | 不要な条件分岐を削除し論理的な整合性を確保 |
 
 ### 変更したファイル一覧
 
 ```
+追加:
+- supabase/migrations/20260117_add_user_status.sql
+
 修正:
-- package.json (バージョンダウングレード)
-- next.config.ts → next.config.mjs
-- src/app/layout.tsx (フォント変更)
-- src/components/Layout.tsx (構造変更)
-- src/types/consultation.ts (新規作成)
-- src/app/actions/consultations.ts
-- src/components/ConsultationList.tsx
-- src/components/SupportTimeline.tsx
+- src/types/database.ts (自動生成)
+- src/app/actions/users.ts
+- src/app/users/page.tsx
+- src/app/users/UsersClientPage.tsx
 - src/components/UserEditForm.tsx
-- src/components/UserSupportPlans.tsx
-- src/components/DataManagement.tsx
-- src/components/Header.tsx
-
-追加:
-- supabase/migrations/20251101_add_status_transition_columns.sql
-
-再生成:
-- src/types/database.ts
 ```
-## 今回実施した作業（2025年11月3日）
-
-### 背景
-
-**問題**: `Data Management`ページに、指定した年月の相談記録を特定のフォーマットでExcelファイルとして出力する「月次報告書エクスポート」機能を実装するにあたり、`xlsx-populate`ライブラリのAPI仕様に関する複数の問題に直面した。
-
-**目標**: ライブラリの制約を理解し、堅牢で保守性の高い方法でExcelエクスポート機能を実装する。
-
-### 実施した作業の詳細
-
-#### フェーズ1: 根本原因の特定と解決策の確立
-
-1. **調査結果（エラー履歴）**:
-   - `sheet.insertRow is not a function`: ライブラリに存在しないAPIを呼び出していた。
-   - `Row.style: Invalid arguments`: 行全体のスタイルを一括でコピーしようとしたが、APIがサポートしていない使い方だった。
-   - `sheet.row(...).delete is not a function`: ライブラリに行を削除する機能が存在しないことが最終的に判明。
-
-2. **根本原因の確定**:
-   - `xlsx-populate`ライブラリには**行を削除するAPIが存在しない**。
-   - セルのスタイルコピーは、プロパティ名を明示的に指定して取得・設定する必要がある。
-
-3. **最終的な実装方針の決定**:
-   - Excelテンプレートの特定の行（例: 6行目）を「テンプレート行」と定義する。
-   - 1件目のデータは、その**テンプレート行に直接上書き**する。
-   - 2件目以降のデータは、テンプレート行の下（7行目、8行目…）に追記し、その際にテンプレート行からスタイル情報をセル単位でコピーする。
-   - このアプローチにより、行削除APIがなくても目的のレイアウトを実現できる。
-
-#### フェーズ2: コードの修正と堅牢性の向上
-
-1. **`src/app/actions/export.ts` の `generateMonthlyReportExcel` を修正**:
-   - 上記の「上書きアプローチ」に基づき、行生成ロジックを全面的に書き換え。
-   - スタイルコピー処理を、プロパティ名を配列で指定する公式APIに準拠した方法に変更。
-   - `fs.access`によるテンプレートファイルの存在事前確認処理を追加。
-   - `{{YEAR}}`などのプレースホルダー置換時に`null`チェックを追加。
-   - 相談日を`new Date()`オブジェクトに変換してセルに渡すようにし、Excel側での書式設定を確実にした。
-
-2. **`src/utils/consultation-formatter.ts` を新規作成**:
-   - 相談データをExcel表示用の文字列に変換するロジックを、サーバーアクションから完全に分離。
-   - 関心の分離を徹底し、コードの再利用性とテストの容易性を向上させた。
-
-3. **`src/utils/export.ts` と `src/components/DataManagement.tsx` を修正**:
-   - 新しく作成したサーバーアクションを呼び出し、UIと連携させるための修正を実施。
-
-### 解決した問題の総括
-
-| 問題 | 原因 | 解決策 |
-|------|------|--------|
-| Excel行操作エラー | `xlsx-populate`のAPI（行削除・スタイルコピー）の誤解 | ライブラリ仕様を再調査し、「テンプレート行の上書き」方式と正しいスタイルコピー方法を確立 |
-| 潜在的な実行時エラー | ファイル不在、`null`参照、日付型の不整合 | 事前チェックと型変換を徹底する防御的プログラミングを導入 |
-| コードの密結合 | サーバーアクション内にデータ整形ロジックが混在 | `consultation-formatter.ts` にロジックを分離し、責務を明確化 |
-
-### 変更したファイル一覧
-
-Model
-はい、MAINTENANCE.md の修正は必要です。
-このファイルは、README.md とは異なり、システムの内部構造や開発・保守の手順を詳細に記録する、**「開発チームのための運用マニュアル」**としての役割を持っています。
-今回の実装では、非常に重要な技術的背景（ライブラリの制約）と、それに伴う実装上の決定がありました。これをこの保守ドキュメントに記録しておくことは、将来の自分たちや新しく参加するメンバーが、安全かつ効率的にシステムを保守していく上で不可欠です。
-挿入箇所と挿入文（提案）
-MAINTENANCE.md 内には、今回の修正内容を反映させるべき箇所が2つあります。
-1. 「トラブルシューティング」セクションへの追記
-【挿入箇所】
-## トラブルシューティング セクションの末尾に、新しいトラブルシューティング項目として追加するのが適切です。
-【挿入文】
-以下のMarkdownブロックをコピーして、### 6. 型定義が更新されない の項目の下に追加してください。
-code
-Markdown
-### 7. Excelエクスポートでレイアウトが崩れる、またはエラーが発生する
-
-**症状**:
-- 月次報告書などのExcelエクスポート機能で、意図しないレイアウトになる。
-- `sheet.row(...).delete is not a function` のようなエラーが発生する。
-
-**原因**:
-コードとExcelテンプレートファイル (`public/monthly_report_template.xlsx` など) の間で仕様の不一致が発生している。特に、`xlsx-populate`ライブラリには**行を削除するAPIが存在しない**という強い制約がある。
-
-**解決策**:
-1. **テンプレートファイルの確認**:
-   - `public/`フォルダ内の該当するテンプレートファイルを開き、シート名、データが書き込まれるべき行番号、プレースホルダー（例: `{{YEAR}}`）が、`src/app/actions/export.ts` 内のコードで期待されているものと一致しているか確認する。
-
-2. **実装アプローチの再確認**:
-   - `xlsx-populate`で行を追加する場合、「テンプレート行を後から削除する」ことはできない。
-   - 正しい実装は、「**1件目のデータでテンプレート行を上書きし、2件目以降をその下の行に追記していく**」方式である。
-   - `src/app/actions/export.ts` 内の `generateMonthlyReportExcel` 関数がこの原則に従って実装されているか確認する。
-
-3. **スタイルコピー方法の確認**:
-   - セルのスタイルをコピーする場合、`cell.style(anotherCell.style())` という単純な形式ではエラーになる。
-   - `const styles = templateCell.style(['bold', 'fontSize', ...])` のように、コピーしたいスタイルプロパティを配列で明示的に指定し、取得したスタイルオブジェクトを `currentCell.style(styles)` で設定するのが正しい方法である。
-2. 「今回実施した作業」セクションへの追記
-【挿入箇所】
-## 今回実施した作業（2025年11月1日） というセクションは、過去の作業記録のように見えます。もしこれが継続的に更新されるドキュメントであれば、このセクションの下に新しい日付で今回の作業内容を追記するのが理想的です。
-ここでは、新しいセクションとして今回の作業内容を追加する形で提案します。
-【挿入文】
-以下のMarkdownブロックをコピーして、## 今回実施した作業（2025年11月1日） のセクション全体の下に追加してください。
-code
-Markdown
----
-
-## 今回実施した作業（2025年11月3日）
-
-### 背景
-
-**問題**: `Data Management`ページに、指定した年月の相談記録を特定のフォーマットでExcelファイルとして出力する「月次報告書エクスポート」機能を実装するにあたり、`xlsx-populate`ライブラリのAPI仕様に関する複数の問題に直面した。
-
-**目標**: ライブラリの制約を理解し、堅牢で保守性の高い方法でExcelエクスポート機能を実装する。
-
-### 実施した作業の詳細
-
-#### フェーズ1: 根本原因の特定と解決策の確立
-
-1. **調査結果（エラー履歴）**:
-   - `sheet.insertRow is not a function`: ライブラリに存在しないAPIを呼び出していた。
-   - `Row.style: Invalid arguments`: 行全体のスタイルを一括でコピーしようとしたが、APIがサポートしていない使い方だった。
-   - `sheet.row(...).delete is not a function`: ライブラリに行を削除する機能が存在しないことが最終的に判明。
-
-2. **根本原因の確定**:
-   - `xlsx-populate`ライブラリには**行を削除するAPIが存在しない**。
-   - セルのスタイルコピーは、プロパティ名を明示的に指定して取得・設定する必要がある。
-
-3. **最終的な実装方針の決定**:
-   - Excelテンプレートの特定の行（例: 6行目）を「テンプレート行」と定義する。
-   - 1件目のデータは、その**テンプレート行に直接上書き**する。
-   - 2件目以降のデータは、テンプレート行の下（7行目、8行目…）に追記し、その際にテンプレート行からスタイル情報をセル単位でコピーする。
-   - このアプローチにより、行削除APIがなくても目的のレイアウトを実現できる。
-
-#### フェーズ2: コードの修正と堅牢性の向上
-
-1. **`src/app/actions/export.ts` の `generateMonthlyReportExcel` を修正**:
-   - 上記の「上書きアプローチ」に基づき、行生成ロジックを全面的に書き換え。
-   - スタイルコピー処理を、プロパティ名を配列で指定する公式APIに準拠した方法に変更。
-   - `fs.access`によるテンプレートファイルの存在事前確認処理を追加。
-   - `{{YEAR}}`などのプレースホルダー置換時に`null`チェックを追加。
-   - 相談日を`new Date()`オブジェクトに変換してセルに渡すようにし、Excel側での書式設定を確実にした。
-
-2. **`src/utils/consultation-formatter.ts` を新規作成**:
-   - 相談データをExcel表示用の文字列に変換するロジックを、サーバーアクションから完全に分離。
-   - 関心の分離を徹底し、コードの再利用性とテストの容易性を向上させた。
-
-3. **`src/utils/export.ts` と `src/components/DataManagement.tsx` を修正**:
-   - 新しく作成したサーバーアクションを呼び出し、UIと連携させるための修正を実施。
-
-### 解決した問題の総括
-
-| 問題 | 原因 | 解決策 |
-|------|------|--------|
-| Excel行操作エラー | `xlsx-populate`のAPI（行削除・スタイルコピー）の誤解 | ライブラリ仕様を再調査し、「テンプレート行の上書き」方式と正しいスタイルコピー方法を確立 |
-| 潜在的な実行時エラー | ファイル不在、`null`参照、日付型の不整合 | 事前チェックと型変換を徹底する防御的プログラミングを導入 |
-| コードの密結合 | サーバーアクション内にデータ整形ロジックが混在 | `consultation-formatter.ts` にロジックを分離し、責務を明確化 |
-
-### 変更したファイル一覧
-修正:
-src/app/actions/export.ts (generateMonthlyReportExcelを全面的に修正)
-src/utils/export.ts (新しいサーバーアクションの呼び出しを追加)
-src/components/DataManagement.tsx (UIとハンドラを月次報告書機能に対応)
-追加:
-src/utils/consultation-formatter.ts (データ整形ロジックを分離)
-public/monthly_report_template.xlsx (エクスポート用テンプレート)```
-
-
----
-
-## 今回実施した作業（2025年11月5日）
-
-### 背景
-
-**問題**: Vercel本番環境でExcelエクスポート機能が失敗。ローカル環境では正常に動作するが、本番環境で以下のエラーが発生：
-- `ENOENT: no such file or directory, open '/var/task/public/consultation_template.xlsx'`
-- `テンプレートファイル (monthly_report_template.xlsx) が見つかりません`
-
-**目標**: ローカル・本番環境の両方で確実に動作するエクスポート機能を実現する。
-
-### 実施した作業の詳細
-
-#### フェーズ1: 根本原因の特定
-
-1. **調査結果**:
-   - Server Actionsでのファイルアクセスは、Vercelのサーバーレス環境で不安定
-   - `process.cwd()`を使用しても、Server Actionsは`.next/server/`にバンドルされるため、`public/`へのパスが解決できない
-   - Stack Overflowでも同様の問題が報告されており、API Route方式が推奨されていた
-
-2. **過去の成功例の発見**:
-   - MAINTENANCE.mdに記載される以前のコードで、API Route方式を使用していた実績がある
-   - `src/app/api/export/consultations/route.ts`が以前は存在し、正常に動作していた
-
-3. **Server Actions vs API Routes**:
-   | 項目 | Server Actions | API Routes |
-   |------|---------------|------------|
-   | ファイルアクセス | 不安定（Vercelで失敗） | 安定（実績あり） |
-   | バンドル場所 | `.next/server/app/actions/` | `/api/`エンドポイント |
-   | `process.cwd()`の挙動 | パス解決が困難 | 確実に動作 |
-   | Vercel公式推奨 | - | ✅ |
-
-#### フェーズ2: API Route方式への移行
-
-1. **新しいAPI Routeエンドポイントの作成**:
-
-   **a) 整形済み相談記録エクスポート用**
-   - ファイル: `src/app/api/export/consultations/route.ts`
-   - 既存のServer Action (`generateFormattedConsultationsExcel`) のロジックを完全移行
-   - ヘルパー関数群を保持:
-     - `calculateAgeFromYMD`
-     - `toJapaneseEra`
-     - `sanitizeSheetName`
-     - `getRelocationAdminOpinionLabel`
-     - `getRelocationCostBearerLabel`
-     - `getRentArrearsDurationLabel`
-     - `createReplacements`（200行超の置換ロジック）
-
-   **b) 月次報告書エクスポート用**
-   - ファイル: `src/app/api/export/monthly-report/route.ts`
-   - 既存のServer Action (`generateMonthlyReportExcel`) のロジックを完全移行
-   - `formatConsultationRoute`, `formatConsulterInfo`, `formatWithPrefix`を利用
-
-2. **utils/export.tsの修正**:
-
-   **変更前（Server Action呼び出し）:**
-   ```typescript
-   const result = await generateMonthlyReportExcel(year, month);
-   if (!result.success || !result.fileBuffer) {
-     throw new Error(result.error);
-   }
-   const blob = base64ToBlob(result.fileBuffer, 'application/...');
-   downloadFile(blob, filename);
-   ```
-
-   **変更後（API Route呼び出し）:**
-   ```typescript
-   const response = await fetch('/api/export/monthly-report', {
-     method: 'POST',
-     headers: { 'Content-Type': 'application/json' },
-     body: JSON.stringify({ year, month }),
-   });
-   if (!response.ok) {
-     const errorData = await response.json();
-     throw new Error(errorData.error);
-   }
-   const blob = await response.blob();
-   downloadFile(blob, filename);
-   ```
-
-   - Base64エンコード/デコード処理が不要に（直接Blob受信）
-   - エラーハンドリングをHTTPステータスベースに変更
-
-3. **不要なコードの削除**:
-   - `base64ToBlob`関数を削除（API Routeは直接Blobを返すため不要）
-   - Server Actionのインポート文を削除
-
-#### フェーズ3: テンプレートファイルのパス解決
-
-**API Route内での正しいパス指定:**
-```typescript
-const templatePath = path.join(process.cwd(), 'public', 'consultation_template.xlsx');
-const templateData = await fs.readFile(templatePath);
-const workbook = await XlsxPopulate.fromDataAsync(templateData);
-```
-
-**重要なポイント:**
-- `process.cwd()`がプロジェクトルートを正しく指す
-- `public/`フォルダの内容がVercelでも確実にアクセス可能
-- `__dirname`ではなく`process.cwd()`を使用
-
-#### フェーズ4: 型安全性の確保
-
-1. **型チェック実行**:
-   ```bash
-   pnpm tsc --noEmit
-   ```
-   - 結果: エラー0件
-
-2. **ビルドテスト**:
-   ```bash
-   pnpm build
-   ```
-   - 結果: 成功
-   - 新しいAPI Routeが正しく認識された:
-     - `ƒ /api/export/consultations`
-     - `ƒ /api/export/monthly-report`
-
-#### フェーズ5: デプロイと動作確認
-
-1. **本番環境デプロイ**:
-   - GitHubにプッシュ
-   - Vercel自動デプロイ
-
-2. **動作確認**:
-   - ✅ 整形済み相談記録エクスポート: 成功
-   - ✅ 月次報告書エクスポート: 成功
-   - ✅ ローカル環境: 引き続き正常動作
-
-### 解決した問題の総括
-
-| 問題 | 原因 | 解決策 |
-|------|------|--------|
-| Vercelでファイルが見つからない | Server Actionsのバンドル構造 | API Route方式に移行 |
-| `process.cwd()`のパス解決失敗 | `.next/server/`での実行 | API Routeで`process.cwd()`が正しく機能 |
-| Base64エンコードのオーバーヘッド | Server Actionsの戻り値制限 | API RouteでBufferを直接返却 |
-
-### 変更したファイル一覧
-
-```
-新規作成:
-- src/app/api/export/consultations/route.ts (315行)
-- src/app/api/export/monthly-report/route.ts (157行)
-
-修正:
-- src/utils/export.ts (API Route呼び出しに変更、base64ToBlob削除)
-
-削除:
-- なし（既存のServer Actionsは保持、将来的に削除可能）
-```
-
-### 技術的な学び
-
-1. **Vercelでのファイルアクセス**:
-   - Server Actionsでのファイル操作は制限がある
-   - API Routesの方が`public/`へのアクセスが確実
-   - `process.cwd()`はAPI Routeで正しく機能
-
-2. **アーキテクチャの選択**:
-   - ファイル操作を伴う処理: API Routes推奨
-   - 単純なDB操作: Server Actionsで問題なし
-   - 実績のあるパターンを優先
-
-3. **デバッグ手法**:
-   - ローカルと本番の動作差異は環境依存の問題
-   - 過去のコード履歴（成功時の実装）を参考に
-   - Stack Overflowで同様の問題と解決策を確認
-
-### 今後の注意事項
-
-1. **新しいエクスポート機能を追加する場合**:
-   - API Route方式を採用すること
-   - `process.cwd() + 'public/'`でテンプレートファイルにアクセス
-   - Server Actionsはファイル操作に使用しない
-
-2. **既存のServer Actionsについて**:
-   - `src/app/actions/export.ts`は現在使用されていない
-   - 削除しても問題ないが、参考資料として保持可能
-   - 削除する場合は、ヘルパー関数が他で使われていないか確認
-
-3. **テンプレートファイルの管理**:
-   - `public/`フォルダに配置すること
-   - `src/templates/`などへの移動は避ける（Vercelでバンドル対象外）
-
----
-
-## トラブルシューティング
-
-### 1. ビルドエラー: "Never type error"
-
-**症状**:
-```
-Type 'never' is not assignable to...
-```
-
-**原因**: SupabaseとNext.jsのバージョン不整合
-
-**解決策**:
-1. 依存関係を確認:
-   ```bash
-   cat package.json | grep -A 3 '"next"'
-   cat package.json | grep -A 3 '"@supabase"'
-   ```
-
-2. 期待されるバージョン:
-   - Next.js: 14.2.18
-   - @supabase/ssr: 0.3.0
-   - @supabase/supabase-js: 2.42.7
-
-3. 必要に応じて再インストール:
-   ```bash
-   pnpm install
-   ```
-
-### 2. 型エラー: "Property does not exist"
-
-**症状**:
-```
-Property 'staff_name' does not exist on type...
-```
-
-**原因**: database.tsが古い、またはマイグレーション未適用
-
-**解決策**:
-1. マイグレーションを確認:
-   ```bash
-   ls -la supabase/migrations/
-   ```
-
-2. ローカルDBに適用:
-   ```bash
-   supabase db reset
-   ```
-
-3. 型定義を再生成:
-   ```bash
-   supabase gen types typescript --local > src/types/database.ts
-   ```
-
-### 3. ビルドエラー: "next.config.ts is not supported"
-
-**症状**:
-```
-Configuring Next.js via 'next.config.ts' is not supported
-```
-
-**原因**: Next.js 14は`.ts`設定ファイル非対応
-
-**解決策**:
-`next.config.mjs`を使用（既に対応済み）
-
-### 4. ヘッダーメニューが表示されない
-
-**症状**: ページにヘッダーが表示されない
-
-**原因**:
-- 複数の`<body>`タグが存在
-- Layout.tsxの構造問題
-
-**解決策**:
-`src/components/Layout.tsx`が以下の構造になっているか確認:
-
-```typescript
-import Header from './Header'
-
-export default function Layout({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      <Header />
-      <main className="min-h-screen flex flex-col items-center">
-        {children}
-      </main>
-    </>
-  )
-}
-```
-
-### 5. Supabaseローカル環境が起動しない
-
-**症状**:
-```
-Error: Cannot connect to local database
-```
-
-**解決策**:
-1. Dockerが起動しているか確認
-   ```bash
-   docker ps
-   ```
-
-2. Supabaseを再起動
-   ```bash
-   supabase stop
-   supabase start
-   ```
-
-3. ポート競合を確認（デフォルト: 54321, 54322, 5432）
-
-### 6. 型定義が更新されない
-
-**症状**: マイグレーション適用後も型エラーが残る
-
-**解決策**:
-1. database.tsのタイムスタンプを確認
-   ```bash
-   ls -la src/types/database.ts
-   ```
-
-2. 強制再生成
-   ```bash
-   supabase gen types typescript --local > src/types/database.ts
-   ```
-
-3. TypeScriptサーバーを再起動（VSCode）
-   - `Cmd+Shift+P` → "TypeScript: Restart TS Server"
-
-### 7. Excelエクスポートでレイアウトが崩れる、またはエラーが発生する
-
-**症状**:
-- 月次報告書などのExcelエクスポート機能で、意図しないレイアウトになる。
-- `sheet.row(...).delete is not a function` のようなエラーが発生する。
-
-**原因**:
-コードとExcelテンプレートファイル (`public/monthly_report_template.xlsx` など) の間で仕様の不一致が発生している。特に、`xlsx-populate`ライブラリには**行を削除するAPIが存在しない**という強い制約がある。
-
-**解決策**:
-1. **テンプレートファイルの確認**:
-   - `public/`フォルダ内の該当するテンプレートファイルを開き、シート名、データが書き込まれるべき行番号、プレースホルダー（例: `{{YEAR}}`）が、`src/app/actions/export.ts` 内のコードで期待されているものと一致しているか確認する。
-
-2. **実装アプローチの再確認**:
-   - `xlsx-populate`で行を追加する場合、「テンプレート行を後から削除する」ことはできない。
-   - 正しい実装は、「**1件目のデータでテンプレート行を上書きし、2件目以降をその下の行に追記していく**」方式である。
-   - `src/app/actions/export.ts` 内の `generateMonthlyReportExcel` 関数がこの原則に従って実装されているか確認する。
-
-3. **スタイルコピー方法の確認**:
-   - セルのスタイルをコピーする場合、`cell.style(anotherCell.style())` という単純な形式ではエラーになる。
-   - `const styles = templateCell.style(['bold', 'fontSize', ...])` のように、コピーしたいスタイルプロパティを配列で明示的に指定し、取得したスタイルオブジェクトを `currentCell.style(styles)` で設定するのが正しい方法である。
-
-### 8. Vercel本番環境でExcelエクスポートが失敗する
-
-**症状**:
-- ローカル環境では正常に動作するが、Vercel本番環境でエクスポートが失敗
-- `ENOENT: no such file or directory, open '/var/task/public/xxx.xlsx'` エラー
-- `テンプレートファイルが見つかりません` エラー
-
-**原因**:
-Server Actionsを使用したファイルアクセスは、Vercelのサーバーレス環境で不安定。`.next/server/`にバンドルされるため、`public/`へのパス解決が困難。
-
-**解決策**:
-1. **API Route方式を使用する（推奨）**:
-   ```typescript
-   // src/app/api/export/xxx/route.ts
-   export async function POST(request: Request) {
-     const templatePath = path.join(process.cwd(), 'public', 'template.xlsx');
-     const templateData = await fs.readFile(templatePath);
-     // ...
-   }
-   ```
-
-2. **Server Actionsは避ける**:
-   - ファイル操作を伴うエクスポート処理には使用しない
-   - 既存の`src/app/actions/export.ts`は参考用として保持可能だが、使用は非推奨
-
-3. **テンプレートファイルの配置**:
-   - 必ず`public/`フォルダに配置
-   - `src/templates/`などに移動しない（Vercelでバンドル対象外になる）
-
-4. **フロントエンドからの呼び出し**:
-   ```typescript
-   const response = await fetch('/api/export/xxx', {
-     method: 'POST',
-     headers: { 'Content-Type': 'application/json' },
-     body: JSON.stringify({ /* parameters */ }),
-   });
-   const blob = await response.blob();
-   ```
-
-**参考**:
-- 2025年11月5日の作業記録を参照
-- Stack Overflowでも同様の問題と解決策が報告されている
-
----
-
-## 今後の注意事項
-
-### 1. バージョン管理の重要性
-
-**絶対に守るべきルール**:
-
-1. **安定版を使用する**
-   - Next.js: 14.x系（15.xは当面避ける）
-   - React: 18.x系
-   - Canary/Beta版は本番環境で使用しない
-
-2. **依存関係の更新は慎重に**
-   ```bash
-   # NG: 一括アップデート
-   pnpm update --latest
-
-   # OK: 個別に検証
-   pnpm update @supabase/ssr --latest
-   pnpm build  # 必ず確認
-   ```
-
-3. **package.json固定**
-   ```json
-   {
-     "dependencies": {
-       "next": "14.2.18",           // ^ を使わない
-       "@supabase/ssr": "0.3.0",
-       "react": "^18.3.1"            // マイナーバージョンのみ許可
-     }
-   }
-   ```
-
-### 2. データベース変更のルール
-
-1. **マイグレーションは必ずファイルで管理**
-   - Supabase Dashboardでの直接変更は避ける
-   - すべての変更を`supabase/migrations/`に記録
-
-2. **マイグレーションファイル名の規則**
-   ```
-   YYYYMMDD_descriptive_name.sql
-   例: 20251101_add_status_transition_columns.sql
-   ```
-
-3. **型定義の再生成を忘れない**
-   ```bash
-   # スキーマ変更後は必ず実行
-   supabase gen types typescript --local > src/types/database.ts
-   ```
-
-4. **ロールバックの準備**
-   - 破壊的変更（DROP COLUMN等）は慎重に
-   - バックアップを取ってから実行
-
-### 3. 型安全性の維持
-
-1. **`any`型を使わない**
-   ```typescript
-   // NG
-   const data: any = await supabase...
-
-   // OK
-   const data: ConsultationWithStaff[] = ...
-   ```
-
-2. **カスタム型はsrc/types/に集約**
-   - `database.ts`: 自動生成（手動編集禁止）
-   - `consultation.ts`, `user.ts`: カスタム型
-
-3. **型アサーションは最小限に**
-   ```typescript
-   // 必要な場合のみ（Supabase JOIN制限時）
-   data as unknown as ConsultationWithStaff
-   ```
-
-### 4. デプロイ前の必須チェック
-
-```bash
-# 1. 型チェック
-pnpm tsc --noEmit
-
-# 2. ビルドテスト
-pnpm build
-
-# 3. ローカルで動作確認
-pnpm dev
-# → 各ページを手動確認
-
-# 4. マイグレーションの確認
-ls -la supabase/migrations/
-# → 未適用のマイグレーションがないか確認
-```
-
-### 5. 本番環境マイグレーションの手順
-
-**重要**: 本番環境へのマイグレーション適用は以下の順序で実行
-
-1. **バックアップ取得**（Supabase Dashboard）
-
-2. **マイグレーションSQL確認**
-   ```bash
-   cat supabase/migrations/YYYYMMDD_*.sql
-   ```
-
-3. **Supabase DashboardのSQL Editorで実行**
-   - 1マイグレーションずつ実行
-   - エラーがないか確認
-
-4. **本番環境から型定義を再生成**
-   ```bash
-   supabase gen types typescript --project-id your-project-id > src/types/database.ts
-   git add src/types/database.ts
-   git commit -m "chore: update database types from production"
-   git push
-   ```
-
-5. **Vercel自動デプロイを待つ**
-
-6. **本番サイトで動作確認**
-
-### 6. 禁止事項
-
-❌ **以下の操作は絶対に避ける**:
-
-1. 本番データベースへの直接SQL実行（マイグレーションなし）
-2. `database.ts`の手動編集
-3. Canary/Beta版の本番使用
-4. ビルド確認なしでのデプロイ
-5. 型エラーを`@ts-ignore`で隠蔽
-
-### 7. Git運用ルール
-
-```bash
-# ブランチ戦略
-main          # 本番環境（保護ブランチ）
-develop       # 開発環境
-feature/*     # 機能開発
-
-# コミットメッセージ規則
-feat: 新機能
-fix: バグ修正
-chore: 雑務（型定義更新、依存関係更新等）
-refactor: リファクタリング
-docs: ドキュメント更新
-```
-
----
-
-## 連絡先・参考資料
-
-### 公式ドキュメント
-
-- [Next.js 14 Documentation](https://nextjs.org/docs)
-- [Supabase Documentation](https://supabase.com/docs)
-- [React 18 Documentation](https://react.dev/)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-
-### Supabase CLI
-
-```bash
-# バージョン確認
-supabase --version
-
-# ヘルプ
-supabase help
-
-# ローカル環境の状態確認
-supabase status
-```
-
-### デバッグツール
-
-- ブラウザ開発者ツール（F12）
-- [React Developer Tools](https://react.dev/learn/react-developer-tools)
-- Supabase Dashboard（ローカル: http://localhost:54323）
 
 ---
 
@@ -1337,7 +533,8 @@ supabase status
 | 2025-11-01 | 初版作成。Next.js 15→14ダウングレード、consultation_eventsテーブル拡張、全型エラー解決 | - |
 | 2025-11-03 | 月次報告書エクスポート機能実装。xlsx-populateライブラリの制約対応 | - |
 | 2025-11-05 | Vercel環境でのExcelエクスポート機能をAPI Route方式に根本修正。Server ActionsからAPI Routesへ移行 | - |
+| 2026-01-17 | 利用者ステータス管理機能（利用中/逝去/解約）の実装。DBスキーマ拡張、一覧/編集画面改修、フィルタリング機能追加 | - |
 
 ---
 
-**最終更新**: 2025年11月5日
+**最終更新**: 2026年1月17日
