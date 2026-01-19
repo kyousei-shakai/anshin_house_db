@@ -23,6 +23,7 @@ export type ConsultationWithNextAction = Consultation & {
   staff_name: string | null
   next_action_date: string | null
   next_action_memo: string | null
+  age_group: string | null
   
   // ★★★ 変更点 ★★★
   // RPC関数の返り値の型と、ベースとなる `Consultation` 型の構造が

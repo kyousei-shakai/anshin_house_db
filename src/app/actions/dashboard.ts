@@ -1,5 +1,4 @@
 // src/app/actions/dashboard.ts
-
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
@@ -23,8 +22,36 @@ export async function getDashboardData() {
       supabase.from('users').select('*', { count: 'exact', head: true }).gte('registered_at', firstDayOfMonth),
       supabase.from('consultations').select('*', { count: 'exact', head: true }).gte('consultation_date', firstDayOfMonth),
       supabase.from('support_plans').select('*', { count: 'exact', head: true }).gte('creation_date', firstDayOfMonth),
-      // ▼▼▼ 修正: gender, birth_year, birth_month, birth_day を追加 ▼▼▼
-      supabase.from('consultations').select('consultation_date, gender, birth_year, birth_month, birth_day, consultation_route_self, consultation_route_family, consultation_route_care_manager, consultation_route_elderly_center, consultation_route_disability_center, consultation_route_government, consultation_route_other, consultation_route_government_other, consultation_route_other_text, attribute_elderly, attribute_disability, attribute_poverty, attribute_single_parent, attribute_childcare, attribute_dv, attribute_foreigner, attribute_low_income, attribute_lgbt, attribute_welfare'),
+      
+      // ▼▼▼【修正点】age_group カラムを select 句に追加しました ▼▼▼
+      supabase.from('consultations').select(`
+        consultation_date, 
+        gender, 
+        birth_year, 
+        birth_month, 
+        birth_day, 
+        age_group, 
+        consultation_route_self, 
+        consultation_route_family, 
+        consultation_route_care_manager, 
+        consultation_route_elderly_center, 
+        consultation_route_disability_center, 
+        consultation_route_government, 
+        consultation_route_other, 
+        consultation_route_government_other, 
+        consultation_route_other_text, 
+        attribute_elderly, 
+        attribute_disability, 
+        attribute_poverty, 
+        attribute_single_parent, 
+        attribute_childcare, 
+        attribute_dv, 
+        attribute_foreigner, 
+        attribute_low_income, 
+        attribute_lgbt, 
+        attribute_welfare
+      `),
+      
       supabase.from('users').select('registered_at')
     ]);
 

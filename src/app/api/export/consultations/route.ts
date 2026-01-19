@@ -5,6 +5,7 @@ import XlsxPopulate from 'xlsx-populate'
 import path from 'path'
 import fs from 'fs/promises'
 import { NextResponse } from 'next/server'
+import { getAgeGroupLabel } from '@/utils/age-utils' // ★追加：共通ロジックをインポート
 
 // xlsx-populateの型定義
 type Workbook = Awaited<ReturnType<typeof XlsxPopulate.fromDataAsync>>
@@ -85,6 +86,11 @@ const createReplacements = (consultation: ConsultationWithStaff): Record<string,
         ? toJapaneseEra(consultation.birth_year, consultation.birth_month, consultation.birth_day)
         : null;
 
+    // ★最高峰のデータ整合性ロジック：年代情報の確定
+    // 生年月日からの算出を優先し、なければDB保存値を採用する
+    const calculatedAgeGroup = getAgeGroupLabel(consultation.birth_year);
+    const finalAgeGroup = calculatedAgeGroup || (consultation as any).age_group || '';
+
     type PhysicalConditionKey = 'independent' | 'support1' | 'support2' | 'care1' | 'care2' | 'care3' | 'care4' | 'care5';
     const physicalConditionMap: Record<PhysicalConditionKey, string> = {
         'independent': '自立', 'support1': '要支援1', 'support2': '要支援2', 'care1': '要介護1',
@@ -136,13 +142,13 @@ const createReplacements = (consultation: ConsultationWithStaff): Record<string,
         '{{staff_name}}': consultation.staff?.name || '',
         '{{route_self}}': check(consultation.consultation_route_self),
         '{{route_family}}': check(consultation.consultation_route_family),
-        '{{route_family_text}}': consultation.consultation_route_family_text || '', // ★ 追加
+        '{{route_family_text}}': consultation.consultation_route_family_text || '',
         '{{route_care_manager}}': check(consultation.consultation_route_care_manager),
-        '{{route_care_manager_text}}': consultation.consultation_route_care_manager_text || '', // ★ 追加
+        '{{route_care_manager_text}}': consultation.consultation_route_care_manager_text || '',
         '{{route_elderly_center}}': check(consultation.consultation_route_elderly_center),
-        '{{route_elderly_center_text}}': consultation.consultation_route_elderly_center_text || '', // ★ 追加
+        '{{route_elderly_center_text}}': consultation.consultation_route_elderly_center_text || '',
         '{{route_disability_center}}': check(consultation.consultation_route_disability_center),
-        '{{route_disability_center_text}}': consultation.consultation_route_disability_center_text || '', // ★ 追加
+        '{{route_disability_center_text}}': consultation.consultation_route_disability_center_text || '',
         '{{route_government}}': check(consultation.consultation_route_government),
         '{{route_government_other}}': consultation.consultation_route_government_other || '',
         '{{route_other}}': check(consultation.consultation_route_other), '{{route_other_text}}': consultation.consultation_route_other_text || '',
@@ -162,7 +168,12 @@ const createReplacements = (consultation: ConsultationWithStaff): Record<string,
         '{{phone_mobile}}': consultation.phone_mobile || '',
         '{{birth_era_name}}': japaneseEra ? japaneseEra.era : '西暦',
         '{{birth_year}}': japaneseEra ? japaneseEra.year : consultation.birth_year || '',
-        '{{birth_month}}': consultation.birth_month || '', '{{birth_day}}': consultation.birth_day || '', '{{age}}': age,
+        '{{birth_month}}': consultation.birth_month || '', '{{birth_day}}': consultation.birth_day || '', 
+        '{{age}}': age,
+        
+        // ★新規追加プレースホルダー：年代
+        '{{age_group}}': finalAgeGroup,
+
         '{{physical_condition}}': consultation.physical_condition ? physicalConditionMap[physicalConditionKey] || '' : '',
         '{{mental_cert}}': check(consultation.mental_disability_certificate), '{{mental_cert_level}}': consultation.mental_disability_level || '',
         '{{physical_cert}}': check(consultation.physical_disability_certificate), '{{physical_cert_level}}': consultation.physical_disability_level || '',
@@ -235,12 +246,11 @@ export async function POST(request: Request) {
 
     const { data: allConsultations, error: fetchError } = await supabase
       .from('consultations')
-      .select('*, staff:staff_id (name)') // staffのnameを取得
+      .select('*, staff:staff_id (name)')
       .in('id', consultationIds);
 
     if (fetchError) throw fetchError;
 
-    // Vercel環境対応: process.cwd() + public/ から読み込み
     const templatePath = path.join(process.cwd(), 'public', 'consultation_template.xlsx');
     const templateData = await fs.readFile(templatePath);
     const workbook: Workbook = await XlsxPopulate.fromDataAsync(templateData);

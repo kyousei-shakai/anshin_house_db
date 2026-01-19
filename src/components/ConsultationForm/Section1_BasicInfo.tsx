@@ -3,6 +3,7 @@
 
 import React from 'react'
 import { ConsultationFormData } from './types'
+import { AGE_GROUP_OPTIONS, getAgeGroupLabel } from '@/utils/age-utils'
 
 // このコンポーネントが親から受け取るpropsの型を定義します
 interface Section1_BasicInfoProps {
@@ -18,6 +19,13 @@ const Section1_BasicInfo: React.FC<Section1_BasicInfoProps> = ({
   handleChange,
   calculateAge,
 }) => {
+  // 生年月日（年）の入力状況に基づき、表示すべき年代を決定する
+  // 年が入っていれば自動計算値を優先し、なければ手動入力値を表示する
+  const autoAgeGroup = getAgeGroupLabel(formData.birth_year, formData.birth_month, formData.birth_day);
+  const isAgeGroupLocked = !!formData.birth_year; // 生年月日(年)があれば手動入力をロックする
+  const displayAgeGroup = isAgeGroupLocked ? autoAgeGroup : formData.age_group;
+
+
   // 生年月日の選択肢用の配列は、このコンポーネント内で定義するのが適切です
   const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i)
   const months = Array.from({ length: 12 }, (_, i) => i + 1)
@@ -50,7 +58,7 @@ const Section1_BasicInfo: React.FC<Section1_BasicInfoProps> = ({
           </select>
         </div>
       </div>
-      
+
       <div className="mt-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">相談ルート</label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
@@ -127,7 +135,7 @@ const Section1_BasicInfo: React.FC<Section1_BasicInfoProps> = ({
           </div>
         </div>
       </div>
-      
+
       <div className="mt-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">属性</label>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -182,13 +190,52 @@ const Section1_BasicInfo: React.FC<Section1_BasicInfoProps> = ({
         <div><label className="block text-sm font-medium text-gray-700 mb-1">自宅電話番号</label><input type="tel" name="phone_home" value={formData.phone_home} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800" /></div>
         <div><label className="block text-sm font-medium text-gray-700 mb-1">携帯電話番号</label><input type="tel" name="phone_mobile" value={formData.phone_mobile} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800" /></div>
       </div>
-      <div className="mt-4">
-        <label className="block text-sm font-medium text-gray-700 mb-1">生年月日</label>
-        <div className="flex space-x-2 items-center">
-          <select name="birth_year" value={formData.birth_year} onChange={handleChange} className="px-3 py-2 border border-gray-300 rounded-md text-gray-800"><option value="">年</option>{years.map(year => (<option key={year} value={year}>{year}</option>))}</select><span className="text-gray-700">年</span>
-          <select name="birth_month" value={formData.birth_month} onChange={handleChange} className="px-3 py-2 border border-gray-300 rounded-md text-gray-800"><option value="">月</option>{months.map(month => (<option key={month} value={month}>{month}</option>))}</select><span className="text-gray-700">月</span>
-          <select name="birth_day" value={formData.birth_day} onChange={handleChange} className="px-3 py-2 border border-gray-300 rounded-md text-gray-800"><option value="">日</option>{days.map(day => (<option key={day} value={day}>{day}</option>))}</select><span className="text-gray-700">日</span>
-          {calculateAge() !== null && (<span className="text-gray-600">（満{calculateAge()}歳）</span>)}
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 左側：既存の生年月日入力（変更なし） */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">生年月日</label>
+          <div className="flex space-x-2 items-center">
+            <select name="birth_year" value={formData.birth_year} onChange={handleChange} className="px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white">
+              <option value="">年</option>
+              {years.map(year => (<option key={year} value={year}>{year}</option>))}
+            </select>
+            <span className="text-gray-700">年</span>
+            <select name="birth_month" value={formData.birth_month} onChange={handleChange} className="px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white">
+              <option value="">月</option>
+              {months.map(month => (<option key={month} value={month}>{month}</option>))}
+            </select>
+            <span className="text-gray-700">月</span>
+            <select name="birth_day" value={formData.birth_day} onChange={handleChange} className="px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white">
+              <option value="">日</option>
+              {days.map(day => (<option key={day} value={day}>{day}</option>))}
+            </select>
+            <span className="text-gray-700">日</span>
+            {calculateAge() !== null && (<span className="text-gray-600">（満{calculateAge()}歳）</span>)}
+          </div>
+        </div>
+
+        {/* 右側：【新規追加】年代選択項目 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            年代
+            {isAgeGroupLocked && <span className="ml-2 text-blue-600 text-xs font-normal animate-pulse">※自動計算中</span>}
+          </label>
+          <select
+            name="age_group"
+            value={displayAgeGroup}
+            onChange={handleChange}
+            disabled={isAgeGroupLocked}
+            className={`w-full px-3 py-2 border rounded-md text-gray-800 transition-colors ${isAgeGroupLocked ? 'bg-gray-100 border-blue-200 cursor-not-allowed' : 'bg-white border-gray-300'
+              }`}
+          >
+            <option value="">年代を選択（生年月日不明時）</option>
+            {AGE_GROUP_OPTIONS.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+          {!isAgeGroupLocked && (
+            <p className="mt-1 text-xs text-gray-500">生年月日が分からない場合はこちらを選択してください。</p>
+          )}
         </div>
       </div>
     </div>

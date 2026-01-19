@@ -1,11 +1,12 @@
 // src/utils/consultation-formatter.ts
 import { Database } from '@/types/database'
+import { getAgeGroupLabel } from './age-utils' // ★Step 3で作成した共通ロジックをインポート
 
 // consultationsテーブルのRow型をエイリアスとして定義
 type Consultation = Database['public']['Tables']['consultations']['Row']
 
 /**
- * 相談日時点の満年齢を計算する
+ * 相談日時点の満年齢を計算する (既存のロジックを維持)
  * @param birthYear - 誕生年
  * @param birthMonth - 誕生月
  * @param birthDay - 誕生日
@@ -39,7 +40,7 @@ const calculateAge = (
 }
 
 /**
- * 入電元（相談ルート）の文字列を生成する
+ * 入電元（相談ルート）の文字列を生成する (変更なし)
  * @param consultation - 相談データ
  * @returns フォーマットされた文字列 (例: "(本人、家族より入電)")
  */
@@ -62,20 +63,19 @@ export const formatConsultationRoute = (consultation: Consultation): string => {
  * @returns フォーマットされた文字列 (例: "(男/70代/高齢/障がい)")
  */
 export const formatConsulterInfo = (consultation: Consultation): string => {
-  // 性別
+  // 1. 性別のマッピング (既存ロジック維持)
   const genderMap: { [key: string]: string } = { male: "男", female: "女", other: "その他" }
   const gender = consultation.gender ? genderMap[consultation.gender] || "" : ""
 
-  // 年代
-  const age = calculateAge(
-    consultation.birth_year,
-    consultation.birth_month,
-    consultation.birth_day,
-    consultation.consultation_date
-  )
-  const ageGroup = age !== null ? `${Math.floor(age / 10) * 10}代` : ""
+  // 2. 年代の決定（★最高峰の整合性ロジック）
+  // 生年月日から「〇〇代」というラベルを優先的に生成
+  const calculatedAgeGroup = getAgeGroupLabel(consultation.birth_year);
 
-  // 属性
+  // 生年月日による算出があればそれを使い、なければDBに保存された年代(age_group)を使用
+  // 両方なければ空文字をセット
+  const ageGroup = calculatedAgeGroup || consultation.age_group || ""
+
+  // 3. 属性の収集 (既存ロジック維持)
   const attributes: string[] = []
   if (consultation.attribute_elderly) attributes.push("高齢")
   if (consultation.attribute_disability) attributes.push("障がい")
@@ -93,11 +93,13 @@ export const formatConsulterInfo = (consultation: Consultation): string => {
   
   const attributeString = attributes.join("/")
 
+  // 4. すべてを結合して (性別/年代/属性) の形式で返す
+  // filter(Boolean) により、空の項目を除外してスラッシュで繋ぐ
   return `(${[gender, ageGroup, attributeString].filter(Boolean).join("/")})`
 }
 
 /**
- * 指定された接頭辞を持つ文字列を生成する
+ * 指定された接頭辞を持つ文字列を生成する (変更なし)
  * @param content - 元の文字列
  * @param prefix - 接頭辞
  * @returns フォーマットされた文字列 (例: "【引越理由】内容...")

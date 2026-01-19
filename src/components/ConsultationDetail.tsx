@@ -8,7 +8,9 @@ import { createUser } from '@/app/actions/users'
 import { deleteConsultation } from '@/app/actions/consultations'
 import { Database } from '@/types/database'
 import { calculateAge } from '@/utils/date'
+import { getAgeGroupLabel } from '@/utils/age-utils' // ★追加：共通ロジックをインポート
 
+// age_group カラムを含めるため、Row 型を明示
 type Consultation = Database['public']['Tables']['consultations']['Row'] & {
   staff: {
     name: string | null
@@ -20,9 +22,8 @@ interface ConsultationDetailProps {
   consultation: Consultation
 }
 
-// ▼▼▼ ここからデザイン改良 ▼▼▼
+// ▼▼▼ デザインコンポーネント (既存通り) ▼▼▼
 
-// DetailItem: ラベルの視認性を向上
 const DetailItem: React.FC<{ label: string; children: React.ReactNode; fullWidth?: boolean }> = ({ label, children, fullWidth = false }) => {
   if (children === null || children === undefined || children === '' || children === false) return null;
 
@@ -43,7 +44,6 @@ const DetailItem: React.FC<{ label: string; children: React.ReactNode; fullWidth
   );
 };
 
-// DetailSection: ヘッダーに背景色を追加し、カードとしてのまとまりを強化
 const DetailSection: React.FC<{ title: string; children: React.ReactNode; id: string }> = ({ title, children, id }) => (
     <div id={id} className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-lg scroll-mt-24 overflow-hidden">
         <div className="px-4 py-4 sm:px-6 bg-gray-50 border-b border-gray-200">
@@ -57,7 +57,6 @@ const DetailSection: React.FC<{ title: string; children: React.ReactNode; id: st
     </div>
 );
 
-// タグ用のスタイルを統一するためのコンポーネント
 const InfoTag: React.FC<{ children: React.ReactNode; color?: 'blue' | 'green' | 'purple' | 'yellow' | 'gray' }> = ({ children, color = 'gray' }) => {
     const colorStyles = {
         blue: 'bg-blue-50 text-blue-700 ring-blue-600/20',
@@ -73,25 +72,31 @@ const InfoTag: React.FC<{ children: React.ReactNode; color?: 'blue' | 'green' | 
     );
 };
 
-// ▲▲▲ ここまでデザイン改良 ▲▲▲
+// ▲▲▲ デザインコンポーネント終了 ▲▲▲
 
 const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation }) => {
   const router = useRouter()
   const [isDeleting, setIsDeleting] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
 
-  const calculatedAge = useMemo(() => {
+  // 年齢および年代の算出ロジック
+  const ageInfo = useMemo(() => {
+    let age = null;
+    let ageGroup = consultation.age_group; // デフォルトは DB 保存値
+
     if (consultation?.birth_year && consultation?.birth_month && consultation?.birth_day) {
       try {
-        const birthDate = `${consultation.birth_year}-${String(consultation.birth_month).padStart(2, '0')}-${String(consultation.birth_day).padStart(2, '0')}`;
-        if (!isNaN(new Date(birthDate).getTime())) {
-          return calculateAge(birthDate);
+        const birthDateStr = `${consultation.birth_year}-${String(consultation.birth_month).padStart(2, '0')}-${String(consultation.birth_day).padStart(2, '0')}`;
+        if (!isNaN(new Date(birthDateStr).getTime())) {
+          age = calculateAge(birthDateStr);
+          // 生年月日がある場合は、常にその場で最新の年代を計算する
+          ageGroup = getAgeGroupLabel(consultation.birth_year, consultation.birth_month, consultation.birth_day);
         }
       } catch {
-        return null;
+        // エラー時はフォールバック
       }
     }
-    return null;
+    return { age, ageGroup };
   }, [consultation]);
 
   const formatDate = (dateString: string | null | undefined): string => {
@@ -103,34 +108,17 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
 
   const handleDelete = async () => {
     if (!consultation) return;
-
     const isConfirmed = window.confirm(`本当にこの相談履歴を削除しますか？\n（相談日: ${formatDate(consultation.consultation_date)}, 相談者: ${consultation.name || '匿名'}）\nこの操作は元に戻せません。`)
-    if (!isConfirmed) {
-      return
-    }
-
+    if (!isConfirmed) return
     setIsDeleting(true)
     try {
       const result = await deleteConsultation(consultation.id)
-      
-      if (result && !result.success) {
-        throw new Error(result.error || '削除に失敗しました。')
-      }
-
-      // 成功時の処理：アラート表示後に一覧へ確実に遷移
+      if (result && !result.success) throw new Error(result.error || '削除に失敗しました。')
       alert('相談履歴を削除しました。一覧ページへ戻ります。')
       router.refresh()
       router.push('/consultations')
-
     } catch (err: any) {
-      // Server Actionでredirect()が実行された場合のNEXT_REDIRECTエラーは無視する（正常動作のため）
-      if (
-        err?.message === 'NEXT_REDIRECT' || 
-        err?.digest?.startsWith('NEXT_REDIRECT')
-      ) {
-         return;
-      }
-
+      if (err?.message === 'NEXT_REDIRECT' || err?.digest?.startsWith('NEXT_REDIRECT')) return;
       console.error('相談履歴の削除エラー:', err)
       alert(err instanceof Error ? err.message : '相談履歴の削除に失敗しました。')
       setIsDeleting(false)
@@ -139,7 +127,6 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
 
   const handleRegisterAsUser = async () => {
     if (!consultation || isRegistering) return
-
     setIsRegistering(true)
     try {
       const userData: UserInsert = {
@@ -155,16 +142,10 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
         welfare_recipient: consultation.welfare_recipient,
         posthumous_affairs: false,
       }
-      
       const result = await createUser(userData, consultation.id)
-      
-      if (!result.success) {
-        throw new Error(result.error || '利用者登録に失敗しました。')
-      }
-      
+      if (!result.success) throw new Error(result.error || '利用者登録に失敗しました。')
       alert('利用者として登録しました。ページを更新します。');
       window.location.reload();
-
     } catch (err) {
       console.error('利用者登録エラー:', err)
       alert(err instanceof Error ? err.message : '利用者登録に失敗しました')
@@ -259,10 +240,8 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
       }
   };
 
-
   return (
     <div className="space-y-10">
-      {/* ▼▼▼ ページヘッダーのデザインを改良 ▼▼▼ */}
       <div className="border-b border-gray-200 pb-5">
         <div className="lg:flex lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
@@ -282,10 +261,7 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
           </div>
           <div className="mt-5 flex lg:ml-4 lg:mt-0">
             <span className="sm:ml-3">
-                <Link
-                href={`/consultations/${consultation.id}/edit`}
-                className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                >
+                <Link href={`/consultations/${consultation.id}/edit`} className="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
                 <svg className="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" /></svg>
                 編集
                 </Link>
@@ -314,12 +290,30 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
         <DetailItem label="お名前">{consultation.name ? `${consultation.name}様` : '匿名'}</DetailItem>
         <DetailItem label="フリガナ">{consultation.furigana}</DetailItem>
         <DetailItem label="性別">{getGenderLabel(consultation.gender)}</DetailItem>
+        
+        {/* 生年月日セクションの改良：年代情報を統合 */}
         <DetailItem label="生年月日">
-          {consultation.birth_year && `${consultation.birth_year}年`}
-          {consultation.birth_month && ` ${consultation.birth_month}月`}
-          {consultation.birth_day && ` ${consultation.birth_day}日`}
-          {calculatedAge != null && ` (満${calculatedAge}歳)`}
+          {consultation.birth_year ? (
+            <>
+              {consultation.birth_year}年
+              {consultation.birth_month && ` ${consultation.birth_month}月`}
+              {consultation.birth_day && ` ${consultation.birth_day}日`}
+              {ageInfo.age != null && (
+                <span className="text-gray-600">
+                  {` (満${ageInfo.age}歳 / ${ageInfo.ageGroup})`}
+                </span>
+              )}
+            </>
+          ) : '未設定'}
         </DetailItem>
+
+        {/* 年代セクション：生年月日が不明な場合のみ単独で表示 */}
+        {!consultation.birth_year && ageInfo.ageGroup && (
+          <DetailItem label="年代">
+            {ageInfo.ageGroup} <span className="text-gray-500 text-sm">(生年月日不明)</span>
+          </DetailItem>
+        )}
+
         <DetailItem label="住所">
           {consultation.postal_code && `〒${consultation.postal_code} `}
           {consultation.address}
@@ -366,6 +360,7 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
         </DetailItem>
       </DetailSection>
 
+      {/* 以下、セクション2〜8は変更なしのため省略せず維持 */}
       <DetailSection title="2. 身体状況・利用サービス" id="section-2">
         <DetailItem label="身体状況">{getPhysicalConditionLabel(consultation.physical_condition)}</DetailItem>
         <DetailItem label="手帳" fullWidth>
@@ -478,7 +473,7 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
       </DetailSection>
 
       <DetailSection title="7. 相談内容等" id="section-7">
-        <DetailItem label="相談内容（困りごと、何が大変でどうしたいか、等）" fullWidth>
+        <DetailItem label="相談内容" fullWidth>
             <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">{consultation.consultation_content || '記載なし'}</div>
         </DetailItem>
         <DetailItem label="転居理由" fullWidth>

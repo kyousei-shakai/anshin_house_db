@@ -318,13 +318,12 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
     }
   }
 
-  const calculatedAge = useMemo(() => {
+const calculatedAge = useMemo(() => {
     if (formData.birth_date) {
       try {
         return calculateAge(formData.birth_date)
-      } 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      catch (e) {
+      } catch {
+        // 変数 e を削除することで、eslint-disable コメントを完全に排除
         return null
       }
     }

@@ -71,6 +71,7 @@ export type Database = {
       consultations: {
         Row: {
           address: string | null
+          age_group: string | null
           attribute_childcare: boolean | null
           attribute_disability: boolean | null
           attribute_disability_intellectual: boolean | null
@@ -231,6 +232,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          age_group?: string | null
           attribute_childcare?: boolean | null
           attribute_disability?: boolean | null
           attribute_disability_intellectual?: boolean | null
@@ -391,6 +393,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          age_group?: string | null
           attribute_childcare?: boolean | null
           attribute_disability?: boolean | null
           attribute_disability_intellectual?: boolean | null
@@ -912,6 +915,7 @@ export type Database = {
         Args: { page_limit: number; page_offset: number }
         Returns: {
           address: string
+          age_group: string
           attribute_childcare: boolean
           attribute_disability: boolean
           attribute_disability_intellectual: boolean

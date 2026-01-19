@@ -46,6 +46,7 @@ export type ConsultationFormData = {
   birth_year: string | number
   birth_month: string | number
   birth_day: string | number
+  age_group: string; // ★ここに追加（既存データとの整合性のためstring型）
   physical_condition: 'independent' | 'support1' | 'support2' | 'care1' | 'care2' | 'care3' | 'care4' | 'care5' | ''
   mental_disability_certificate: boolean
   mental_disability_level: string
