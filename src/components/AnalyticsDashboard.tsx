@@ -1,4 +1,5 @@
 // src/components/AnalyticsDashboard.tsx'use client'
+'use client'
 
 import React, { useState, useMemo } from 'react';
 import { 
@@ -16,7 +17,16 @@ import {
   BarController
 } from 'chart.js';
 import { Doughnut, Bar, Chart } from 'react-chartjs-2';
-import { subMonths, format, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
+import { 
+  subMonths, 
+  format, 
+  startOfMonth, 
+  endOfMonth, 
+  startOfDay, 
+  endOfDay, 
+  differenceInCalendarMonths,
+  min as minDate
+} from 'date-fns';
 import { Consultation, User } from '@/types/custom';
 
 ChartJS.register(
@@ -38,7 +48,8 @@ interface AnalyticsDashboardProps {
   users: User[];
 }
 
-type Period = 'thisMonth' | 'lastMonth' | '3months' | '6months';
+// ★期間型を拡張
+type Period = 'thisMonth' | 'lastMonth' | '3months' | '6months' | '1year' | 'all';
 
 // 年齢計算ヘルパー関数
 const calculateAge = (year: number | null, month: number | null, day: number | null): number | null => {
@@ -77,6 +88,12 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
       case '6months':
         startDate = startOfDay(subMonths(now, 6));
         break;
+      case '1year': // ★1年追加
+        startDate = startOfDay(subMonths(now, 12));
+        break;
+      case 'all': // ★全期間追加（開始日を事実上制限しない）
+        startDate = new Date(0); 
+        break;
       default:
         startDate = startOfDay(subMonths(now, 3));
     }
@@ -96,7 +113,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
     return { consultations: filteredConsultations, users: filteredUsers };
   }, [consultations, users, period]);
 
-  // --- 1. 相談ルート分析 ---
+  // --- 1. 相談ルート分析 --- (既存ロジック維持)
   const routeAnalysis = useMemo(() => {
     const getTopSubItems = (items: (string | null)[]) => {
       const counts: { [key: string]: number } = {};
@@ -136,7 +153,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
     return { chartData, legendData: data };
   }, [filteredData.consultations]);
 
-  // --- 2. 属性分析 ---
+  // --- 2. 属性分析 --- (既存ロジック維持)
   const attributeChartData = useMemo(() => {
     const attributes = {
       '高齢': filteredData.consultations.filter(c => c.attribute_elderly).length,
@@ -162,7 +179,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
     };
   }, [filteredData.consultations]);
 
-  // --- 3. 性別分布データ作成 ---
+  // --- 3. 性別分布データ作成 --- (既存ロジック維持)
   const genderChartData = useMemo(() => {
     const genderCounts = {
       '男性': 0,
@@ -199,31 +216,28 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
     };
   }, [filteredData.consultations]);
 
-  // --- 4. 年齢分布データ作成（★ハイブリッド方式へ改修） ---
+  // --- 4. 年齢分布データ作成 --- (既存ロジック維持)
   const ageChartData = useMemo(() => {
     const ageGroups = new Array(10).fill(0); 
     const labels = ['0-9', '10代', '20代', '30代', '40代', '50代', '60代', '70代', '80代', '90以上'];
 
     filteredData.consultations.forEach(c => {
       let index = -1;
-
-      // A. まず生年月日からの年齢計算を試みる
       const age = calculateAge(c.birth_year, c.birth_month, c.birth_day);
       
       if (age !== null) {
         index = Math.min(Math.floor(age / 10), 9);
       } 
-      // B. 生年月日がない場合は、DB保存済みの年代(age_group)を参照する
       else if ((c as any).age_group) {
         const group = (c as any).age_group;
-        if (group === '20代未満') index = 1; // 10代枠へ
+        if (group === '20代未満') index = 1;
         else if (group === '20代') index = 2;
         else if (group === '30代') index = 3;
         else if (group === '40代') index = 4;
         else if (group === '50代') index = 5;
         else if (group === '60代') index = 6;
         else if (group === '70代') index = 7;
-        else if (group === '80代以上') index = 8; // 80代枠へ
+        else if (group === '80代以上') index = 8;
       }
 
       if (index !== -1) {
@@ -243,11 +257,41 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
     };
   }, [filteredData.consultations]);
 
-  // --- 5. 月別推移 ---
+  // --- 5. 月別推移（★期間拡張に対応） ---
   const monthlyChartData = useMemo(() => {
-    const monthCount = period === 'thisMonth' || period === 'lastMonth' ? 1 : (period === '3months' ? 3 : 6);
+    const now = new Date();
+    let monthCount = 0;
+
+    // A. 選択期間に応じた表示月数の決定
+    if (period === 'thisMonth' || period === 'lastMonth') {
+      monthCount = 1;
+    } else if (period === '3months') {
+      monthCount = 3;
+    } else if (period === '6months') {
+      monthCount = 6;
+    } else if (period === '1year') {
+      monthCount = 12;
+    } else if (period === 'all') {
+      // 全期間の場合、データ内の最古の日付を探して動的に計算
+      const dates = [
+        ...consultations.map(c => c.consultation_date ? new Date(c.consultation_date) : null),
+        ...users.map(u => u.registered_at ? new Date(u.registered_at) : null)
+      ].filter((d): d is Date => d !== null);
+
+      if (dates.length > 0) {
+        const earliestDate = minDate(dates);
+        // 最古の日から今月までの月数を算出 (+1は当月分)
+        monthCount = differenceInCalendarMonths(now, earliestDate) + 1;
+      } else {
+        monthCount = 6; // データがない場合のデフォルト
+      }
+    }
+
+    // B. 横軸ラベル(yyyy/MM)の生成
     const labels = Array.from({ length: monthCount }, (_, i) => {
-        const date = period === 'lastMonth' ? subMonths(new Date(), monthCount - i) : subMonths(new Date(), monthCount - 1 - i);
+        // 表示終了基準点
+        const baseDate = period === 'lastMonth' ? subMonths(now, 1) : now;
+        const date = subMonths(baseDate, monthCount - 1 - i);
         return format(date, 'yyyy/MM');
     });
 
@@ -259,13 +303,16 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
       userCounts[label] = 0;
     });
 
-    filteredData.consultations.forEach(c => {
-      const month = format(new Date(c.consultation_date!), 'yyyy/MM');
+    // フィルタリング済みではなく、全データからマッピング（グラフの連続性のため）
+    consultations.forEach(c => {
+      if (!c.consultation_date) return;
+      const month = format(new Date(c.consultation_date), 'yyyy/MM');
       if (consultationCounts[month] !== undefined) consultationCounts[month]++;
     });
 
-    filteredData.users.forEach(u => {
-      const month = format(new Date(u.registered_at!), 'yyyy/MM');
+    users.forEach(u => {
+      if (!u.registered_at) return;
+      const month = format(new Date(u.registered_at), 'yyyy/MM');
       if (userCounts[month] !== undefined) userCounts[month]++;
     });
 
@@ -291,7 +338,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
         },
       ],
     };
-  }, [filteredData, period]);
+  }, [consultations, users, period]); // 依存配列に元データを含める
   
   return (
     <div className="mt-12">
@@ -313,11 +360,14 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ consultations, 
                 <option value="lastMonth">先月</option>
                 <option value="3months">過去3ヶ月</option>
                 <option value="6months">過去6ヶ月</option>
+                <option value="1year">過去1年</option>
+                <option value="all">全期間</option>
             </select>
           </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* ... (既存のグラフ表示部分は変更なし) ... */}
         <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow flex flex-col">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">相談ルート分析</h3>
           <div className="flex-grow flex items-center justify-center min-h-0" style={{ height: '150px' }}>
