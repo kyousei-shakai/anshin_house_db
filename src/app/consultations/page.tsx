@@ -6,7 +6,7 @@ import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 100;
 
 export default async function ConsultationsPage() {
   
