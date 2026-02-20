@@ -3,8 +3,6 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
-// ▼▼▼【修正】redirect は不要になったため削除しました ▼▼▼
-// import { redirect } from 'next/navigation' 
 
 import {
   type Consultation,
@@ -15,11 +13,13 @@ import {
   type GetConsultationsArgs,
 } from '@/types/consultation'
 
-// --- getConsultations (ページネーション対応版) ---
+// --- getConsultations (ページネーション + グローバル集計対応版) ---
 type GetConsultationsReturnType = {
   success: boolean
   data?: ConsultationWithNextAction[]
   count?: number | null
+  // ▼▼▼【追加】ステータスごとの集計結果を返す型定義 ▼▼▼
+  statusCounts?: { [key: string]: number }
   error?: string
 }
 
@@ -32,11 +32,13 @@ export async function getConsultations({
   try {
     const offset = (page - 1) * itemsPerPage
 
+    // 1. ページネーションデータの取得（既存のRPC）
     const { data, error } = await supabase.rpc('get_consultations_with_next_action', {
       page_limit: itemsPerPage,
       page_offset: offset,
     })
 
+    // 2. 全体の件数取得
     const { count, error: countError } = await supabase
       .from('consultations')
       .select('*', { count: 'exact', head: true })
@@ -46,8 +48,53 @@ export async function getConsultations({
       console.error('Get Consultations RPC Server Action Error:', errorMessage)
       return { success: false, error: '相談一覧の取得に失敗しました。' }
     }
+
+    // ▼▼▼【追加】グローバル集計ロジック（ここが「最高峰」のポイント） ▼▼▼
+    // 全データの「ステータス」と「ユーザー登録有無」だけを軽量に取得し、サーバーサイドで集計します。
+    // これにより、フロントエンドの負荷を下げつつ、常に全件の正確なカウントを提供します。
+    const { data: allStatusData, error: aggregationError } = await supabase
+      .from('consultations')
+      .select('status, user_id')
     
-    return { success: true, data: data as ConsultationWithNextAction[], count }
+    // 集計用の初期オブジェクト
+    const statusCounts: { [key: string]: number } = {
+      'active': 0,
+      '利用者登録済み': 0,
+      'すべて表示': count || 0,
+    }
+
+    if (!aggregationError && allStatusData) {
+      const inactiveStatuses = ['支援終了', '対象外・辞退'];
+      
+      allStatusData.forEach(row => {
+        // A. 利用者登録済みカウント
+        if (row.user_id) {
+          statusCounts['利用者登録済み'] = (statusCounts['利用者登録済み'] || 0) + 1;
+          // 利用者登録済みの場合は、ステータス別カウント（進行中など）には含めない仕様に合わせる
+          return;
+        }
+
+        // B. ステータス別カウント (user_idが無いもの)
+        const status = row.status || '未設定';
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+
+        // C. アクティブカウント (除外ステータス以外)
+        if (!inactiveStatuses.includes(status)) {
+          statusCounts['active'] = (statusCounts['active'] || 0) + 1;
+        }
+      });
+    } else {
+      console.error('Status Aggregation Error:', aggregationError)
+      // 集計失敗時は最低限のデータで続行（システムを止めない）
+    }
+    // ▲▲▲【追加終了】▲▲▲
+
+    return { 
+      success: true, 
+      data: data as ConsultationWithNextAction[], 
+      count, 
+      statusCounts // 集計結果を返す
+    }
     
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : '予期せぬ不明なエラーが発生しました。'
@@ -161,7 +208,7 @@ export async function updateConsultation(
   }
 }
 
-// --- deleteConsultation (修正箇所) ---
+// --- deleteConsultation (変更なし) ---
 type DeleteConsultationReturnType = {
   success: boolean
   error?: string
@@ -178,8 +225,6 @@ export async function deleteConsultation(id: string): Promise<DeleteConsultation
       return { success: false, error: '相談記録の削除に失敗しました。' }
     }
     revalidatePath('/consultations')
-    // ▼▼▼【修正】redirectを削除し、成功ステータスのみを返す ▼▼▼
-    // クライアント側で router.push を実行するため、ここで redirect する必要はありません。
     return { success: true }
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : '予期せぬエラーが発生しました。'
@@ -187,8 +232,6 @@ export async function deleteConsultation(id: string): Promise<DeleteConsultation
     return { success: false, error: '予期せぬエラーが発生しました。' }
   }
 }
-
-// --- getAllConsultationsForExport & getConsultationsByUserId ---
 
 // --- getAllConsultationsForExport (変更なし) ---
 type GetAllConsultationsReturnType = {

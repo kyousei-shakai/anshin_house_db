@@ -52,13 +52,17 @@ const modalContentStyle: React.CSSProperties = {
 type ConsultationListProps = {
   initialConsultations: ConsultationWithNextAction[]
   staffs: Pick<Staff, 'id' | 'name'>[]
+  // ▼▼▼【追加】サーバーで集計された正確な件数を受け取る ▼▼▼
+  statusCounts: { [key: string]: number }
 }
 
 const ConsultationList: React.FC<ConsultationListProps> = ({
   initialConsultations,
-  staffs
+  staffs,
+  // ▼▼▼【追加】Propsから受け取る ▼▼▼
+  statusCounts
 }) => {
-  const [allConsultations, setAllConsultations] = useState<ConsultationWithNextAction[]>(initialConsultations);
+  // ステート管理を廃止し、Props（initialConsultations）を直接利用する設計を維持
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
@@ -73,7 +77,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
   const router = useRouter();
 
   const filteredConsultations = useMemo(() => {
-    let filtered = allConsultations;
+    let filtered = initialConsultations;
     if (activeFilter && activeFilter !== 'すべて表示') {
       if (activeFilter === '利用者登録済み') {
         filtered = filtered.filter(c => !!c.user_id);
@@ -110,7 +114,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
         if (consultation.medical_institution_name?.toLowerCase().includes(lowercasedFilter)) return true;
         if (consultation.medical_institution_staff?.toLowerCase().includes(lowercasedFilter)) return true;
 
-        // --- その他の情報（既存の検索範囲） ---
+        // --- その他の情報 ---
         if (consultation.staff_name?.toLowerCase().includes(lowercasedFilter)) return true;
         if (consultation.consultation_content?.toLowerCase().includes(lowercasedFilter)) return true;
         if (consultation.consultation_result?.toLowerCase().includes(lowercasedFilter)) return true;
@@ -130,25 +134,11 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
     }
 
     return filtered;
-  }, [allConsultations, activeFilter, searchTerm, dateFilter, staffFilter, showOnlyWithNextAction]);
+  }, [initialConsultations, activeFilter, searchTerm, dateFilter, staffFilter, showOnlyWithNextAction]);
 
-  const statusCounts = useMemo(() => {
-    const counts: { [key: string]: number } = {};
-    const defaultInactiveStatuses: string[] = ["支援終了", "対象外・辞退"];
-    counts['active'] = allConsultations.filter(c => !defaultInactiveStatuses.includes(c.status || '') && !c.user_id).length;
-    for (const filter of STATUS_FILTERS) {
-      if (filter === null) continue;
-      if (filter === 'すべて表示') {
-        counts[filter] = allConsultations.length;
-      } else if (filter === '利用者登録済み') {
-        counts[filter] = allConsultations.filter(c => !!c.user_id).length;
-      } else {
-        counts[filter] = allConsultations.filter(c => c.status === filter && !c.user_id).length;
-      }
-    }
-    return counts;
-  }, [allConsultations]);
-
+  // ▼▼▼【削除】以前のクライアントサイド集計ロジック（statusCountsのuseMemo）を削除しました ▼▼▼
+  // これにより、画面に表示されている100件だけでなく、DB全件の数が表示されるようになります。
+  
   const handleOpenModal = (consultation: ConsultationWithNextAction) => {
     setSelectedConsultation(consultation);
     setIsModalOpen(true);
@@ -227,6 +217,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
 
   if (loading) { return (<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>) }
   if (error) { return (<div className="bg-red-50 border border-red-200 rounded-lg p-4"><div className="text-red-500 text-sm">エラーが発生しました: {error}</div></div>) }
+
   return (
     <Fragment>
       <div className="space-y-6">
@@ -240,6 +231,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                     className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex items-center gap-x-2 ${activeFilter === filter ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-200 ring-1 ring-inset ring-gray-300'}`}>
                     {filter || 'アクティブ'}
                     <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${activeFilter === filter ? 'bg-blue-700 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                      {/* ▼▼▼ ここがサーバーからの正確な値になります ▼▼▼ */}
                       {statusCounts[filter || 'active'] ?? 0}
                     </span>
                   </button>
@@ -364,7 +356,6 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                       <div className="mt-1 flex items-center gap-x-2 text-xs leading-5 text-gray-500">
                         <p>相談日: {formatDate(consultation.consultation_date)}</p>
 
-                        {/* ★最高峰のヒント表示ロジック：生年月日優先、なければ年代 */}
                         {(age !== null || consultation.age_group) && (
                           <>
                             <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current"><circle cx={1} cy={1} r={1} /></svg>
