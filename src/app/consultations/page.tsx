@@ -1,16 +1,12 @@
 // src/app/consultations/page.tsx
 import { getConsultations } from '@/app/actions/consultations'
-// --- ▼ 追加 ▼ ---
 import { getStaffForSelection } from '@/app/actions/staff'
-// --- ▲ 追加 ▲ ---
 import ConsultationsClientPage from './ConsultationsClientPage'
 import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
-// --- ▼ 変更 ▼ ---
-const ITEMS_PER_PAGE = 100;
-// --- ▲ 変更 ▲ ---
+const ITEMS_PER_PAGE = 10;
 
 export default async function ConsultationsPage() {
   
@@ -19,7 +15,6 @@ export default async function ConsultationsPage() {
   const searchParams = new URL(url).searchParams
   const currentPage = Number(searchParams.get('page')) || 1
 
-  // --- ▼ 変更: スタッフ一覧も並行して取得 ▼ ---
   const [consultationsResult, staffsResult] = await Promise.all([
     getConsultations({
       page: currentPage,
@@ -28,25 +23,22 @@ export default async function ConsultationsPage() {
     getStaffForSelection(),
   ])
 
-  // ▼▼▼【型の修正】getConsultationsの返り値の型が変わったことを反映 ▼▼▼
-  const { data: consultations, count, error: fetchError } = consultationsResult
+  // ▼▼▼【修正】statusCounts を受け取る ▼▼▼
+  const { data: consultations, count, statusCounts, error: fetchError } = consultationsResult
   const { data: staffs, error: staffFetchError } = staffsResult
-  // --- ▲ 変更 ▲ ---
 
   const totalPages = Math.ceil((count || 0) / ITEMS_PER_PAGE);
 
-  // エラーハンドリングを統合
   const combinedError = fetchError || staffFetchError || null
 
   return (
     <ConsultationsClientPage
-      // ▼▼▼【型の修正】渡すデータの型が`ConsultationWithNextAction[]`に変わります ▼▼▼
       initialConsultations={consultations || []}
-      // --- ▼ 追加 ▼ ---
       staffs={staffs || []}
-      // --- ▲ 追加 ▲ ---
       totalPages={totalPages}
       currentPage={currentPage}
+      // ▼▼▼【追加】集計データをクライアントへ渡す（なければ空オブジェクト） ▼▼▼
+      statusCounts={statusCounts || {}}
       fetchError={combinedError}
     />
   )
