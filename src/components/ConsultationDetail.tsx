@@ -394,11 +394,11 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
         </DetailItem>
         <DetailItem label="収入">
           <div className="space-y-1">
-            {consultation.income_salary && <div>給与: {Number(consultation.income_salary).toLocaleString()}円</div>}
-            {consultation.income_injury_allowance && <div>傷病手当: {Number(consultation.income_injury_allowance).toLocaleString()}円</div>}
-            {consultation.income_pension && <div>年金振込額: {Number(consultation.income_pension).toLocaleString()}円</div>}
+            {consultation.income_salary && <div>給与（手取り/月額）: {Number(consultation.income_salary).toLocaleString()}円 / 月</div>}
+            {consultation.income_injury_allowance && <div>傷病手当（月額換算）: {Number(consultation.income_injury_allowance).toLocaleString()}円 / 月</div>}
+            {consultation.income_pension && <div>年金（1ヶ月分換算）: {Number(consultation.income_pension).toLocaleString()}円 / 月</div>}
             {consultation.welfare_recipient && <div>生活保護受給 {consultation.welfare_staff && ` (担当: ${consultation.welfare_staff})`}</div>}
-            {consultation.savings && <div>預金: {Number(consultation.savings).toLocaleString()}円</div>}
+            {consultation.savings && <div>預金（現在高）: {Number(consultation.savings).toLocaleString()}円</div>}
           </div>
         </DetailItem>
       </DetailSection>
