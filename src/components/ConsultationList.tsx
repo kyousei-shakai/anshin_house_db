@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, Fragment, useTransition } from 'react'
+import React, { useState, useMemo, Fragment, useTransition, useDeferredValue } from 'react'
 import { useRouter } from 'next/navigation'
 import { type ConsultationWithNextAction } from '@/types/consultation'
 import { type Database } from '@/types/database'
@@ -63,7 +63,11 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  
+  // 検索窓の入力を滑らかにするための対応
   const [searchTerm, setSearchTerm] = useState('')
+  const deferredSearchTerm = useDeferredValue(searchTerm);
+
   const [dateFilter, setDateFilter] = useState('')
   const [activeFilter, setActiveFilter] = useState<StatusFilter>(null);
   const [showOnlyWithNextAction, setShowOnlyWithNextAction] = useState(false);
@@ -90,13 +94,15 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
       filtered = filtered.filter(consultation => consultation.staff_id === staffFilter);
     }
 
-    if (searchTerm) {
-      const lowercasedFilter = searchTerm.toLowerCase();
+    if (deferredSearchTerm) {
+      const lowercasedFilter = deferredSearchTerm.toLowerCase();
       const filterWithoutHyphen = lowercasedFilter.replace(/-/g, '');
 
       filtered = filtered.filter(consultation => {
         // --- 相談者本人の情報 ---
         if (consultation.name?.toLowerCase().includes(lowercasedFilter)) return true;
+        // 【追加】フリガナを検索対象に含める
+        if (consultation.furigana?.toLowerCase().includes(lowercasedFilter)) return true;
         if (consultation.phone_home?.replace(/-/g, '').includes(filterWithoutHyphen)) return true;
         if (consultation.phone_mobile?.replace(/-/g, '').includes(filterWithoutHyphen)) return true;
         if (consultation.address?.toLowerCase().includes(lowercasedFilter)) return true;
@@ -131,7 +137,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
     }
 
     return filtered;
-  }, [initialConsultations, activeFilter, searchTerm, dateFilter, staffFilter, showOnlyWithNextAction]);
+  }, [initialConsultations, activeFilter, deferredSearchTerm, dateFilter, staffFilter, showOnlyWithNextAction]);
 
   const handleOpenModal = (consultation: ConsultationWithNextAction) => {
     setSelectedConsultation(consultation);
@@ -212,12 +218,11 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
   if (loading) { return (<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>) }
   if (error) { return (<div className="bg-red-50 border border-red-200 rounded-lg p-4"><div className="text-red-500 text-sm">エラーが発生しました: {error}</div></div>) }
 
-  const isThinking = isPending || navigatingId !== null;
+  const isThinking = isPending || navigatingId !== null || searchTerm !== deferredSearchTerm;
 
   return (
     <Fragment>
       <div className="space-y-6">
-        {/* フィルターセクション */}
         <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 shadow-sm">
           <div className="space-y-4">
             <div>
@@ -226,7 +231,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                 {STATUS_FILTERS.map(filter => (
                   <button key={filter || 'active'} 
                     onClick={() => startTransition(() => setActiveFilter(filter))}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center gap-x-2 ${activeFilter === filter ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-200 border border-gray-300'}`}>
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all flex items-center gap-x-2 ${activeFilter === filter ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-200 ring-1 ring-inset ring-gray-300'}`}>
                     {filter || 'アクティブ'}
                     <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${activeFilter === filter ? 'bg-blue-700 text-white' : 'bg-gray-200 text-gray-600'}`}>
                       {statusCounts[filter || 'active'] ?? 0}
@@ -266,10 +271,9 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
               <div>
                 <label htmlFor="search-term" className="block text-sm font-medium text-gray-700 mb-2">キーワード検索</label>
                 <div className="relative">
-                  {/* 【修正】打ち込み不具合の解消：onChangeをstartTransitionから外して即時反映させる */}
                   <input id="search-term" type="text" value={searchTerm} 
                     onChange={(e) => setSearchTerm(e.target.value)} 
-                    placeholder="氏名, 電話番号, 住所, 関連機関名など" className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                    placeholder="氏名, フリガナ, 電話番号, 住所など" className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500" />
                   {isPending && (
                     <div className="absolute right-3 top-2.5">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
@@ -298,11 +302,11 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
               </div>
             </div>
             <div className="flex items-center gap-x-4 w-full sm:w-auto justify-between sm:justify-end">
-              <div className="text-sm text-gray-600">{filteredConsultations.length} 件表示</div>
+              <div className="text-sm text-gray-600 font-medium whitespace-nowrap">{filteredConsultations.length} 件表示</div>
               
               <button 
                 onClick={() => startTransition(() => { setSearchTerm(''); setDateFilter(''); setActiveFilter(null); setShowOnlyWithNextAction(false); setStaffFilter(''); })} 
-                className="flex items-center gap-x-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 hover:border-blue-300 transition-all shadow-sm"
+                className="flex items-center gap-x-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-md text-sm font-bold text-gray-700 hover:bg-gray-50 hover:text-blue-600 hover:border-blue-300 transition-all shadow-sm active:scale-95"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -326,8 +330,8 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
           {filteredConsultations.length === 0 ? (
             <div className="bg-white border rounded-lg p-8 text-center">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" /></svg>
-              <h3 className="mt-2 text-sm font-semibold text-gray-900">{searchTerm || dateFilter || activeFilter !== null || showOnlyWithNextAction ? '該当する相談履歴が見つかりません' : '相談履歴はありません'}</h3>
-              <p className="mt-1 text-sm text-gray-500">{searchTerm || dateFilter || activeFilter !== null || showOnlyWithNextAction ? '検索条件を変更してください。' : '新しい相談を登録してください。'}</p>
+              <h3 className="mt-2 text-sm font-semibold text-gray-900">{deferredSearchTerm || dateFilter || activeFilter !== null || showOnlyWithNextAction ? '該当する相談履歴が見つかりません' : '相談履歴はありません'}</h3>
+              <p className="mt-1 text-sm text-gray-500">条件を変更して再度お試しください。</p>
             </div>
           ) : (
             <div className={`bg-white border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200 transition-opacity duration-200 ${isThinking ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
@@ -361,7 +365,12 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-x-3 flex-wrap">
                           <span className={`rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusColor}`}>{displayStatus}</span>
-                          <p className="text-sm font-semibold leading-6 text-gray-900">{consultation.name || '匿名'}</p>
+                          <div className="flex flex-col">
+                            {consultation.furigana && (
+                              <span className="text-[10px] text-gray-400 -mb-1">{consultation.furigana}</span>
+                            )}
+                            <p className="text-sm font-semibold leading-6 text-gray-900">{consultation.name || '匿名'}</p>
+                          </div>
                           <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
                             <svg className="w-3 h-3 opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                             {consultation.staff_name || '担当未定'}
@@ -381,7 +390,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                             </>
                           )}
                         </div>
-                        {consultation.consultation_content && (<p className="mt-2 text-sm text-gray-600 line-clamp-2">{consultation.consultation_content}</p>)}
+                        {consultation.consultation_content && (<p className="mt-2 text-sm text-gray-600 line-clamp-2 leading-relaxed">{consultation.consultation_content}</p>)}
 
                         {consultation.next_action_date && (
                           <div className={`mt-3 rounded-md border ${cardStyle}`}>
@@ -408,7 +417,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                             <button
                               onClick={() => handleOpenModal(consultation)}
                               type="button"
-                              className="w-full sm:w-auto inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                              className="w-full sm:w-auto inline-flex items-center justify-center gap-x-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
                             >
                               進捗を記録
                             </button>
@@ -417,7 +426,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                             <button
                               onClick={() => handleRegisterAsUser(consultation)}
                               type="button"
-                              className="w-full sm:w-auto inline-flex items-center justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 transition-colors"
+                              className="w-full sm:w-auto inline-flex items-center justify-center gap-x-2 rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 transition-colors"
                             >
                               利用者登録
                             </button>
