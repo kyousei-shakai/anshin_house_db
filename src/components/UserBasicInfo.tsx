@@ -38,7 +38,7 @@ const UserBasicInfo: React.FC<UserBasicInfoProps> = ({ user }) => {
       })
     }
   }
-  
+
   const InfoItem: React.FC<{ label: string; children: React.ReactNode; className?: string }> = ({ label, children, className }) => (
     <div className={className}>
       <p className="text-sm font-medium text-gray-500">{label}</p>
@@ -59,9 +59,9 @@ const UserBasicInfo: React.FC<UserBasicInfoProps> = ({ user }) => {
           <InfoItem label="氏名">{user.name}</InfoItem>
           <InfoItem label="生年月日">{formatDate(user.birth_date)}</InfoItem>
           <InfoItem label="性別">
-            {user.gender === 'male' ? '男性' : 
-             user.gender === 'female' ? '女性' : 
-             user.gender === 'other' ? 'その他' : '-'}
+            {user.gender === 'male' ? '男性' :
+              user.gender === 'female' ? '女性' :
+                user.gender === 'other' ? 'その他' : '-'}
           </InfoItem>
           {/* ★★★ user.age を計算した age に置き換え ★★★ */}
           <InfoItem label="年齢">{age != null ? `${age}歳` : '-'}</InfoItem>
@@ -71,14 +71,14 @@ const UserBasicInfo: React.FC<UserBasicInfoProps> = ({ user }) => {
       {/* 物件情報セクション */}
       <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
         <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold leading-7 text-gray-900">物件情報</h2>
-            <button
-                onClick={handleCopyAddress}
-                className="rounded bg-white px-2 py-1 text-xs font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
-                disabled={!fullAddress}
-                >
-                コピー
-            </button>
+          <h2 className="text-lg font-semibold leading-7 text-gray-900">物件情報</h2>
+          <button
+            onClick={handleCopyAddress}
+            className="rounded bg-white px-2 py-1 text-xs font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
+            disabled={!fullAddress}
+          >
+            コピー
+          </button>
         </div>
         <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-5">
           <InfoItem label="物件住所・部屋番号" className="col-span-2 md:col-span-3">{fullAddress}</InfoItem>
@@ -117,8 +117,17 @@ const UserBasicInfo: React.FC<UserBasicInfoProps> = ({ user }) => {
         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
           <InfoItem label="入居者連絡先">{user.resident_contact}</InfoItem>
           <InfoItem label="LINE利用可否">{formatBoolean(user.line_available)}</InfoItem>
-          <InfoItem label="緊急連絡先">{user.emergency_contact}</InfoItem>
+          {/* 視認性向上のため、緊急連絡先情報を整理して表示 */}
           <InfoItem label="緊急連絡先氏名">{user.emergency_contact_name}</InfoItem>
+
+          {/* ラベルをフォームと合わせて「緊急連絡先電話番号」に変更（データは emergency_contact を使用） */}
+          <InfoItem label="緊急連絡先電話番号">{user.emergency_contact}</InfoItem>
+
+          {/* ★ 追加: 緊急連絡先住所。住所は長くなる可能性があるため、col-span-2 で横幅を確保 */}
+          <InfoItem label="緊急連絡先住所" className="col-span-2">
+            {user.emergency_contact_address}
+          </InfoItem>
+
           <InfoItem label="続柄">{user.relationship}</InfoItem>
         </div>
       </div>
