@@ -56,6 +56,7 @@ type CreateUserReturnType = {
   data?: User
   error?: string
 }
+// --- createUser (この関数を現在のものと差し替えてください) ---
 export async function createUser(
   userData: Omit<UserInsert, 'uid'>,
   consultationId: string | null
@@ -64,9 +65,36 @@ export async function createUser(
 
   try {
     const newUID = await generateNewUID()
-    // 新規作成時はデフォルトで status='利用中' が入るが、明示的に含めても良い
-    const finalUserData: UserInsert = { ...userData, uid: newUID }
+    
+    // 最初に入力フォームからのデータをセット
+    let finalUserData: UserInsert = { ...userData, uid: newUID }
 
+    // 【追加ロジック】相談から利用者登録する場合、相談時の緊急連絡先情報を自動引き継ぎ
+    if (consultationId) {
+      // 該当する相談データを取得
+      const { data: consultation } = await supabase
+        .from('consultations')
+        .select('*')
+        .eq('id', consultationId)
+        .single()
+
+      if (consultation) {
+        // フォーム側が空の場合のみ、相談データの値を補完する
+        finalUserData = {
+          ...finalUserData,
+          // 緊急連絡先住所（今回の新規項目）
+          emergency_contact_address: userData.emergency_contact_address || consultation.emergency_contact_address,
+          // 緊急連絡先電話番号（携帯優先、なければ固定）
+          emergency_contact: userData.emergency_contact || consultation.emergency_contact_phone_mobile || consultation.emergency_contact_phone_home,
+          // 緊急連絡先氏名
+          emergency_contact_name: userData.emergency_contact_name || consultation.emergency_contact_name,
+          // 続柄
+          relationship: userData.relationship || consultation.emergency_contact_relationship,
+        }
+      }
+    }
+
+    // 補完されたデータでユーザーを作成
     const { data: newUser, error: userError } = await supabase
       .from('users')
       .insert(finalUserData)
@@ -81,10 +109,11 @@ export async function createUser(
       return { success: false, error: `利用者の作成に失敗しました: ${userError.message}` }
     }
 
+    // 相談データのステータスを更新し、user_idを紐付ける
     if (consultationId) {
       const { error: consultationError } = await supabase
         .from('consultations')
-        .update({ user_id: newUser.id, status: '利用者登録済み' }) // statusの型エラーが出る場合はキャストが必要だが、文字列リテラルならOK
+        .update({ user_id: newUser.id, status: '利用者登録済み' })
         .eq('id', consultationId)
 
       if (consultationError) {

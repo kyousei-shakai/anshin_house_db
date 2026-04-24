@@ -20,7 +20,7 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   const [formData, setFormData] = useState({
     name: '',
     birth_date: '',
@@ -44,6 +44,7 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
     line_available: false,
     emergency_contact: '',
     emergency_contact_name: '',
+    emergency_contact_address: '',
     relationship: '',
     monitoring_system: '',
     support_medical_institution: '',
@@ -82,6 +83,7 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
         line_available: user.line_available || false,
         emergency_contact: user.emergency_contact || '',
         emergency_contact_name: user.emergency_contact_name || '',
+        emergency_contact_address: user.emergency_contact_address || '',
         relationship: user.relationship || '',
         monitoring_system: user.monitoring_system || '',
         support_medical_institution: user.support_medical_institution || '',
@@ -95,8 +97,8 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
         end_date: user.end_date || '',
       })
     } else if (!editMode) {
-      setFormData(prev => ({ 
-        ...prev, 
+      setFormData(prev => ({
+        ...prev,
         registered_at: new Date().toISOString().split('T')[0],
         // ▼▼▼ 新規作成時の初期値は必ず「利用中」 ▼▼▼
         status: '利用中'
@@ -106,7 +108,7 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.name.trim()) {
       setError('氏名は必須です')
       return
@@ -114,7 +116,7 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
 
     setLoading(true)
     setError(null)
-      
+
     try {
       const userData = {
         name: formData.name.trim(),
@@ -139,6 +141,7 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
         line_available: formData.line_available,
         emergency_contact: formData.emergency_contact.trim() || null,
         emergency_contact_name: formData.emergency_contact_name.trim() || null,
+        emergency_contact_address: formData.emergency_contact_address.trim() || null, // 追加
         relationship: formData.relationship.trim() || null,
         monitoring_system: formData.monitoring_system.trim() || null,
         support_medical_institution: formData.support_medical_institution.trim() || null,
@@ -151,7 +154,7 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
         status: formData.status,
         end_date: formData.end_date || null, // 空文字の場合はnullを送信
       }
-      
+
       if (editMode && user) {
         const result = await updateUser(user.uid, userData);
         if (!result.success) {
@@ -201,50 +204,50 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        
+
         {/* ▼▼▼ ステータス管理セクション（目立つように上部に配置） ▼▼▼ */}
         <div className="bg-blue-50 border border-blue-100 rounded-lg p-6">
-           <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
-             <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded mr-2">必須</span>
-             ステータス管理
-           </h3>
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  現在の状態
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="利用中">利用中</option>
-                  <option value="逝去">逝去</option>
-                  <option value="解約">解約</option>
-                </select>
-              </div>
+          <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
+            <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded mr-2">必須</span>
+            ステータス管理
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                現在の状態
+              </label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="利用中">利用中</option>
+                <option value="逝去">逝去</option>
+                <option value="解約">解約</option>
+              </select>
+            </div>
 
-              {/* ステータスが「利用中」以外の時だけ動的に表示 */}
-              {formData.status !== '利用中' && (
-                <div className="md:col-span-2 animate-in fade-in slide-in-from-left-4 duration-300">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {formData.status === '逝去' ? '逝去日' : '解約日/終了日'} <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    name="end_date"
-                    value={formData.end_date}
-                    onChange={handleChange}
-                    required={true} // ← 修正: このブロック内では常に必須なので true に固定
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    ※ 一覧画面のフィルタリングや集計に使用されます。
-                  </p>
-                </div>
-              )}
-           </div>
+            {/* ステータスが「利用中」以外の時だけ動的に表示 */}
+            {formData.status !== '利用中' && (
+              <div className="md:col-span-2 animate-in fade-in slide-in-from-left-4 duration-300">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {formData.status === '逝去' ? '逝去日' : '解約日/終了日'} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  name="end_date"
+                  value={formData.end_date}
+                  onChange={handleChange}
+                  required={true} // ← 修正: このブロック内では常に必須なので true に固定
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  ※ 一覧画面のフィルタリングや集計に使用されます。
+                </p>
+              </div>
+            )}
+          </div>
         </div>
         {/* ▲▲▲ 追加ここまで ▲▲▲ */}
 
@@ -320,8 +323,21 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-gray-700 mb-1">入居者連絡先</label><input type="tel" name="resident_contact" value={formData.resident_contact} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
             <div className="pt-7"><label className="flex items-center"><input type="checkbox" name="line_available" checked={formData.line_available} onChange={handleChange} className="mr-2" /><span className="text-sm font-medium text-gray-700">LINE利用可能</span></label></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">緊急連絡先</label><input type="tel" name="emergency_contact" value={formData.emergency_contact} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">緊急連絡先氏名</label><input type="text" name="emergency_contact_name" value={formData.emergency_contact_name} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
+            <div><label className="block text-sm font-medium text-gray-700 mb-1">緊急連絡先 Tel</label><input type="tel" name="emergency_contact" value={formData.emergency_contact} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
+           {/* 緊急連絡先住所: 2列分使用して入力しやすくする */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">緊急連絡先住所</label>
+              <input 
+                type="text" 
+                name="emergency_contact_address" 
+                value={formData.emergency_contact_address} 
+                onChange={handleChange} 
+                placeholder="市区町村、番地、建物名など"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" 
+              />
+            </div>
+            {/* ▲▲▲ 追加ここまで ▲▲▲ */}
             <div><label className="block text-sm font-medium text-gray-700 mb-1">続柄</label><input type="text" name="relationship" value={formData.relationship} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
           </div>
         </div>
@@ -346,34 +362,34 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
 
         {/* システム情報 */}
         <div className="bg-gray-50 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">システム情報</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        登録日
-                    </label>
-                    <input
-                        type="date"
-                        name="registered_at"
-                        value={formData.registered_at}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
-                {editMode && (
-                  <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                          最終更新日時
-                      </label>
-                      <input 
-                          type="text" 
-                          value={user?.updated_at ? new Date(user.updated_at).toLocaleString('ja-JP') : '-'} 
-                          readOnly 
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-gray-100 focus:outline-none"
-                      />
-                  </div>
-                )}
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">システム情報</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                登録日
+              </label>
+              <input
+                type="date"
+                name="registered_at"
+                value={formData.registered_at}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
+            {editMode && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  最終更新日時
+                </label>
+                <input
+                  type="text"
+                  value={user?.updated_at ? new Date(user.updated_at).toLocaleString('ja-JP') : '-'}
+                  readOnly
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-gray-100 focus:outline-none"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* ボタン */}
