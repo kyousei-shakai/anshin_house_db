@@ -2,33 +2,37 @@
 import { getConsultations } from '@/app/actions/consultations'
 import { getStaffForSelection } from '@/app/actions/staff'
 import ConsultationsClientPage from './ConsultationsClientPage'
-import { headers } from 'next/headers'
+
+// Next.js App Router の標準的な型定義
+type PageProps = {
+  searchParams: { [key: string]: string | string[] | undefined }
+}
 
 export const dynamic = 'force-dynamic'
 
 const ITEMS_PER_PAGE = 100;
 
-export default async function ConsultationsPage() {
+// searchParams をプロップスとして直接受け取る形に修正（これが標準です）
+export default async function ConsultationsPage({ searchParams }: PageProps) {
   
-  const headersList = headers()
-  const url = headersList.get('x-url') || ''
-  const searchParams = new URL(url).searchParams
-  const currentPage = Number(searchParams.get('page')) || 1
+  // URLパラメータから直接値を取得
+  const currentPage = Number(searchParams.page) || 1
+  const searchTerm = (searchParams.q as string) || ''
 
+  // サーバーアクションの呼び出し
   const [consultationsResult, staffsResult] = await Promise.all([
     getConsultations({
       page: currentPage,
       itemsPerPage: ITEMS_PER_PAGE,
+      searchTerm: searchTerm, // ここでキーワードがバックエンドへ流れる
     }),
     getStaffForSelection(),
   ])
 
-  // ▼▼▼【修正】statusCounts を受け取る ▼▼▼
   const { data: consultations, count, statusCounts, error: fetchError } = consultationsResult
   const { data: staffs, error: staffFetchError } = staffsResult
 
   const totalPages = Math.ceil((count || 0) / ITEMS_PER_PAGE);
-
   const combinedError = fetchError || staffFetchError || null
 
   return (
@@ -37,7 +41,6 @@ export default async function ConsultationsPage() {
       staffs={staffs || []}
       totalPages={totalPages}
       currentPage={currentPage}
-      // ▼▼▼【追加】集計データをクライアントへ渡す（なければ空オブジェクト） ▼▼▼
       statusCounts={statusCounts || {}}
       fetchError={combinedError}
     />

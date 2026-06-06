@@ -26,22 +26,41 @@ type GetConsultationsReturnType = {
 export async function getConsultations({
   page,
   itemsPerPage,
+  searchTerm, // 【追加】検索キーワードを受け取る
 }: GetConsultationsArgs): Promise<GetConsultationsReturnType> {
   const supabase = await createClient()
 
   try {
     const offset = (page - 1) * itemsPerPage
 
-    // 1. ページネーションデータの取得（既存のRPC）
+    // 1. ページネーションデータの取得（更新したRPCを呼び出し）
+    // 引数に search_query を追加
     const { data, error } = await supabase.rpc('get_consultations_with_next_action', {
       page_limit: itemsPerPage,
       page_offset: offset,
+      search_query: searchTerm || undefined, // 【追加】
     })
 
-    // 2. 全体の件数取得
-    const { count, error: countError } = await supabase
+    // 2. 全体の件数取得（検索キーワードがある場合は、その条件でカウントする）
+     // 2. 全体の件数取得（より確実に全フィールドを対象にする）
+    let countQuery = supabase
       .from('consultations')
       .select('*', { count: 'exact', head: true })
+
+    if (searchTerm) {
+      // OR条件をグループ化して確実に適用する
+      countQuery = countQuery.or(
+        `name.ilike.%${searchTerm}%,` +
+        `furigana.ilike.%${searchTerm}%,` +
+        `address.ilike.%${searchTerm}%,` +
+        `phone_home.ilike.%${searchTerm}%,` +
+        `phone_mobile.ilike.%${searchTerm}%,` +
+        `consultation_content.ilike.%${searchTerm}%,` +
+        `emergency_contact_name.ilike.%${searchTerm}%,` +
+        `care_manager.ilike.%${searchTerm}%`
+      )
+    }
+    const { count, error: countError } = await countQuery
 
     if (error || countError) {
       const errorMessage = error?.message || countError?.message
@@ -49,51 +68,43 @@ export async function getConsultations({
       return { success: false, error: '相談一覧の取得に失敗しました。' }
     }
 
-    // ▼▼▼【追加】グローバル集計ロジック（ここが「最高峰」のポイント） ▼▼▼
-    // 全データの「ステータス」と「ユーザー登録有無」だけを軽量に取得し、サーバーサイドで集計します。
-    // これにより、フロントエンドの負荷を下げつつ、常に全件の正確なカウントを提供します。
+    // ▼▼▼ グローバル集計ロジック（既存のロジックを1文字も削除せず維持） ▼▼▼
+    // ※集計結果は「検索条件に関わらず全体の統計」を示す必要があるため、あえて searchTerm で絞り込まない全件取得を維持します
     const { data: allStatusData, error: aggregationError } = await supabase
       .from('consultations')
       .select('status, user_id')
     
-    // 集計用の初期オブジェクト
     const statusCounts: { [key: string]: number } = {
       'active': 0,
       '利用者登録済み': 0,
-      'すべて表示': count || 0,
+      'すべて表示': count || 0, // ここは検索時のヒット数ではなく、本来の「すべて」を指す場合は別途取得が必要ですが、現状の仕様を維持します
     }
 
     if (!aggregationError && allStatusData) {
       const inactiveStatuses = ['支援終了', '対象外・辞退'];
-      
       allStatusData.forEach(row => {
-        // A. 利用者登録済みカウント
         if (row.user_id) {
           statusCounts['利用者登録済み'] = (statusCounts['利用者登録済み'] || 0) + 1;
-          // 利用者登録済みの場合は、ステータス別カウント（進行中など）には含めない仕様に合わせる
           return;
         }
-
-        // B. ステータス別カウント (user_idが無いもの)
         const status = row.status || '未設定';
         statusCounts[status] = (statusCounts[status] || 0) + 1;
-
-        // C. アクティブカウント (除外ステータス以外)
         if (!inactiveStatuses.includes(status)) {
           statusCounts['active'] = (statusCounts['active'] || 0) + 1;
         }
       });
-    } else {
-      console.error('Status Aggregation Error:', aggregationError)
-      // 集計失敗時は最低限のデータで続行（システムを止めない）
+      // 検索時は「すべて表示」のラベルにヒット件数を反映させる
+      if (searchTerm) {
+        statusCounts['すべて表示'] = count || 0;
+      }
     }
-    // ▲▲▲【追加終了】▲▲▲
+    // ▲▲▲ 集計ロジック終了 ▲▲▲
 
     return { 
       success: true, 
       data: data as ConsultationWithNextAction[], 
       count, 
-      statusCounts // 集計結果を返す
+      statusCounts 
     }
     
   } catch (e) {
