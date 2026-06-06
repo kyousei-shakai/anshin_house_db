@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useMemo, Fragment, useTransition, useDeferredValue } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useMemo, Fragment, useTransition, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { type ConsultationWithNextAction } from '@/types/consultation'
 import { type Database } from '@/types/database'
 import { calculateAge } from '@/utils/date'
@@ -58,15 +58,15 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
   statusCounts
 }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition(); 
   const [navigatingId, setNavigatingId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  // 検索窓の入力を滑らかにするための対応
-  const [searchTerm, setSearchTerm] = useState('')
-  const deferredSearchTerm = useDeferredValue(searchTerm);
+  // 検索窓の状態管理（初期値はURLの'q'から取得）
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '')
 
   const [dateFilter, setDateFilter] = useState('')
   const [activeFilter, setActiveFilter] = useState<StatusFilter>(null);
@@ -77,6 +77,21 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
   const [selectedConsultation, setSelectedConsultation] = useState<ConsultationWithNextAction | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
+  // URL同期ロジック（デバウンス500ms）
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const currentQuery = params.get('q') || '';
+      if (searchTerm !== currentQuery) {
+        if (searchTerm) params.set('q', searchTerm);
+        else params.delete('q');
+        params.set('page', '1');
+        router.push(`/consultations?${params.toString()}`);
+      }
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchTerm, router]);
+
   const filteredConsultations = useMemo(() => {
     let filtered = initialConsultations;
     if (activeFilter && activeFilter !== 'すべて表示') {
@@ -86,46 +101,19 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
         filtered = filtered.filter(c => c.status === activeFilter && !c.user_id);
       }
     } else if (activeFilter === null) {
-      const inactiveStatuses: string[] = ["支援終了", "対象外・辞退"];
-      filtered = filtered.filter(c => !inactiveStatuses.includes(c.status || '') && !c.user_id);
+      // 検索キーワードがない時だけ「支援終了」「対象外・辞退」を除外する
+      if (!searchTerm) {
+        const inactiveStatuses: string[] = ["支援終了", "対象外・辞退"];
+        filtered = filtered.filter(c => !inactiveStatuses.includes(c.status || '') && !c.user_id);
+      }
     }
 
     if (staffFilter) {
       filtered = filtered.filter(consultation => consultation.staff_id === staffFilter);
     }
 
-    if (deferredSearchTerm) {
-      const lowercasedFilter = deferredSearchTerm.toLowerCase();
-      const filterWithoutHyphen = lowercasedFilter.replace(/-/g, '');
+    // --- キーワード検索はDB側で実施済みのデータが届くため、ここでは省略 ---
 
-      filtered = filtered.filter(consultation => {
-        // --- 相談者本人の情報 ---
-        if (consultation.name?.toLowerCase().includes(lowercasedFilter)) return true;
-        // 【追加】フリガナを検索対象に含める
-        if (consultation.furigana?.toLowerCase().includes(lowercasedFilter)) return true;
-        if (consultation.phone_home?.replace(/-/g, '').includes(filterWithoutHyphen)) return true;
-        if (consultation.phone_mobile?.replace(/-/g, '').includes(filterWithoutHyphen)) return true;
-        if (consultation.address?.toLowerCase().includes(lowercasedFilter)) return true;
-
-        // --- 緊急連絡先の情報 ---
-        if (consultation.emergency_contact_name?.toLowerCase().includes(lowercasedFilter)) return true;
-        if (consultation.emergency_contact_phone_home?.replace(/-/g, '').includes(filterWithoutHyphen)) return true;
-        if (consultation.emergency_contact_phone_mobile?.replace(/-/g, '').includes(filterWithoutHyphen)) return true;
-
-        // --- 関連機関の情報 ---
-        if (consultation.care_manager?.toLowerCase().includes(lowercasedFilter)) return true;
-        if (consultation.medical_institution_name?.toLowerCase().includes(lowercasedFilter)) return true;
-        if (consultation.medical_institution_staff?.toLowerCase().includes(lowercasedFilter)) return true;
-
-        // --- その他の情報 ---
-        if (consultation.staff_name?.toLowerCase().includes(lowercasedFilter)) return true;
-        if (consultation.consultation_content?.toLowerCase().includes(lowercasedFilter)) return true;
-        if (consultation.consultation_result?.toLowerCase().includes(lowercasedFilter)) return true;
-        if (consultation.id.toLowerCase().includes(lowercasedFilter)) return true;
-
-        return false;
-      });
-    }
     if (dateFilter) {
       filtered = filtered.filter(consultation =>
         consultation.consultation_date && consultation.consultation_date.startsWith(dateFilter)
@@ -137,7 +125,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
     }
 
     return filtered;
-  }, [initialConsultations, activeFilter, deferredSearchTerm, dateFilter, staffFilter, showOnlyWithNextAction]);
+  }, [initialConsultations, activeFilter, dateFilter, staffFilter, showOnlyWithNextAction, searchTerm]);
 
   const handleOpenModal = (consultation: ConsultationWithNextAction) => {
     setSelectedConsultation(consultation);
@@ -218,7 +206,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
   if (loading) { return (<div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>) }
   if (error) { return (<div className="bg-red-50 border border-red-200 rounded-lg p-4"><div className="text-red-500 text-sm">エラーが発生しました: {error}</div></div>) }
 
-  const isThinking = isPending || navigatingId !== null || searchTerm !== deferredSearchTerm;
+  const isThinking = isPending || navigatingId !== null;
 
   return (
     <Fragment>
@@ -274,7 +262,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
                   <input id="search-term" type="text" value={searchTerm} 
                     onChange={(e) => setSearchTerm(e.target.value)} 
                     placeholder="氏名, フリガナ, 電話番号, 住所など" className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500" />
-                  {isPending && (
+                  {isThinking && (
                     <div className="absolute right-3 top-2.5">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                     </div>
@@ -330,7 +318,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
           {filteredConsultations.length === 0 ? (
             <div className="bg-white border rounded-lg p-8 text-center">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" /></svg>
-              <h3 className="mt-2 text-sm font-semibold text-gray-900">{deferredSearchTerm || dateFilter || activeFilter !== null || showOnlyWithNextAction ? '該当する相談履歴が見つかりません' : '相談履歴はありません'}</h3>
+              <h3 className="mt-2 text-sm font-semibold text-gray-900">{searchTerm || dateFilter || activeFilter !== null || showOnlyWithNextAction ? '該当する相談履歴が見つかりません' : '相談履歴はありません'}</h3>
               <p className="mt-1 text-sm text-gray-500">条件を変更して再度お試しください。</p>
             </div>
           ) : (
