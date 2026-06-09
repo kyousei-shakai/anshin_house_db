@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Allow anyone to update consultations TEMPORARY" ON public.consultations;
