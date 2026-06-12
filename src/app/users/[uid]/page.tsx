@@ -8,6 +8,8 @@ import { getUserByUid } from '@/app/actions/users'
 import { getConsultationsByUserId } from '@/app/actions/consultations'
 import { getSupportPlansByUserId } from '@/app/actions/supportPlans'
 import { headers } from 'next/headers'
+// ▼▼▼ 【追加】新しく作ったタブコンポーネントをインポート ▼▼▼
+import SupportRecordTab from '@/components/support/SupportRecordTab'
 
 export const dynamic = 'force-dynamic'
 
@@ -74,6 +76,7 @@ export default async function UserDetailPage() {
           user={user} 
           consultations={consultations} 
           supportPlans={supportPlans} 
+          supportRecordTab={<SupportRecordTab userId={user.id} />}
         />
       </div>
     </Layout>

@@ -15,7 +15,8 @@ import {
   MessageSquareText,
   FileHeart,
   Users,
-  Settings,
+  Settings, // カテゴリ設定に使用
+  Database, // データ管理に使用
   BookOpen
 } from 'lucide-react'
 
@@ -62,15 +63,23 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
     },
     { 
       href: "/users", 
-      label: "利用者一覧", 
+      label: "利用者名簿", // 文言を「一覧」から「名簿」に微調整（プロ感）
       icon: Users,
       activeColorClass: "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300",
       iconColorClass: "text-emerald-600"
     },
+    // ▼▼▼ 【追加】支援カテゴリ設定（独立したマスタ管理） ▼▼▼
+    { 
+      href: "/settings/categories", 
+      label: "支援カテゴリ", 
+      icon: Settings,
+      activeColorClass: "bg-slate-200 text-slate-800 ring-1 ring-slate-400",
+      iconColorClass: "text-slate-600"
+    },
     { 
       href: "/data-management", 
       label: "データ管理", 
-      icon: Settings,
+      icon: Database, // SettingsからDatabaseアイコンに変更して明確化
       activeColorClass: "bg-slate-200 text-slate-800 ring-1 ring-slate-400",
       iconColorClass: "text-slate-600"
     },
@@ -83,7 +92,7 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
       isExternal: true
     },
   ];
-
+  
   const isActive = (href: string) => {
     if (href.startsWith("http")) return false;
     if (href === "/") return pathname === href;
