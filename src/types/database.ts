@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -589,6 +594,64 @@ export type Database = {
           },
         ]
       }
+      daily_support_logs: {
+        Row: {
+          category_id: string
+          category_name_snapshot: string
+          content: string
+          created_at: string
+          id: string
+          organization_id: string | null
+          performed_by_staff_id: string
+          support_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          category_name_snapshot: string
+          content: string
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          performed_by_staff_id: string
+          support_at: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          category_name_snapshot?: string
+          content?: string
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          performed_by_staff_id?: string
+          support_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_support_logs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "support_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_support_logs_staff_id_fkey"
+            columns: ["performed_by_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_support_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff: {
         Row: {
           created_at: string
@@ -613,6 +676,33 @@ export type Database = {
           name?: string
           role?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      support_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string | null
         }
         Relationships: []
       }
@@ -805,6 +895,70 @@ export type Database = {
           },
         ]
       }
+      support_tasks: {
+        Row: {
+          assigned_staff_id: string
+          category_id: string
+          category_name_snapshot: string
+          completed_at: string | null
+          content: string
+          created_at: string
+          id: string
+          organization_id: string | null
+          scheduled_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          assigned_staff_id: string
+          category_id: string
+          category_name_snapshot: string
+          completed_at?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          scheduled_at: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          assigned_staff_id?: string
+          category_id?: string
+          category_name_snapshot?: string
+          completed_at?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          scheduled_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tasks_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "support_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tasks_staff_id_fkey"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tasks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           birth_date: string | null
@@ -933,6 +1087,23 @@ export type Database = {
       calculate_age: {
         Args: { birth_day: number; birth_month: number; birth_year: number }
         Returns: number
+      }
+      complete_support_task: { Args: { p_task_id: string }; Returns: undefined }
+      get_all_upcoming_tasks: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          category_name: string
+          content: string
+          elapsed_days: number
+          has_no_log: boolean
+          is_overdue: boolean
+          scheduled_at: string
+          staff_name: string
+          task_id: string
+          user_id: string
+          user_name: string
+          user_uid: string
+        }[]
       }
       get_consultations_with_next_action: {
         Args: { page_limit: number; page_offset: number; search_query?: string }
@@ -1101,6 +1272,63 @@ export type Database = {
           welfare_staff: string
         }[]
       }
+      get_team_recent_history: {
+        Args: { p_limit?: number }
+        Returns: {
+          category_name: string
+          content: string
+          log_id: string
+          staff_name: string
+          support_at: string
+          user_id: string
+          user_name: string
+          user_uid: string
+        }[]
+      }
+      get_user_care_dashboard: {
+        Args: never
+        Returns: {
+          elapsed_days: number
+          has_no_log: boolean
+          is_neglected: boolean
+          is_overdue: boolean
+          last_category_name: string
+          last_staff_name: string
+          last_support_at: string
+          next_category_name: string
+          next_scheduled_at: string
+          next_staff_name: string
+          next_task_content: string
+          user_id: string
+          user_name: string
+          user_uid: string
+        }[]
+      }
+      get_user_recent_history: {
+        Args: { p_user_id: string }
+        Returns: {
+          category_name: string
+          content: string
+          log_id: string
+          staff_name: string
+          support_at: string
+        }[]
+      }
+      save_support_log_with_task: {
+        Args: {
+          p_content: string
+          p_log_category_id: string
+          p_organization_id?: string
+          p_performed_by_staff_id: string
+          p_support_date: string
+          p_task_assigned_staff_id?: string
+          p_task_category_id?: string
+          p_task_content?: string
+          p_task_scheduled_at?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       consultation_status:
@@ -1257,4 +1485,3 @@ export const Constants = {
     },
   },
 } as const
-
