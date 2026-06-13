@@ -594,6 +594,39 @@ export type Database = {
           },
         ]
       }
+      daily_support_log_sub_categories: {
+        Row: {
+          category_id: string
+          category_name_snapshot: string
+          log_id: string
+        }
+        Insert: {
+          category_id: string
+          category_name_snapshot: string
+          log_id: string
+        }
+        Update: {
+          category_id?: string
+          category_name_snapshot?: string
+          log_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_support_log_sub_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "support_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_support_log_sub_categories_log_id_fkey"
+            columns: ["log_id"]
+            isOneToOne: false
+            referencedRelation: "daily_support_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_support_logs: {
         Row: {
           category_id: string
@@ -891,6 +924,39 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_task_sub_categories: {
+        Row: {
+          category_id: string
+          category_name_snapshot: string
+          task_id: string
+        }
+        Insert: {
+          category_id: string
+          category_name_snapshot: string
+          task_id: string
+        }
+        Update: {
+          category_id?: string
+          category_name_snapshot?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_task_sub_categories_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "support_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_task_sub_categories_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "support_tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -1314,21 +1380,39 @@ export type Database = {
           support_at: string
         }[]
       }
-      save_support_log_with_task: {
-        Args: {
-          p_content: string
-          p_log_category_id: string
-          p_organization_id?: string
-          p_performed_by_staff_id: string
-          p_support_date: string
-          p_task_assigned_staff_id?: string
-          p_task_category_id?: string
-          p_task_content?: string
-          p_task_scheduled_at?: string
-          p_user_id: string
-        }
-        Returns: Json
-      }
+      save_support_log_with_task:
+        | {
+            Args: {
+              p_content: string
+              p_log_category_id: string
+              p_log_sub_category_ids?: string[]
+              p_organization_id?: string
+              p_performed_by_staff_id: string
+              p_support_date: string
+              p_task_assigned_staff_id?: string
+              p_task_category_id?: string
+              p_task_content?: string
+              p_task_scheduled_at?: string
+              p_task_sub_category_ids?: string[]
+              p_user_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_content: string
+              p_log_category_id: string
+              p_organization_id?: string
+              p_performed_by_staff_id: string
+              p_support_date: string
+              p_task_assigned_staff_id?: string
+              p_task_category_id?: string
+              p_task_content?: string
+              p_task_scheduled_at?: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
     }
     Enums: {
       consultation_status:

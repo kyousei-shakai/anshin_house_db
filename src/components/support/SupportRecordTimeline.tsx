@@ -30,7 +30,7 @@ export default function SupportRecordTimeline({ logs }: Props) {
       <ul role="list" className="space-y-0">
         {logs.map((log, logIdx) => (
           <li key={log.id} className="relative group">
-            {/* 縦線（より細く、薄く） */}
+            {/* 縦線 */}
             {logIdx !== logs.length - 1 && (
               <span className="absolute left-[15px] top-8 -ml-px h-full w-[1px] bg-gray-200" aria-hidden="true" />
             )}
@@ -42,22 +42,35 @@ export default function SupportRecordTimeline({ logs }: Props) {
               </div>
               
               <div className="flex-1 min-w-0 pt-0.5">
-                <div className="flex items-center gap-x-3 mb-2 flex-wrap">
+                <div className="flex items-center gap-x-3 mb-2 flex-wrap gap-y-2">
                   <time className="text-sm font-bold text-gray-900">
                     {formatDateTime(log.support_at)}
                   </time>
-                  <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-0.5 text-[11px] font-bold text-gray-600 border border-gray-200">
+                  
+                  {/* 主カテゴリー */}
+                  <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-0.5 text-[11px] font-bold text-gray-600 border border-gray-200 shadow-sm">
                     {log.category_name_snapshot}
                   </span>
+
+                  {/* ★追加: 副次カテゴリーの表示 */}
+                  {log.sub_categories && log.sub_categories.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {log.sub_categories.map((sub) => (
+                        <span 
+                          key={sub.category_id}
+                          className="inline-flex items-center rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-gray-400 border border-gray-100"
+                        >
+                          {sub.category_name_snapshot}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                   <span className="text-[11px] text-gray-400 ml-auto">
                     担当: {log.staff?.name || '不明'}
                   </span>
                 </div>
                 
-                {/* 
-                   ★ 修正：枠線を無くしました
-                   - bg-white p-4 などを削除し、余白とフォント設定で読みやすさを確保
-                */}
                 <div className="text-base text-gray-700 leading-relaxed pl-1 whitespace-pre-wrap">
                   {log.content}
                 </div>
