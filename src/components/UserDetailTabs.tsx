@@ -1,8 +1,9 @@
 // src/components/UserDetailTabs.tsx
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { deleteUser } from '@/app/actions/users'
 import { Database } from '@/types/database'
 import UserBasicInfo from './UserBasicInfo'
@@ -12,6 +13,17 @@ import UserSupportPlans from './UserSupportPlans'
 type UserRow = Database['public']['Tables']['users']['Row']
 type Consultation = Database['public']['Tables']['consultations']['Row']
 type SupportPlan = Database['public']['Tables']['support_plans']['Row']
+
+// ★ 改善：tabs の定義をコンポーネントの「外」に移動しました。
+// これによりビルド時の Warning (dependency missing) が根本から消えます。
+const tabs = [
+  { id: 'basic', label: '基本情報' },
+  { id: 'support-records', label: '生活支援記録' },
+  { id: 'consultations', label: '相談履歴' },
+  { id: 'support-plans', label: '支援計画' }
+] as const
+
+type TabId = typeof tabs[number]['id']
 
 interface UserDetailTabsProps {
   user: UserRow
@@ -26,7 +38,23 @@ const UserDetailTabs: React.FC<UserDetailTabsProps> = ({
   supportPlans,
   supportRecordTab
 }) => {
-  const [activeTab, setActiveTab] = useState<'basic' | 'support-records' | 'consultations' | 'support-plans'>('basic')
+  const searchParams = useSearchParams()
+  const targetTab = searchParams.get('tab')
+
+  // 初期タブの決定ロジック
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    const isValidTab = (id: any): id is TabId => tabs.some(t => t.id === id)
+    return isValidTab(targetTab) ? targetTab : 'basic'
+  })
+
+  // URLパラメータの変化に連動
+  useEffect(() => {
+    const isValidTab = (id: any): id is TabId => tabs.some(t => t.id === id)
+    if (isValidTab(targetTab)) {
+      setActiveTab(targetTab)
+    }
+  }, [targetTab]) // 外に出したため、依存配列に tabs を含める必要がなくなりました
+
   const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDelete = async () => {
@@ -44,17 +72,9 @@ const UserDetailTabs: React.FC<UserDetailTabsProps> = ({
     }
   }
 
-  // ★ 究極のシンプル：IDとラベルのみ
-  const tabs = [
-    { id: 'basic', label: '基本情報' },
-    { id: 'support-records', label: '生活支援記録' },
-    { id: 'consultations', label: '相談履歴' },
-    { id: 'support-plans', label: '支援計画' }
-  ] as const
-
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      {/* ヘッダー：プロフェッショナルな無彩色設計 */}
+      {/* ヘッダー */}
       <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/50">
         <div className="flex items-center justify-between">
           <div>
@@ -62,13 +82,13 @@ const UserDetailTabs: React.FC<UserDetailTabsProps> = ({
             <p className="text-[11px] text-gray-500 font-mono mt-0.5 uppercase tracking-widest">ID: {user.uid}</p>
           </div>
           <div className="flex items-center gap-3">
-            <Link href={`/users/${user.uid}/edit`} className="bg-white border border-gray-300 text-gray-700 px-4 py-1.5 rounded text-xs font-bold hover:bg-gray-50 transition-all">編集</Link>
+            <Link href={`/users/${user.uid}/edit`} className="bg-white border border-gray-300 text-gray-700 px-4 py-1.5 rounded text-xs font-bold hover:bg-gray-50 transition-all shadow-sm">編集</Link>
             <button onClick={handleDelete} disabled={isDeleting} type="button" className="text-gray-400 hover:text-red-600 text-xs font-medium px-2 py-1 transition-colors">削除</button>
           </div>
         </div>
       </div>
 
-      {/* タブナビゲーション：テキストのみ */}
+      {/* タブナビゲーション */}
       <div className="border-b border-gray-200 px-6 bg-white">
         <nav className="flex space-x-10" aria-label="Tabs">
           {tabs.map((tab) => (
