@@ -26,7 +26,8 @@ export default async function DataManagementPage() {
   ]);
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto">
+      {/* ★ 修正: 黄金のコンテナ・ルールを適用し、パンくずの開始位置を統一 */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <nav className="flex" aria-label="Breadcrumb">
             <ol className="inline-flex items-center space-x-1 md:space-x-3">
@@ -47,7 +48,8 @@ export default async function DataManagementPage() {
           </nav>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        {/* ★ 修正: 枠を画面端まで広げ(-mx-4)、内側余白を標準化(p-4 sm:p-6) */}
+        <div className="bg-white -mx-4 sm:mx-0 border-y sm:border border-gray-200 sm:rounded-lg sm:shadow-md p-4 sm:p-6">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">データ管理</h1>
             <p className="text-gray-600">
@@ -55,7 +57,7 @@ export default async function DataManagementPage() {
             </p>
           </div>
 
-           {/* ▼▼▼ 取得したデータをpropsで渡す ▼▼▼ */}
+           {/* ▼▼▼ 取得したデータをpropsで渡す (既存維持) ▼▼▼ */}
           <DataManagement
             initialUsers={usersResult.data || []}
             initialConsultations={consultationsResult.data || []}

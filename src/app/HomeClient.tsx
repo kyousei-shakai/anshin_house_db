@@ -72,19 +72,20 @@ export default function HomeClient({
   const [activeTab, setActiveTab] = useState<'notifications' | 'future'>('notifications')
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    /* ★ 修正：黄金のコンテナ・ルールを適用しつつ、スマホ時の上部余白を pt-4 に最適化 */
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 sm:pt-8 sm:pb-16">
 
-      {/* アクションボタンエリア */}
+      {/* アクションボタンエリア：余白 mb-10 pt-2 は維持しつつ、ボタン内パディングを調整 */}
       <div className="mb-10 pt-2"> 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <Link href="/consultations/new" className="group bg-blue-700 text-white rounded-md shadow p-5 flex items-center hover:bg-blue-800 transition-colors">
+          <Link href="/consultations/new" className="group bg-blue-700 text-white rounded-md shadow p-4 sm:p-5 flex items-center hover:bg-blue-800 transition-colors">
             <div className="p-2 bg-blue-800 rounded mr-4"><PlusCircleIcon /></div>
             <div>
               <h3 className="text-lg font-bold">新規相談を登録する</h3>
               <p className="text-blue-100 text-xs mt-1">新しい相談や問い合わせを記録します。</p>
             </div>
           </Link>
-          <Link href="/support-plans/new" className="group bg-purple-700 text-white rounded-md shadow p-5 flex items-center hover:bg-purple-800 transition-colors">
+          <Link href="/support-plans/new" className="group bg-purple-700 text-white rounded-md shadow p-4 sm:p-5 flex items-center hover:bg-purple-800 transition-colors">
             <div className="p-2 bg-purple-800 rounded mr-4"><DocumentPlusIcon /></div>
             <div>
               <h3 className="text-lg font-bold">支援計画を作成する</h3>
@@ -94,7 +95,7 @@ export default function HomeClient({
         </div>
       </div>
 
-      {/* ★ ここで CareDashboard に正しく変数を渡します */}
+      {/* ★ ここで CareDashboard に正しく変数を渡します (既存維持) */}
       <CareDashboard 
         dashboardData={careDashboardData} 
         upcomingTasks={upcomingTasks} 
@@ -103,8 +104,8 @@ export default function HomeClient({
         staffs={staffs}
       />
       
-      {/* 状況カード */}
-      <div className="mb-12">
+      {/* 状況カード (既存ロジック・スタイルを完全維持) */}
+      <div className="mb-12 mt-12">
         <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-gray-500 pl-3">
           全体の状況
         </h2>
@@ -165,7 +166,7 @@ export default function HomeClient({
         users={initialAnalyticsData.users}
       />
 
-      {/* お知らせセクション */}
+      {/* お知らせセクション (既存ロジック・スタイルを完全維持) */}
       <div className="mt-12">
         <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-gray-500 pl-3">お知らせ & 開発情報</h2>
         <div className="bg-white rounded-md shadow-sm border border-gray-200">

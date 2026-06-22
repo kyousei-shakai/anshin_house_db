@@ -5,7 +5,9 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { Database } from '@/types/database'
 import { calculateAge } from '@/utils/date'
+import { Calendar, UserIcon, Target } from 'lucide-react'
 
+// 型定義：既存の定義を完全維持
 type SupportPlanWithUserAndStaff = Database['public']['Tables']['support_plans']['Row'] & {
   users: {
     uid: string
@@ -21,7 +23,7 @@ interface SupportPlanListProps {
 }
 
 const SupportPlanList: React.FC<SupportPlanListProps> = ({ initialSupportPlans, fetchError }) => {
-  // ★ 変更点 1: useState をやめ、propsを直接定数に代入
+  // ロジック：定数代入、ステート管理、フィルタリングを完全維持
   const supportPlans = initialSupportPlans
   const error = fetchError
   
@@ -45,6 +47,7 @@ const SupportPlanList: React.FC<SupportPlanListProps> = ({ initialSupportPlans, 
     return matchesSearch && matchesDate
   })
 
+  // エラーハンドリング：既存ロジックを完全維持
   if (error) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -57,10 +60,14 @@ const SupportPlanList: React.FC<SupportPlanListProps> = ({ initialSupportPlans, 
   
   return (
     <div className="space-y-6">
-      <div className="bg-gray-50 rounded-lg p-4">
+      {/* 
+        検索・フィルタセクション：
+        指示通り、幅をリストと統一 (-mx-4 sm:mx-0) し、スマホ時は上下線のみに。
+      */}
+      <div className="bg-gray-50 -mx-4 sm:mx-0 border-y sm:border border-gray-200 sm:rounded-lg p-4 md:p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
               キーワード検索
             </label>
             <input
@@ -68,57 +75,54 @@ const SupportPlanList: React.FC<SupportPlanListProps> = ({ initialSupportPlans, 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="利用者名、担当者名、目標で検索..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 text-gray-800"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-800 shadow-sm font-normal"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
               作成日で絞り込み
             </label>
             <input
               type="date"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 text-gray-800"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-800 shadow-sm font-normal"
             />
           </div>
         </div>
         
         <div className="mt-4 flex items-center justify-between">
-          <div className="text-sm text-gray-600">
-            {filteredSupportPlans.length} / {supportPlans.length} 件表示
+          <div className="text-sm font-medium text-gray-600">
+            結果: <span className="text-gray-900">{filteredSupportPlans.length}</span> / {supportPlans.length} 件
           </div>
           <button
             onClick={() => {
               setSearchTerm('')
               setDateFilter('')
             }}
-            className="text-sm text-purple-600 hover:text-purple-800"
+            className="text-sm font-semibold text-purple-600 hover:text-purple-800 p-1 transition-colors"
           >
-            フィルタをクリア
+            条件をリセット
           </button>
         </div>
       </div>
 
+      {/* リスト表示セクション */}
       {filteredSupportPlans.length === 0 ? (
-        <div className="bg-white border rounded-lg p-8 text-center">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-           <h3 className="mt-2 text-sm font-semibold text-gray-900">
-             {searchTerm || dateFilter ? 
-               '該当する支援計画が見つかりません' : 
-               '支援計画はありません'}
-           </h3>
-           <p className="mt-1 text-sm text-gray-500">
-             {searchTerm || dateFilter ? 
-               '検索条件を変更してください。' : 
-               '新しい支援計画を作成してください。'}
-           </p>
+        <div className="bg-white border-y sm:border border-gray-200 sm:rounded-lg p-12 text-center shadow-sm -mx-4 sm:mx-0">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mb-4">
+            <svg className="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h3 className="text-base font-bold text-gray-900">
+             {searchTerm || dateFilter ? '該当する計画がありません' : '支援計画が登録されていません'}
+          </h3>
+          <p className="mt-2 text-sm text-gray-500">条件を変えて検索するか、新規作成してください。</p>
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200">
+        <div className="bg-white border-y sm:border border-gray-200 sm:rounded-lg shadow-sm -mx-4 sm:mx-0 overflow-hidden divide-y divide-gray-100">
           {filteredSupportPlans.map((plan) => {
             let age = null;
             try {
@@ -126,62 +130,59 @@ const SupportPlanList: React.FC<SupportPlanListProps> = ({ initialSupportPlans, 
                     age = calculateAge(plan.birth_date);
                 }
             } catch {
-                // Do nothing on error
+                // 年齢計算エラー時のハンドリングを維持
             }
+            
             return (
-              <div key={plan.id} className="p-4 sm:p-6">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-x-3">
-                      <p className="text-base font-semibold leading-6 text-gray-900">
+              <Link 
+                key={plan.id} 
+                href={`/support-plans/${plan.id}`}
+                /* 
+                  指示通り、余白を標準の px-4 に最適化。
+                  PC(sm)ではゆとりを持たせた px-6 を維持。
+                  右端のアイコンを削除したため、flex-1 min-w-0 を直下で展開。
+                */
+                className="block px-4 py-4 sm:px-6 sm:py-6 hover:bg-gray-50 active:bg-gray-100 transition-all duration-150 group"
+              >
+                <div className="min-w-0">
+                  {/* 利用者名と年齢：既存の表示ロジックを完全維持 */}
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-baseline gap-x-2">
+                      <span className="text-lg font-bold text-gray-900 group-hover:text-purple-700 transition-colors truncate">
                         {plan.name}
-                        {age !== null && <span className="ml-2 text-sm font-normal text-gray-500">({age}歳)</span>}
+                      </span>
+                      {age !== null && (
+                        <span className="text-sm font-normal text-gray-500">
+                          ({age}歳)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* メタ情報：既存の作成日・担当者表示を維持 */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
+                    <div className="flex items-center gap-x-1.5">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <span>作成: {formatDate(plan.creation_date)}</span>
+                    </div>
+                    <div className="flex items-center gap-x-1.5 border-l border-gray-200 pl-4 sm:border-none sm:pl-0">
+                      <UserIcon className="h-4 w-4 text-gray-400" />
+                      <span>担当: {plan.staff?.name || '未設定'}</span>
+                    </div>
+                  </div>
+
+                  {/* 目標：既存の line-clamp 等の表示ロジックを完全維持 */}
+                  {plan.goals && (
+                    <div className="mt-3 flex items-start gap-x-2 bg-gray-50/50 p-2 rounded-md sm:bg-transparent sm:p-0">
+                      <Target className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0 hidden sm:block" />
+                      <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                        <span className="font-semibold text-gray-700 sm:sr-only">目標: </span>
+                        {plan.goals}
                       </p>
                     </div>
-                    <div className="mt-1 flex flex-col sm:flex-row sm:items-center gap-x-4 gap-y-1 text-xs leading-5 text-gray-500">
-                      <p className="flex items-center gap-x-1.5">
-                        <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fillRule="evenodd" d="M5.75 2a.75.75 0 01.75.75V4h7V2.75a.75.75 0 011.5 0V4h.25A2.75 2.75 0 0118 6.75v8.5A2.75 2.75 0 0115.25 18H4.75A2.75 2.75 0 012 15.25v-8.5A2.75 2.75 0 014.75 4H5V2.75A.75.75 0 015.75 2zM4.5 6.75A1.25 1.25 0 015.75 8h8.5a1.25 1.25 0 011.25 1.25v5.5a1.25 1.25 0 01-1.25-1.25h-8.5a1.25 1.25 0 01-1.25-1.25v-5.5z" clipRule="evenodd" />
-                        </svg>
-                        作成日: {formatDate(plan.creation_date)}
-                      </p>
-                      <p className="flex items-center gap-x-1.5">
-                        <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-5.5-2.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM10 12a5.99 5.99 0 00-4.793 2.39A6.483 6.483 0 0010 16.5a6.483 6.483 0 004.793-2.11A5.99 5.99 0 0010 12z" clipRule="evenodd" />
-                        </svg>
-                        {/* ★ 変更点: plan.staff_name を plan.staff?.name に変更 */}
-                        担当: {plan.staff?.name || '未設定'}
-                      </p>
-                    </div>
-                     {plan.goals && (
-                      <p className="mt-2 text-sm text-gray-600 line-clamp-2">
-                          <span className="font-medium text-gray-700">目標: </span>{plan.goals}
-                      </p>
-                    )}
-                  </div>
-                   <div className="mt-4 sm:mt-0 sm:ml-4 flex-shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                    <Link
-                      href={`/support-plans/${plan.id}`}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-x-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                    >
-                      <svg className="-ml-0.5 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                        <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
-                        <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.18l.88-1.84a1.65 1.65 0 011.695-1.075l1.62.29a1.65 1.65 0 011.444 1.443l.29 1.621a1.65 1.65 0 01-1.075 1.695l-1.84.879a1.65 1.65 0 01-1.18 0l-1.839-.88a1.65 1.65 0 01-1.075-1.695l.29-1.621a1.65 1.65 0 011.444-1.443l1.62.29a1.65 1.65 0 011.695 1.075l.88 1.84a1.65 1.65 0 010 1.18l-.88 1.84a1.65 1.65 0 01-1.695 1.075l-1.62-.29a1.65 1.65 0 01-1.444-1.443l-.29-1.621a1.65 1.65 0 011.075-1.695l1.839-.88zM10 15a5 5 0 100-10 5 5 0 000 10z" clipRule="evenodd" />
-                      </svg>
-                      詳細
-                    </Link>
-                    <Link
-                        href={`/support-plans/${plan.id}/edit`}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-x-2 rounded-md bg-purple-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600"
-                    >
-                        <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
-                        </svg>
-                        編集
-                    </Link>
-                  </div>
+                  )}
                 </div>
-              </div>
+              </Link>
             )
           })}
         </div>

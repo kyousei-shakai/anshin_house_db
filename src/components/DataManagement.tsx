@@ -254,20 +254,21 @@ const DataManagement: React.FC<DataManagementProps> = ({
   }
   return (
     <div className="space-y-8">
-      <div className="bg-gray-50 rounded-lg p-6">
+      {/* ★ 修正: p-6 を p-4 sm:p-6 に、-mx-4 を適用してスマホ時の余白を最適化 */}
+      <div className="bg-gray-50 -mx-4 sm:mx-0 p-4 sm:p-6 border-y sm:border-none border-gray-100 sm:rounded-lg">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">フィルターをかけてダウンロードする</h2>
-        <div className="mb-6 bg-white rounded-lg p-4 border border-gray-200">
+        <div className="mb-6 bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
           {/* ▼▼▼ 【修正】フィルターUI部分 ▼▼▼ */}
           <div className="flex flex-wrap items-end gap-4">
-            <div className="flex-grow min-w-[200px]">
+            <div className="flex-grow min-w-[200px] w-full sm:w-auto">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 ダウンロードしたい対象月
               </label>
-              <input type="month" value={exportMonth} onChange={(e) => setExportMonth(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <input type="month" value={exportMonth} onChange={(e) => setExportMonth(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
             </div>
 
             {/* ▼▼▼ 【追加】担当者フィルタのUI ▼▼▼ */}
-            <div className="flex-grow min-w-[200px]">
+            <div className="flex-grow min-w-[200px] w-full sm:w-auto">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 担当スタッフ
               </label>
@@ -287,7 +288,7 @@ const DataManagement: React.FC<DataManagementProps> = ({
             
             {(exportMonth || selectedStaffId) && (
               <div className="text-sm text-gray-600 self-center pb-2">
-                <button onClick={() => { setExportMonth(''); setSelectedStaffId(''); }} className="text-blue-600 hover:text-blue-800">
+                <button onClick={() => { setExportMonth(''); setSelectedStaffId(''); }} className="text-blue-600 hover:text-blue-800 font-medium">
                   フィルターをクリア
                 </button>
               </div>
@@ -295,56 +296,56 @@ const DataManagement: React.FC<DataManagementProps> = ({
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
             <h3 className="font-medium text-gray-900 mb-2">利用者データ</h3>
             <p className="text-sm text-gray-600 mb-4">登録されている利用者の情報をエクスポートします。</p>
             <div className="space-y-2">
-              <button onClick={() => handleExportUsers('excel')} className="w-full bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">DB形式でダウンロード（Excel）</button>
+              <button onClick={() => handleExportUsers('excel')} className="w-full bg-blue-600 text-white px-3 py-3 sm:py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold transition-colors">DB形式でダウンロード（Excel）</button>
             </div>
             <div className="mt-2 text-xs text-gray-500">{exportMonth ? getFilteredData(users, 'created_at').length : users.length}件のデータ</div>
           </div>
-          <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
             <h3 className="font-medium text-gray-900 mb-2">相談データ</h3>
             <p className="text-sm text-gray-600 mb-4">相談履歴のデータをエクスポートします。</p>
             <div className="space-y-2">
-              <button onClick={handleExportFormattedConsultations} disabled={loading} className="w-full bg-green-600 text-white px-3 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm disabled:opacity-50">
+              <button onClick={handleExportFormattedConsultations} disabled={loading} className="w-full bg-green-600 text-white px-3 py-3 sm:py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm font-bold disabled:opacity-50 transition-colors">
                 {loading ? '処理中...' : '整形済みExcelでダウンロード'}
               </button>
-              <button onClick={() => handleExportConsultations('excel')} className="w-full bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">DB形式でダウンロード（Excel）</button>
+              <button onClick={() => handleExportConsultations('excel')} className="w-full bg-blue-600 text-white px-3 py-3 sm:py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold transition-colors">DB形式でダウンロード（Excel）</button>
             </div>
             {/* ▼▼▼ 【修正】フィルターされた件数を表示 ▼▼▼ */}
             <div className="mt-2 text-xs text-gray-500">{getFilteredData(consultations, 'consultation_date', 'staff_id').length}件のデータ</div>
           </div>
-          <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
             <h3 className="font-medium text-gray-900 mb-2">支援計画データ</h3>
             <p className="text-sm text-gray-600 mb-4">支援計画のデータをエクスポートします。</p>
             <div className="space-y-2">
-              <button onClick={() => handleExportSupportPlans('excel')} className="w-full bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">DB形式でダウンロード（Excel）</button>
+              <button onClick={() => handleExportSupportPlans('excel')} className="w-full bg-blue-600 text-white px-3 py-3 sm:py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold transition-colors">DB形式でダウンロード（Excel）</button>
             </div>
             <div className="mt-2 text-xs text-gray-500">{exportMonth ? getFilteredData(supportPlans, 'creation_date').length : supportPlans.length}件のデータ</div>
           </div>
         </div>
       </div>
       
-      <div className="bg-gray-50 rounded-lg p-6">
+      <div className="bg-gray-50 -mx-4 sm:mx-0 p-4 sm:p-6 border-y sm:border-none border-gray-100 sm:rounded-lg">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">期間別相談実績レポート（月次報告書）</h2>
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
+        <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
           <div className="flex flex-col sm:flex-row items-end gap-4">
-            <div className="flex-grow">
+            <div className="flex-grow w-full">
               <label htmlFor="report-month" className="block text-sm font-medium text-gray-700 mb-1">対象年月</label>
               <input 
                 id="report-month"
                 type="month" 
                 value={monthlyReportMonth} 
                 onChange={(e) => setMonthlyReportMonth(e.target.value)} 
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               />
             </div>
             <div className="w-full sm:w-auto">
               <button 
                 onClick={handleExportMonthlyReport}
                 disabled={loading || !monthlyReportMonth}
-                className="w-full bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-purple-600 text-white px-6 py-3 sm:py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95 text-sm"
               >
                 {loading ? '生成中...' : '月次報告書ダウンロード'}
               </button>
@@ -353,22 +354,22 @@ const DataManagement: React.FC<DataManagementProps> = ({
         </div>
       </div>
 
-      <div className="bg-gray-50 rounded-lg p-6">
+      <div className="bg-gray-50 -mx-4 sm:mx-0 p-4 sm:p-6 border-y sm:border-none border-gray-100 sm:rounded-lg">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">利用者データインポート</h2>
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
+        <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">ファイル選択</label>
-            <input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => { const file = e.target.files?.[0]; if (file) { handleImport(file) } }} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input type="file" accept=".xlsx,.xls,.csv" onChange={(e) => { const file = e.target.files?.[0]; if (file) { handleImport(file) } }} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white" />
           </div>
           <div className="text-sm text-gray-600 mb-4">
-            <p className="mb-2"><strong>対応ファイル形式:</strong> Excel(.xlsx, .xls), CSV(.csv)</p>
-            <p className="mb-2"><strong>必須項目:</strong> UID, 氏名</p>
-            <p><strong>必須ヘッダー:</strong> UID、氏名、生年月日、性別、物件住所、物件名、部屋番号、仲介、敷金、礼金、家賃、火災保険、共益費、大家家賃、大家共益費、家賃差額、入居日、次回更新年月日、更新回数、入居者連絡先、LINE、緊急連絡先、緊急連絡先氏名、続柄、見守りシステム、支援機関/医療機関、備考、代理納付該当、生活保護受給者、死後事務委任</p>
+            <p className="mb-2 text-xs sm:text-sm"><strong>対応ファイル形式:</strong> Excel(.xlsx, .xls), CSV(.csv)</p>
+            <p className="mb-2 text-xs sm:text-sm"><strong>必須項目:</strong> UID, 氏名</p>
+            <p className="text-[10px] sm:text-xs leading-relaxed text-gray-500 bg-gray-50 p-3 rounded border border-dashed border-gray-200"><strong>必須ヘッダー:</strong> UID、氏名、生年月日、性別、物件住所、物件名、部屋番号、仲介、敷金、礼金、家賃、火災保険、共益費、大家家賃、大家共益費、家賃差額、入居日、次回更新年月日、更新回数、入居者連絡先、LINE、緊急連絡先、緊急連絡先氏名、続柄、見守りシステム、支援機関/医療機関、備考、代理納付該当、生活保護受給者、死後事務委任</p>
           </div>
           {loading && (
             <div className="flex items-center justify-center py-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-              <span className="ml-2 text-sm text-gray-600">処理中...</span>
+              <span className="ml-2 text-sm text-gray-600 font-medium">処理中...</span>
             </div>
           )}
           {importResult && (
@@ -376,21 +377,21 @@ const DataManagement: React.FC<DataManagementProps> = ({
               <div className={`text-sm ${importResult.success ? 'text-green-800' : 'text-red-800'}`}>
                 {importResult.success ? (
                   <div>
-                    <p className="font-medium">インポート成功</p>
+                    <p className="font-bold">インポート成功</p>
                     <p>{importResult.data?.length}件のデータを正常に取り込みました。</p>
                   </div>
                 ) : (
                   <div>
-                    <p className="font-medium">インポート失敗</p>
-                    <ul className="mt-2 list-disc list-inside">
+                    <p className="font-bold">インポート失敗</p>
+                    <ul className="mt-2 list-disc list-inside space-y-1">
                       {importResult.errors?.map((error, index) => (<li key={index}>{error}</li>))}
                     </ul>
                   </div>
                 )}
                 {importResult.warnings && importResult.warnings.length > 0 && (
                   <div className="mt-2 text-yellow-700">
-                    <p className="font-medium">警告:</p>
-                    <ul className="mt-1 list-disc list-inside">
+                    <p className="font-bold border-t border-yellow-200 pt-2 mt-2">警告:</p>
+                    <ul className="mt-1 list-disc list-inside space-y-1">
                       {importResult.warnings.map((warning, index) => (<li key={index}>{warning}</li>))}
                     </ul>
                   </div>

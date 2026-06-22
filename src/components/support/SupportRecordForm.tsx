@@ -150,7 +150,7 @@ export default function SupportRecordForm({ userId, categories, staffs, currentS
 
       <div>
         <label className={labelStyle}>支援の具体的内容</label>
-        <textarea rows={3} value={logContent} onChange={(e) => setLogContent(e.target.value)} className={inputStyle} placeholder="支援の詳しい様子を入力してください" required />
+        <textarea rows={4} value={logContent} onChange={(e) => setLogContent(e.target.value)} className={inputStyle} placeholder="支援の詳しい様子を入力してください" required />
       </div>
 
       {/* 次回予定セクションのトグル */}

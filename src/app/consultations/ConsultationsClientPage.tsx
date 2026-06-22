@@ -31,7 +31,12 @@ export default function ConsultationsClientPage({
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto">
+      {/* 
+        ★ 修正: 黄金のコンテナ・ルールを適用。
+        px-4 sm:px-6 lg:px-8 を追加することで、パンくずのズレを解消し、
+        全デバイスでプロフェッショナルな余白を確保します。
+      */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <nav className="flex" aria-label="Breadcrumb">
             <ol className="inline-flex items-center space-x-1 md:space-x-3">
@@ -52,26 +57,32 @@ export default function ConsultationsClientPage({
           </nav>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-6">
+        {/* 
+          ★ 修正: カードのデザインを他ページと完全統一。
+          -mx-4 border-y sm:border でスマホ画面を最大限に活用しつつ、
+          p-4 sm:p-6 で内側の情報密度を最適化。
+        */}
+        <div className="bg-white -mx-4 sm:mx-0 border-y sm:border border-gray-200 sm:rounded-lg sm:shadow-md p-4 sm:p-6">
+          {/* ヘッダー: スマホ時の折り返しとボタンサイズを最適化 */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">相談履歴管理</h1>
+              <h1 className="text-2xl font-bold text-gray-900">相談履歴管理</h1>
             </div>
             <Link
               href="/consultations/new"
-              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="bg-green-600 text-white px-4 py-3 sm:py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 text-center font-bold w-full sm:w-auto"
             >
-              新規相談登録
+              ＋ 新規相談登録
             </Link>
           </div>
           
           {fetchError ? (
-            <div className="text-red-500 p-4 bg-red-50 rounded-lg">
+            <div className="text-red-500 p-4 bg-red-50 rounded-lg border border-red-100">
               データの読み込み中にエラーが発生しました: {fetchError}
             </div>
           ) : (
             <>
-              {/* ▼▼▼【修正】ConsultationList に statusCounts を渡す ▼▼▼ */}
+              {/* ▼▼▼【修正】ConsultationList に statusCounts を渡す (既存維持) ▼▼▼ */}
               <ConsultationList
                 initialConsultations={initialConsultations}
                 staffs={staffs}
