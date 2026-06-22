@@ -15,15 +15,12 @@ import {
   MessageSquareText,
   FileHeart,
   Users,
-  Settings, // カテゴリ設定に使用
-  Database, // データ管理に使用
+  Settings,
+  Database,
   BookOpen
 } from 'lucide-react'
 
-interface HeaderProps {
-  onMenuClick?: () => void;
-}
-
+// --- 定数・データの定義 ---
 const MANUAL_URL = "https://script.google.com/macros/s/AKfycbw1folK-LY9MjwRwMgrzF7HI6n8duOnbLumj1h-0MpxkJZIEemgt8zzy5gLRFZNMs1J-A/exec";
 
 type NavLink = {
@@ -35,63 +32,67 @@ type NavLink = {
   isExternal?: boolean;
 }
 
+const NAV_LINKS: NavLink[] = [
+  { 
+    href: "/", 
+    label: "ホーム", 
+    icon: Home,
+    activeColorClass: "bg-sky-100 text-sky-800 ring-1 ring-sky-300",
+    iconColorClass: "text-sky-600"
+  },
+  { 
+    href: "/consultations", 
+    label: "相談履歴", 
+    icon: MessageSquareText,
+    activeColorClass: "bg-orange-100 text-orange-800 ring-1 ring-orange-300",
+    iconColorClass: "text-orange-600"
+  },
+  { 
+    href: "/support-plans", 
+    label: "支援計画", 
+    icon: FileHeart,
+    activeColorClass: "bg-rose-100 text-rose-800 ring-1 ring-rose-300",
+    iconColorClass: "text-rose-600"
+  },
+  { 
+    href: "/users", 
+    label: "利用者名簿", 
+    icon: Users,
+    activeColorClass: "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300",
+    iconColorClass: "text-emerald-600"
+  },
+  { 
+    href: "/settings/categories", 
+    label: "支援カテゴリ", 
+    icon: Settings,
+    activeColorClass: "bg-slate-200 text-slate-800 ring-1 ring-slate-400",
+    iconColorClass: "text-slate-600"
+  },
+  { 
+    href: "/data-management", 
+    label: "データ管理", 
+    icon: Database,
+    activeColorClass: "bg-slate-200 text-slate-800 ring-1 ring-slate-400",
+    iconColorClass: "text-slate-600"
+  },
+  { 
+    href: MANUAL_URL, 
+    label: "マニュアル", 
+    icon: BookOpen,
+    activeColorClass: "bg-indigo-100 text-indigo-800 ring-1 ring-indigo-300",
+    iconColorClass: "text-indigo-600",
+    isExternal: true
+  },
+];
+
+// ★ 修正：エラー解消のため onMenuClick プロパティを復活
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
 const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const pathname = usePathname();
-  
-  const navLinks: NavLink[] = [
-    { 
-      href: "/", 
-      label: "ホーム", 
-      icon: Home,
-      activeColorClass: "bg-sky-100 text-sky-800 ring-1 ring-sky-300",
-      iconColorClass: "text-sky-600"
-    },
-    { 
-      href: "/consultations", 
-      label: "相談履歴", 
-      icon: MessageSquareText,
-      activeColorClass: "bg-orange-100 text-orange-800 ring-1 ring-orange-300",
-      iconColorClass: "text-orange-600"
-    },
-    { 
-      href: "/support-plans", 
-      label: "支援計画", 
-      icon: FileHeart,
-      activeColorClass: "bg-rose-100 text-rose-800 ring-1 ring-rose-300",
-      iconColorClass: "text-rose-600"
-    },
-    { 
-      href: "/users", 
-      label: "利用者名簿", // 文言を「一覧」から「名簿」に微調整（プロ感）
-      icon: Users,
-      activeColorClass: "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300",
-      iconColorClass: "text-emerald-600"
-    },
-    // ▼▼▼ 【追加】支援カテゴリ設定（独立したマスタ管理） ▼▼▼
-    { 
-      href: "/settings/categories", 
-      label: "支援カテゴリ", 
-      icon: Settings,
-      activeColorClass: "bg-slate-200 text-slate-800 ring-1 ring-slate-400",
-      iconColorClass: "text-slate-600"
-    },
-    { 
-      href: "/data-management", 
-      label: "データ管理", 
-      icon: Database, // SettingsからDatabaseアイコンに変更して明確化
-      activeColorClass: "bg-slate-200 text-slate-800 ring-1 ring-slate-400",
-      iconColorClass: "text-slate-600"
-    },
-    { 
-      href: MANUAL_URL, 
-      label: "マニュアル", 
-      icon: BookOpen,
-      activeColorClass: "bg-indigo-100 text-indigo-800 ring-1 ring-indigo-300",
-      iconColorClass: "text-indigo-600",
-      isExternal: true
-    },
-  ];
   
   const isActive = (href: string) => {
     if (href.startsWith("http")) return false;
@@ -99,32 +100,32 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
     return pathname.startsWith(href);
   }
   
-  const ActionButtons = () => (
-    <>
-      <Button asChild size="sm" className="bg-blue-700 hover:bg-blue-800 text-white shadow-sm font-bold h-9">
-        <Link href="/consultations/new">
-          <PlusCircle className="h-4 w-4 sm:mr-1.5" />
-          <span className="hidden sm:inline text-sm">新規相談</span>
+  const ActionButtons = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <div className={isMobile ? "space-y-3" : "flex items-center gap-2"}>
+      <Button asChild size={isMobile ? "default" : "sm"} className={`bg-blue-700 hover:bg-blue-800 text-white shadow-sm font-bold h-9 ${isMobile ? "w-full justify-start py-5 text-base" : ""}`}>
+        <Link href="/consultations/new" onClick={() => isMobile && setIsSheetOpen(false)}>
+          <PlusCircle className={`h-4 w-4 ${isMobile ? "mr-2 h-5 w-5" : "xl:mr-1.5"}`} />
+          <span className={isMobile ? "" : "hidden xl:inline text-sm"}>新規相談</span>
         </Link>
       </Button>
-      <Button asChild size="sm" className="bg-purple-700 hover:bg-purple-800 text-white shadow-sm font-bold h-9">
-        <Link href="/support-plans/new">
-          <FilePlus2 className="h-4 w-4 sm:mr-1.5" />
-          <span className="hidden sm:inline text-sm">支援計画</span>
+      <Button asChild size={isMobile ? "default" : "sm"} className={`bg-purple-700 hover:bg-purple-800 text-white shadow-sm font-bold h-9 ${isMobile ? "w-full justify-start py-5 text-base" : ""}`}>
+        <Link href="/support-plans/new" onClick={() => isMobile && setIsSheetOpen(false)}>
+          <FilePlus2 className={`h-4 w-4 ${isMobile ? "mr-2 h-5 w-5" : "xl:mr-1.5"}`} />
+          <span className={isMobile ? "" : "hidden xl:inline text-sm"}>支援計画</span>
         </Link>
       </Button>
-    </>
+    </div>
   );
 
   return (
-    // ▼▼▼ 修正: ここにあった <div className="mb-8"> を削除しました ▼▼▼
     <header className="bg-white shadow-md border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14 sm:h-16">
           
           <div className="flex items-center gap-3">
-            {/* モバイルメニュー */}
-            <div className="md:hidden">
+            {/* モバイルメニュー切り替えを xl に引き上げ */}
+            <div className="xl:hidden">
+              {/* ★ 修正：ConsultationFormLayout 等との互換性を確保 */}
               {onMenuClick ? (
                 <Button variant="ghost" size="icon" onClick={onMenuClick} className="text-gray-700 h-9 w-9">
                   <Menu className="w-6 h-6" />
@@ -145,7 +146,7 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
                     </SheetHeader>
                     <div className="flex flex-col h-full">
                       <nav className="flex flex-col space-y-2">
-                        {navLinks.map((link) => {
+                        {NAV_LINKS.map((link) => {
                            const active = isActive(link.href);
                            return (
                              <Link 
@@ -169,38 +170,27 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
                         })}
                       </nav>
                       <Separator className="my-4" />
-                      <div className="space-y-3">
-                        <Button asChild className="w-full justify-start text-base py-5 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm">
-                            <Link href="/consultations/new" onClick={() => setIsSheetOpen(false)}>
-                                <PlusCircle className="mr-2 h-5 w-5" /> 新規相談を登録
-                            </Link>
-                        </Button>
-                        <Button asChild className="w-full justify-start text-base py-5 bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-sm">
-                            <Link href="/support-plans/new" onClick={() => setIsSheetOpen(false)}>
-                                <FilePlus2 className="mr-2 h-5 w-5" /> 支援計画を作成
-                            </Link>
-                        </Button>
-                      </div>
+                      <ActionButtons isMobile={true} />
                     </div>
                   </SheetContent>
                 </Sheet>
               )}
             </div>
             
-            {/* ロゴエリア */}
-            <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
+            {/* ロゴエリア：flex-shrink-0 と whitespace-nowrap を維持 */}
+            <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity flex-shrink-0">
               <div className="bg-orange-100 p-1.5 rounded-lg border border-orange-200">
                 <Home className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600" />
               </div>
-              <h1 className="text-base sm:text-lg font-bold text-gray-800 tracking-tight leading-none">
+              <h1 className="text-base sm:text-lg font-bold text-gray-800 tracking-tight leading-none whitespace-nowrap">
                 居住支援管理
               </h1>
             </Link>
           </div>
           
-          {/* デスクトップナビゲーション */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
+          {/* デスクトップナビゲーション：xl 以上 */}
+          <nav className="hidden xl:flex items-center gap-1">
+            {NAV_LINKS.map((link) => {
               const active = isActive(link.href);
               return (
                 <Button 
@@ -229,9 +219,8 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
             })}
           </nav>
 
-          {/* 右側アクションエリア */}
           <div className="flex items-center gap-2">
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden xl:flex items-center gap-2">
               <ActionButtons />
             </div>
           </div>
