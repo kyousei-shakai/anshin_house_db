@@ -1,3 +1,4 @@
+// src/components/ConsultationList.tsx 
 'use client'
 
 import React, { useState, useMemo, Fragment, useTransition, useEffect } from 'react'
@@ -211,7 +212,8 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
   return (
     <Fragment>
       <div className="space-y-6">
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 shadow-sm">
+        {/* ★ 修正: SupportPlanListと幅を統一。-mx-4 sm:mx-0 border-y sm:border を適用 */}
+        <div className="bg-gray-50 -mx-4 sm:mx-0 border-y sm:border border-gray-200 sm:rounded-lg p-4 shadow-sm">
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">進捗ステータスで絞り込み</label>
@@ -316,13 +318,15 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
           )}
 
           {filteredConsultations.length === 0 ? (
-            <div className="bg-white border rounded-lg p-8 text-center">
+            /* ★ 修正: リストエリア(空)の幅を最適化。-mx-4 sm:mx-0 border-y sm:border を適用 */
+            <div className="bg-white -mx-4 sm:mx-0 border-y sm:border border-gray-200 sm:rounded-lg p-8 text-center shadow-sm">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z" /></svg>
               <h3 className="mt-2 text-sm font-semibold text-gray-900">{searchTerm || dateFilter || activeFilter !== null || showOnlyWithNextAction ? '該当する相談履歴が見つかりません' : '相談履歴はありません'}</h3>
               <p className="mt-1 text-sm text-gray-500">条件を変更して再度お試しください。</p>
             </div>
           ) : (
-            <div className={`bg-white border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200 transition-opacity duration-200 ${isThinking ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
+            /* ★ 修正: リストエリアの幅を最適化。-mx-4 sm:mx-0 border-y sm:border を適用 */
+            <div className={`bg-white -mx-4 sm:mx-0 border-y sm:border border-gray-200 sm:rounded-lg shadow-sm divide-y divide-gray-200 transition-opacity duration-200 ${isThinking ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
               {filteredConsultations.map((consultation) => {
                 let age = null;
                 if (consultation.birth_year && consultation.birth_month && consultation.birth_day) {

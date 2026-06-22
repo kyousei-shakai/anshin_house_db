@@ -133,7 +133,14 @@ export default function SupportTaskFormOnly({ userId, categories, staffs, curren
 
       <div>
         <label className={labelStyle}>予定の具体的内容</label>
-        <input type="text" value={content} onChange={(e) => setContent(e.target.value)} className={inputStyle} placeholder="誰と、どこで、何をするか等を入力してください" required />
+         <textarea 
+          value={content} 
+          onChange={(e) => setContent(e.target.value)} 
+          className={`${inputStyle} min-h-[120px] resize-none`} 
+          placeholder="誰と、どこで、何をするか等を入力してください" 
+          required 
+          rows={4}
+        />
       </div>
 
       <div className="flex justify-end pt-4 border-t border-gray-100">

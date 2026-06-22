@@ -1,3 +1,4 @@
+// src/app/users/page.tsx
 // ★ 改善点: パンくずリストでLinkコンポーネントを使用するためインポート
 import Link from 'next/link'
 import Layout from '@/components/Layout'
@@ -36,10 +37,14 @@ export default async function UsersPage({
 
   return (
     <Layout>
-      {/* ★ 改善点: 「支援計画」ページと共通のレイアウトコンテナを追加 */}
-      <div className="max-w-6xl mx-auto">
+      {/* 
+        ★ 修正: 黄金のコンテナ・ルールを適用。
+        px-4 sm:px-6 lg:px-8 を追加することで、パンくずの開始位置を
+        他の全ページとピクセル単位で完全に一致させます。
+      */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* ★ 改善点: パンくずリストを追加 */}
+        {/* ★ 改善点: パンくずリストを追加 (位置を黄金ルールに合わせて最適化) */}
         <div className="mb-6">
           <nav className="flex" aria-label="Breadcrumb">
             <ol className="inline-flex items-center space-x-1 md:space-x-3">
@@ -62,30 +67,30 @@ export default async function UsersPage({
         </div>
 
         {/* 
-          ★ 改善点: 
-          リスト部分を白背景のカードで囲み、タイトルや説明文を追加。
-          これにより、UsersClientPageがリスト表示に専念できます。
+          ★ 修正: 
+          -mx-4 border-y sm:border でスマホ画面を端まで広げ、
+          p-4 sm:p-6 で内側の余白をモダンな密度に調整。
         */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white -mx-4 sm:mx-0 border-y sm:border border-gray-200 sm:rounded-lg sm:shadow-md p-4 sm:p-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2">利用者さま管理</h1>
-              <p className="text-gray-600">
+              <p className="text-gray-600 text-sm sm:text-base">
                 登録されている利用者さまの情報を管理します。
               </p>
             </div>
-            {/* ★ 変更点: 「新規利用者追加」ボタンをこちらに配置 */}
+            {/* ★ 修正: スマホ時に押しやすい全幅ボタン、PCでは自動幅 */}
             <Link
               href="/users/new"
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium whitespace-nowrap text-center"
+              className="bg-blue-600 text-white px-4 py-3 sm:py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-bold whitespace-nowrap text-center w-full sm:w-auto shadow-sm transition-colors"
             >
               ＋ 新規利用者追加
             </Link>
           </div>
 
-          {/* ▼▼▼ 追加: フィルタリングタブ ▼▼▼ */}
-          {/* タブUI：現在のステータスに応じてスタイル（下線と色）を変更 */}
-          <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
+          {/* ▼▼▼ 追加: フィルタリングタブ (既存ロジック維持) ▼▼▼ */}
+          {/* タブも端まで届くよう -mx-4 px-4 を適用 */}
+          <div className="flex border-b border-gray-200 mb-6 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
             <Link
               href="/users?status=利用中"
               className={`py-2 px-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
@@ -129,7 +134,7 @@ export default async function UsersPage({
           </div>
           {/* ▲▲▲ 追加ここまで ▲▲▲ */}
           
-          {/* 取得したデータをクライアントコンポーネントに渡す */}
+          {/* 取得したデータをクライアントコンポーネントに渡す (一言一句維持) */}
           <UsersClientPage
             initialUsers={users || []}
             fetchError={fetchError || null}
