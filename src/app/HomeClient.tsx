@@ -113,7 +113,7 @@ export default function HomeClient({
           <Link href="/users" className="group block rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 transition-colors p-5">
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-base font-bold text-emerald-900 flex items-center gap-2">
-                <Users className="h-5 w-5" /> 利用者情報ハブ
+                <Users className="h-5 w-5" /> 利用者一覧
               </h3>
               <ChevronRight className="h-5 w-5 text-emerald-400 group-hover:text-emerald-600 transition-colors" />
             </div>
