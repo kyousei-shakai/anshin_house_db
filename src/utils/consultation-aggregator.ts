@@ -32,7 +32,8 @@ export const aggregateConsultationRoutes = (consultation: Consultation): string 
       routes.push(entry);
     }
   }
-  return routes.length > 0 ? routes.join('、') : '特になし';
+  return routes.length > 0 ? routes.join('、') : '選択項目なし';
+
 };
 
 /**
@@ -61,7 +62,7 @@ export const aggregateConsultationAttributes = (consultation: Consultation): str
       attrs.push(def.label);
     }
   }
-  return attrs.length > 0 ? attrs.join('、') : '特になし';
+  return attrs.length > 0 ? attrs.join('、') : '選択項目なし';
 };
 
 /**
@@ -88,7 +89,7 @@ export const aggregateSupportServices = (consultation: Consultation): string => 
       services.push(entry);
     }
   }
-  return services.length > 0 ? services.join('、') : '特になし';
+  return services.length > 0 ? services.join('、') : '選択項目なし';
 };
 
 /**
@@ -116,5 +117,5 @@ export const aggregateHouseholdComposition = (consultation: Consultation): strin
       households.push(entry);
     }
   }
-  return households.length > 0 ? households.join('、') : '特になし';
+  return households.length > 0 ? households.join('、') : '選択項目なし';
 };
