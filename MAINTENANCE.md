@@ -198,7 +198,7 @@ anshin-house-db/
 │   │   ├── export.ts             # エクスポート機能
 │   │   ├── import.ts             # インポート機能
 │   │   ├── age-utils.ts          # 年代計算・ロジック一貫性
-│   │   └── consultation-formatter.ts # エクスポート整形
+│   │   └── consultation-formatter.ts # エクスポート整形 月次報告書（monthly_report_template）用
 │   └── styles/                   # スタイルファイル
 ├── supabase/
 │   ├── migrations/               # データベースマイグレーション

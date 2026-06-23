@@ -6,6 +6,13 @@ import path from 'path'
 import fs from 'fs/promises'
 import { NextResponse } from 'next/server'
 import { getAgeGroupLabel } from '@/utils/age-utils' // ★追加：共通ロジックをインポート
+// ★ 更新：新しいアグリゲーターをインポートに追加
+import { 
+  aggregateConsultationRoutes, 
+  aggregateConsultationAttributes, 
+  aggregateSupportServices,
+  aggregateHouseholdComposition
+} from '@/utils/consultation-aggregator'
 
 // xlsx-populateの型定義
 type Workbook = Awaited<ReturnType<typeof XlsxPopulate.fromDataAsync>>
@@ -87,7 +94,6 @@ const createReplacements = (consultation: ConsultationWithStaff): Record<string,
         : null;
 
     // ★最高峰のデータ整合性ロジック：年代情報の確定
-    // 生年月日からの算出を優先し、なければDB保存値を採用する
     const calculatedAgeGroup = getAgeGroupLabel(consultation.birth_year);
     const finalAgeGroup = calculatedAgeGroup || (consultation as any).age_group || '';
 
@@ -137,9 +143,23 @@ const createReplacements = (consultation: ConsultationWithStaff): Record<string,
 
     const physicalConditionKey = consultation.physical_condition as PhysicalConditionKey;
 
+    // --- ★ 集計エンジン呼び出し (防弾設計) ---
+    const selectedRoutes = aggregateConsultationRoutes(consultation as any);
+    const selectedAttributes = aggregateConsultationAttributes(consultation as any);
+    const selectedServices = aggregateSupportServices(consultation as any);
+    const selectedHouseholds = aggregateHouseholdComposition(consultation as any);
+
     return {
         '{{consultation_date_year}}': cDate.getFullYear(), '{{consultation_date_month}}': cDate.getMonth() + 1, '{{consultation_date_day}}': cDate.getDate(),
         '{{staff_name}}': consultation.staff?.name || '',
+
+        // ★ 新規追加: 統合型プレースホルダ（v2テンプレート用）
+        '{{selected_routes}}': selectedRoutes,
+        '{{selected_attributes}}': selectedAttributes,
+        '{{selected_services}}': selectedServices,
+        '{{selected_households}}': selectedHouseholds,
+
+        // Deprecated: 旧テンプレート(v1)用。互換性維持のため定義を一本化（重複排除）
         '{{route_self}}': check(consultation.consultation_route_self),
         '{{route_family}}': check(consultation.consultation_route_family),
         '{{route_family_text}}': consultation.consultation_route_family_text || '',
@@ -158,7 +178,18 @@ const createReplacements = (consultation: ConsultationWithStaff): Record<string,
         '{{attr_single_parent}}': check(consultation.attribute_single_parent), '{{attr_dv}}': check(consultation.attribute_dv),
         '{{attr_foreigner}}': check(consultation.attribute_foreigner), '{{attr_poverty}}': check(consultation.attribute_poverty),
         '{{attr_low_income}}': check(consultation.attribute_low_income), '{{attr_lgbt}}': check(consultation.attribute_lgbt),
-        '{{attr_welfare}}': check(consultation.attribute_welfare), '{{name}}': consultation.name || '', '{{furigana}}': consultation.furigana || '',
+        '{{attr_welfare}}': check(consultation.attribute_welfare),
+
+        '{{service_day}}': check(consultation.service_day_service),
+        '{{service_nurse}}': check(consultation.service_visiting_nurse),
+        '{{service_care}}': check(consultation.service_visiting_care),
+        '{{service_medical}}': check(consultation.service_home_medical),
+        '{{service_short_stay}}': check(consultation.service_short_stay),
+        '{{service_other}}': check(consultation.service_other),
+        '{{service_other_text}}': consultation.service_other_text || '',
+        '{{service_provider}}': consultation.service_provider || '',
+
+        '{{name}}': consultation.name || '', '{{furigana}}': consultation.furigana || '',
         '{{gender}}': consultation.gender === 'male' ? '男' : consultation.gender === 'female' ? '女' : 'その他',
         '{{household_single}}': check(consultation.household_single), '{{household_couple}}': check(consultation.household_couple),
         '{{household_common_law}}': check(consultation.household_common_law), '{{household_parent_child}}': check(consultation.household_parent_child),
@@ -170,18 +201,11 @@ const createReplacements = (consultation: ConsultationWithStaff): Record<string,
         '{{birth_year}}': japaneseEra ? japaneseEra.year : consultation.birth_year || '',
         '{{birth_month}}': consultation.birth_month || '', '{{birth_day}}': consultation.birth_day || '', 
         '{{age}}': age,
-        
-        // ★新規追加プレースホルダー：年代
         '{{age_group}}': finalAgeGroup,
-
         '{{physical_condition}}': consultation.physical_condition ? physicalConditionMap[physicalConditionKey] || '' : '',
         '{{mental_cert}}': check(consultation.mental_disability_certificate), '{{mental_cert_level}}': consultation.mental_disability_level || '',
         '{{physical_cert}}': check(consultation.physical_disability_certificate), '{{physical_cert_level}}': consultation.physical_disability_level || '',
         '{{therapy_cert}}': check(consultation.therapy_certificate), '{{therapy_cert_level}}': consultation.therapy_level || '',
-        '{{service_day}}': check(consultation.service_day_service), '{{service_nurse}}': check(consultation.service_visiting_nurse),
-        '{{service_care}}': check(consultation.service_visiting_care), '{{service_medical}}': check(consultation.service_home_medical),
-        '{{service_short_stay}}': check(consultation.service_short_stay), '{{service_other}}': check(consultation.service_other),
-        '{{service_other_text}}': consultation.service_other_text || '', '{{service_provider}}': consultation.service_provider || '',
         '{{care_support_office}}': consultation.care_support_office || '', '{{care_manager}}': consultation.care_manager || '',
         '{{medical_history}}': consultation.medical_history || '', '{{med_inst_name}}': consultation.medical_institution_name || '',
         '{{med_inst_staff}}': consultation.medical_institution_staff || '', '{{income_salary}}': consultation.income_salary || '',
@@ -251,7 +275,8 @@ export async function POST(request: Request) {
 
     if (fetchError) throw fetchError;
 
-    const templatePath = path.join(process.cwd(), 'public', 'consultation_template.xlsx');
+    // ★ テンプレートファイルを v2 に切り替え
+    const templatePath = path.join(process.cwd(), 'public', 'consultation_template_v2.xlsx');
     const templateData = await fs.readFile(templatePath);
     const workbook: Workbook = await XlsxPopulate.fromDataAsync(templateData);
     const templateSheet = workbook.sheet("テンプレート");
