@@ -33,6 +33,7 @@ export const aggregateConsultationRoutes = (consultation: Consultation): string 
     }
   }
   return routes.length > 0 ? routes.join('、') : '選択項目なし';
+
 };
 
 /**
