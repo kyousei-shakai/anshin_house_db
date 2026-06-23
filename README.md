@@ -86,6 +86,8 @@
 - **実装アプローチ:** 行削除APIが存在しないため、**「1件目のデータで6行目を上書きし、以降を追記＋スタイルコピー」**するという職人芸的なロジックを採用しています。
 - **API Routesの採用:** Vercel本番環境でのファイルパス解決を安定させるため、Server Actions ではなく API Routes で実装されています。
 
+- **エクスポートの種類:** 個別相談票（consultation_template）」と「月次報告書monthly_report_template）」があり完全に別物である
+
 ### 3. データベース RPC (関数) の整合性
 相談履歴一覧の取得には Supabase RPC (`get_consultations_with_next_action`) を使用しています。
 - **制約:** RPCの戻り値の型・順序は、物理テーブル構造、および `src/types/consultation.ts` と **100% 一致している必要があります**。
