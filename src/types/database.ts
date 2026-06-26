@@ -85,7 +85,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "consultation_events_staff_id_fkey"
+            foreignKeyName: "consultation_events_staff_id_fkey_strict"
             columns: ["staff_id"]
             isOneToOne: false
             referencedRelation: "staff"
@@ -97,18 +97,28 @@ export type Database = {
         Row: {
           address: string | null
           age_group: string | null
+          attribute_child_abuse_victim: boolean | null
           attribute_childcare: boolean | null
+          attribute_crime_victim: boolean | null
           attribute_disability: boolean | null
           attribute_disability_intellectual: boolean | null
           attribute_disability_mental: boolean | null
           attribute_disability_physical: boolean | null
+          attribute_disaster_victim_3yr: boolean | null
           attribute_dv: boolean | null
           attribute_elderly: boolean | null
           attribute_foreigner: boolean | null
+          attribute_foster_care_leavers: boolean | null
           attribute_lgbt: boolean | null
           attribute_low_income: boolean | null
+          attribute_major_disaster_victim: boolean | null
+          attribute_newlywed_household: boolean | null
+          attribute_no_guarantor: boolean | null
           attribute_poverty: boolean | null
+          attribute_rehabilitation_support: boolean | null
           attribute_single_parent: boolean | null
+          attribute_support_worker: boolean | null
+          attribute_uij_turn: boolean | null
           attribute_welfare: boolean | null
           bathing_full_assist: boolean | null
           bathing_independent: boolean | null
@@ -258,18 +268,28 @@ export type Database = {
         Insert: {
           address?: string | null
           age_group?: string | null
+          attribute_child_abuse_victim?: boolean | null
           attribute_childcare?: boolean | null
+          attribute_crime_victim?: boolean | null
           attribute_disability?: boolean | null
           attribute_disability_intellectual?: boolean | null
           attribute_disability_mental?: boolean | null
           attribute_disability_physical?: boolean | null
+          attribute_disaster_victim_3yr?: boolean | null
           attribute_dv?: boolean | null
           attribute_elderly?: boolean | null
           attribute_foreigner?: boolean | null
+          attribute_foster_care_leavers?: boolean | null
           attribute_lgbt?: boolean | null
           attribute_low_income?: boolean | null
+          attribute_major_disaster_victim?: boolean | null
+          attribute_newlywed_household?: boolean | null
+          attribute_no_guarantor?: boolean | null
           attribute_poverty?: boolean | null
+          attribute_rehabilitation_support?: boolean | null
           attribute_single_parent?: boolean | null
+          attribute_support_worker?: boolean | null
+          attribute_uij_turn?: boolean | null
           attribute_welfare?: boolean | null
           bathing_full_assist?: boolean | null
           bathing_independent?: boolean | null
@@ -419,18 +439,28 @@ export type Database = {
         Update: {
           address?: string | null
           age_group?: string | null
+          attribute_child_abuse_victim?: boolean | null
           attribute_childcare?: boolean | null
+          attribute_crime_victim?: boolean | null
           attribute_disability?: boolean | null
           attribute_disability_intellectual?: boolean | null
           attribute_disability_mental?: boolean | null
           attribute_disability_physical?: boolean | null
+          attribute_disaster_victim_3yr?: boolean | null
           attribute_dv?: boolean | null
           attribute_elderly?: boolean | null
           attribute_foreigner?: boolean | null
+          attribute_foster_care_leavers?: boolean | null
           attribute_lgbt?: boolean | null
           attribute_low_income?: boolean | null
+          attribute_major_disaster_victim?: boolean | null
+          attribute_newlywed_household?: boolean | null
+          attribute_no_guarantor?: boolean | null
           attribute_poverty?: boolean | null
+          attribute_rehabilitation_support?: boolean | null
           attribute_single_parent?: boolean | null
+          attribute_support_worker?: boolean | null
+          attribute_uij_turn?: boolean | null
           attribute_welfare?: boolean | null
           bathing_full_assist?: boolean | null
           bathing_independent?: boolean | null
@@ -579,7 +609,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "consultations_staff_id_fkey"
+            foreignKeyName: "consultations_staff_id_fkey_strict"
             columns: ["staff_id"]
             isOneToOne: false
             referencedRelation: "staff"
@@ -670,7 +700,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "daily_support_logs_staff_id_fkey"
+            foreignKeyName: "daily_support_logs_performed_by_staff_id_fkey_strict"
             columns: ["performed_by_staff_id"]
             isOneToOne: false
             referencedRelation: "staff"
@@ -688,24 +718,30 @@ export type Database = {
       staff: {
         Row: {
           created_at: string
+          display_order: number | null
           email: string | null
           id: string
+          is_active: boolean | null
           name: string
           role: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          display_order?: number | null
           email?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
           role?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          display_order?: number | null
           email?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
           role?: string | null
           updated_at?: string
@@ -913,7 +949,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "support_plans_staff_id_fkey"
+            foreignKeyName: "support_plans_staff_id_fkey_strict"
             columns: ["staff_id"]
             isOneToOne: false
             referencedRelation: "staff"
@@ -1003,17 +1039,17 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "support_tasks_assigned_staff_id_fkey_strict"
+            columns: ["assigned_staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "support_tasks_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "support_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "support_tasks_staff_id_fkey"
-            columns: ["assigned_staff_id"]
-            isOneToOne: false
-            referencedRelation: "staff"
             referencedColumns: ["id"]
           },
           {
@@ -1176,18 +1212,28 @@ export type Database = {
         Returns: {
           address: string
           age_group: string
+          attribute_child_abuse_victim: boolean
           attribute_childcare: boolean
+          attribute_crime_victim: boolean
           attribute_disability: boolean
           attribute_disability_intellectual: boolean
           attribute_disability_mental: boolean
           attribute_disability_physical: boolean
+          attribute_disaster_victim_3yr: boolean
           attribute_dv: boolean
           attribute_elderly: boolean
           attribute_foreigner: boolean
+          attribute_foster_care_leavers: boolean
           attribute_lgbt: boolean
           attribute_low_income: boolean
+          attribute_major_disaster_victim: boolean
+          attribute_newlywed_household: boolean
+          attribute_no_guarantor: boolean
           attribute_poverty: boolean
+          attribute_rehabilitation_support: boolean
           attribute_single_parent: boolean
+          attribute_support_worker: boolean
+          attribute_uij_turn: boolean
           attribute_welfare: boolean
           bathing_full_assist: boolean
           bathing_independent: boolean

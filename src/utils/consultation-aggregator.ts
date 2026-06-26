@@ -8,7 +8,7 @@ import { type Database } from '@/types/database'
 type Consultation = Database['public']['Tables']['consultations']['Row']
 
 /**
- * 相談ルートの連結文字列を生成する
+ * 相談ルートの連結文字列を生成する (変更なし・完全維持)
  */
 export const aggregateConsultationRoutes = (consultation: Consultation): string => {
   const routes: string[] = [];
@@ -33,28 +33,42 @@ export const aggregateConsultationRoutes = (consultation: Consultation): string 
     }
   }
   return routes.length > 0 ? routes.join('、') : '選択項目なし';
-
 };
 
 /**
- * 属性の連結文字列を生成する
+ * 属性の連結文字列を生成する (拡張版)
  */
 export const aggregateConsultationAttributes = (consultation: Consultation): string => {
   const attrs: string[] = [];
   const ATTRIBUTE_DEFINITIONS = [
+    // --- 第1階層：最重要（ラベル適正化） ---
     { key: 'attribute_elderly', label: '高齢' },
-    { key: 'attribute_disability', label: '障害' },
+    { key: 'attribute_welfare', label: '生保' },
+    { key: 'attribute_single_parent', label: 'ひとり親（母子・父子）' },
+    { key: 'attribute_disability', label: '障がい' },
     { key: 'attribute_disability_mental', label: '精神' },
     { key: 'attribute_disability_physical', label: '身体' },
     { key: 'attribute_disability_intellectual', label: '知的' },
-    { key: 'attribute_childcare', label: '子育て' },
-    { key: 'attribute_single_parent', label: 'ひとり親' },
-    { key: 'attribute_dv', label: 'DV' },
-    { key: 'attribute_foreigner', label: '外国人' },
+    
+    // --- 第2階層：頻出（ラベル適正化 ＋ 新設） ---
     { key: 'attribute_poverty', label: '生活困窮' },
-    { key: 'attribute_low_income', label: '低所得' },
+    { key: 'attribute_low_income', label: '低額所得者' },
+    { key: 'attribute_childcare', label: '子育て世帯（一般）' },
+    { key: 'attribute_foreigner', label: '外国人' },
+    { key: 'attribute_dv', label: 'DV' },
+    { key: 'attribute_rehabilitation_support', label: '更生保護対象者' }, // 【新設】
     { key: 'attribute_lgbt', label: 'LGBT' },
-    { key: 'attribute_welfare', label: '生活保護' },
+    { key: 'attribute_no_guarantor', label: '保証人なし' }, // 【新設】
+
+    // --- 第3階層：その他（新設10項目の残り） ---
+    { key: 'attribute_disaster_victim_3yr', label: '被災者（発災から3年以内）' }, // 【新設】
+    { key: 'attribute_major_disaster_victim', label: '大規模災害被災者' }, // 【新設】
+    { key: 'attribute_crime_victim', label: '犯罪被害者' }, // 【新設】
+    { key: 'attribute_child_abuse_victim', label: '児童虐待被害者' }, // 【新設】
+    { key: 'attribute_newlywed_household', label: '新婚世帯' }, // 【新設】
+    { key: 'attribute_foster_care_leavers', label: '児童養護施設退所者' }, // 【新設】
+    { key: 'attribute_uij_turn', label: 'UIJターン転入者' }, // 【新設】
+    { key: 'attribute_support_worker', label: '要配慮者への生活支援者' }, // 【新設】
   ] as const;
 
   for (const def of ATTRIBUTE_DEFINITIONS) {
@@ -66,7 +80,7 @@ export const aggregateConsultationAttributes = (consultation: Consultation): str
 };
 
 /**
- * 利用中の支援サービスの連結文字列を生成する
+ * 利用中の支援サービスの連結文字列を生成する (変更なし・完全維持)
  */
 export const aggregateSupportServices = (consultation: Consultation): string => {
   const services: string[] = [];
@@ -93,7 +107,7 @@ export const aggregateSupportServices = (consultation: Consultation): string => 
 };
 
 /**
- * ★ 新規追加: 世帯構成の連結文字列を生成する
+ * 世帯構成の連結文字列を生成する (変更なし・完全維持)
  */
 export const aggregateHouseholdComposition = (consultation: Consultation): string => {
   const households: string[] = [];

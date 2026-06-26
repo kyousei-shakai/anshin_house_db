@@ -1,7 +1,7 @@
 //src/components/ConsultationForm/Section1_BasicInfo.tsx
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { ConsultationFormData } from './types'
 import { AGE_GROUP_OPTIONS, getAgeGroupLabel } from '@/utils/age-utils'
 
@@ -19,17 +19,31 @@ const Section1_BasicInfo: React.FC<Section1_BasicInfoProps> = ({
   handleChange,
   calculateAge,
 }) => {
+  // --- 第3階層（アコーディオン）の開閉状態管理 ---
+  const [isAccordionOpen, setIsAccordionOpen] = useState(false);
+
   // 生年月日（年）の入力状況に基づき、表示すべき年代を決定する
   // 年が入っていれば自動計算値を優先し、なければ手動入力値を表示する
   const autoAgeGroup = getAgeGroupLabel(formData.birth_year, formData.birth_month, formData.birth_day);
   const isAgeGroupLocked = !!formData.birth_year; // 生年月日(年)があれば手動入力をロックする
   const displayAgeGroup = isAgeGroupLocked ? autoAgeGroup : formData.age_group;
 
-
   // 生年月日の選択肢用の配列は、このコンポーネント内で定義するのが適切です
   const years = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i)
   const months = Array.from({ length: 12 }, (_, i) => i + 1)
   const days = Array.from({ length: 31 }, (_, i) => i + 1)
+
+  // 第3階層（その他）の選択数をカウント（見落とし防止用）
+  const otherAttributesCount = [
+    formData.attribute_disaster_victim_3yr,
+    formData.attribute_major_disaster_victim,
+    formData.attribute_crime_victim,
+    formData.attribute_child_abuse_victim,
+    formData.attribute_newlywed_household,
+    formData.attribute_foster_care_leavers,
+    formData.attribute_uij_turn,
+    formData.attribute_support_worker,
+  ].filter(Boolean).length;
 
   return (
     <div id="section-1" className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 scroll-mt-24">
@@ -136,30 +150,71 @@ const Section1_BasicInfo: React.FC<Section1_BasicInfoProps> = ({
         </div>
       </div>
 
-      <div className="mt-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">属性</label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <label className="flex items-center"><input type="checkbox" name="attribute_elderly" checked={formData.attribute_elderly} onChange={handleChange} className="mr-2" /><span className="text-gray-800">高齢</span></label>
-          <div>
-            <label className="flex items-center"><input type="checkbox" name="attribute_disability" checked={formData.attribute_disability} onChange={handleChange} className="mr-2" /><span className="text-gray-800">障がい</span></label>
+
+      <div className="mt-4 border-t border-gray-100 pt-4">
+        <label className="block text-sm font-medium text-gray-700 mb-3">属性</label>
+        
+        {/* 第1階層：最重要・常時表示 */}
+        <div className="flex flex-wrap gap-x-6 gap-y-3 mb-4">
+          <label className="flex items-center"><input type="checkbox" name="attribute_elderly" checked={formData.attribute_elderly} onChange={handleChange} className="mr-2 h-4 w-4" /><span className="text-sm text-gray-800 font-medium">高齢</span></label>
+          <label className="flex items-center"><input type="checkbox" name="attribute_welfare" checked={formData.attribute_welfare} onChange={handleChange} className="mr-2 h-4 w-4" /><span className="text-sm text-gray-800 font-medium">生保</span></label>
+          <label className="flex items-center"><input type="checkbox" name="attribute_single_parent" checked={formData.attribute_single_parent} onChange={handleChange} className="mr-2 h-4 w-4" /><span className="text-sm text-gray-800 font-medium">ひとり親（母子・父子）</span></label>
+          <div className="flex flex-col">
+            <label className="flex items-center"><input type="checkbox" name="attribute_disability" checked={formData.attribute_disability} onChange={handleChange} className="mr-2 h-4 w-4" /><span className="text-sm text-gray-800 font-medium">障がい</span></label>
+            {/* 障がい詳細：チェック時のみスライド表示（レイアウトを崩さないよう flex-col 内に配置） */}
             {formData.attribute_disability && (
-              <div className="ml-6 mt-1 space-y-1">
-                <label className="flex items-center text-sm"><input type="checkbox" name="attribute_disability_mental" checked={formData.attribute_disability_mental} onChange={handleChange} className="mr-1" /><span className="text-gray-800">精神</span></label>
-                <label className="flex items-center text-sm"><input type="checkbox" name="attribute_disability_physical" checked={formData.attribute_disability_physical} onChange={handleChange} className="mr-1" /><span className="text-gray-800">身体</span></label>
-                <label className="flex items-center text-sm"><input type="checkbox" name="attribute_disability_intellectual" checked={formData.attribute_disability_intellectual} onChange={handleChange} className="mr-1" /><span className="text-gray-800">知的</span></label>
+              <div className="mt-2 ml-6 flex flex-wrap gap-x-4 gap-y-2 border-l-2 border-gray-200 pl-3">
+                <label className="flex items-center"><input type="checkbox" name="attribute_disability_mental" checked={formData.attribute_disability_mental} onChange={handleChange} className="mr-1.5 h-3.5 w-3.5" /><span className="text-sm text-gray-800">精神</span></label>
+                <label className="flex items-center"><input type="checkbox" name="attribute_disability_physical" checked={formData.attribute_disability_physical} onChange={handleChange} className="mr-1.5 h-3.5 w-3.5" /><span className="text-sm text-gray-800">身体</span></label>
+                <label className="flex items-center"><input type="checkbox" name="attribute_disability_intellectual" checked={formData.attribute_disability_intellectual} onChange={handleChange} className="mr-1.5 h-3.5 w-3.5" /><span className="text-sm text-gray-800">知的</span></label>
               </div>
             )}
           </div>
-          <label className="flex items-center"><input type="checkbox" name="attribute_childcare" checked={formData.attribute_childcare} onChange={handleChange} className="mr-2" /><span className="text-gray-800">子育て</span></label>
-          <label className="flex items-center"><input type="checkbox" name="attribute_single_parent" checked={formData.attribute_single_parent} onChange={handleChange} className="mr-2" /><span className="text-gray-800">ひとり親</span></label>
-          <label className="flex items-center"><input type="checkbox" name="attribute_dv" checked={formData.attribute_dv} onChange={handleChange} className="mr-2" /><span className="text-gray-800">DV</span></label>
-          <label className="flex items-center"><input type="checkbox" name="attribute_foreigner" checked={formData.attribute_foreigner} onChange={handleChange} className="mr-2" /><span className="text-gray-800">外国人</span></label>
-          <label className="flex items-center"><input type="checkbox" name="attribute_poverty" checked={formData.attribute_poverty} onChange={handleChange} className="mr-2" /><span className="text-gray-800">生活困窮</span></label>
-          <label className="flex items-center"><input type="checkbox" name="attribute_low_income" checked={formData.attribute_low_income} onChange={handleChange} className="mr-2" /><span className="text-gray-800">低所得者</span></label>
-          <label className="flex items-center"><input type="checkbox" name="attribute_lgbt" checked={formData.attribute_lgbt} onChange={handleChange} className="mr-2" /><span className="text-gray-800">LGBT</span></label>
-          <label className="flex items-center"><input type="checkbox" name="attribute_welfare" checked={formData.attribute_welfare} onChange={handleChange} className="mr-2" /><span className="text-gray-800">生保</span></label>
+        </div>
+
+        {/* 第2階層：厚労省頻出属性（常時表示・区切り線なし） */}
+        <div className="flex flex-wrap gap-x-6 gap-y-3 mb-6">
+          <label className="flex items-center"><input type="checkbox" name="attribute_poverty" checked={formData.attribute_poverty} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">生活困窮</span></label>
+          <label className="flex items-center"><input type="checkbox" name="attribute_low_income" checked={formData.attribute_low_income} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">低額所得者</span></label>
+          <label className="flex items-center"><input type="checkbox" name="attribute_childcare" checked={formData.attribute_childcare} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">子育て世帯（一般）</span></label>
+          <label className="flex items-center"><input type="checkbox" name="attribute_foreigner" checked={formData.attribute_foreigner} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">外国人</span></label>
+          <label className="flex items-center"><input type="checkbox" name="attribute_dv" checked={formData.attribute_dv} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">DV</span></label>
+          <label className="flex items-center"><input type="checkbox" name="attribute_rehabilitation_support" checked={formData.attribute_rehabilitation_support} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">更生保護対象者</span></label>
+          <label className="flex items-center"><input type="checkbox" name="attribute_lgbt" checked={formData.attribute_lgbt} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">LGBT</span></label>
+          <label className="flex items-center"><input type="checkbox" name="attribute_no_guarantor" checked={formData.attribute_no_guarantor} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">保証人なし</span></label>
+        </div>
+
+        {/* 第3階層：その他の属性（アコーディオン） */}
+        <div className="border border-gray-200 rounded-md">
+          <button 
+            type="button" 
+            onClick={() => setIsAccordionOpen(!isAccordionOpen)}
+            className="w-full flex items-center justify-between px-4 py-2 bg-gray-50 hover:bg-gray-100 transition-colors text-sm text-gray-700"
+          >
+            <span className="flex items-center font-medium">
+              {isAccordionOpen ? '▼' : '▶'} その他の要配慮属性を表示する
+              {!isAccordionOpen && otherAttributesCount > 0 && (
+                <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                  他に{otherAttributesCount}件選択中
+                </span>
+              )}
+            </span>
+          </button>
+          {isAccordionOpen && (
+            <div className="p-4 flex flex-wrap gap-x-6 gap-y-3 border-t border-gray-200">
+              <label className="flex items-center"><input type="checkbox" name="attribute_disaster_victim_3yr" checked={formData.attribute_disaster_victim_3yr} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">被災者（3年内）</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_major_disaster_victim" checked={formData.attribute_major_disaster_victim} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">大規模災害被災者</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_crime_victim" checked={formData.attribute_crime_victim} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">犯罪被害者</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_child_abuse_victim" checked={formData.attribute_child_abuse_victim} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">児童虐待被害者</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_newlywed_household" checked={formData.attribute_newlywed_household} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">新婚世帯</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_foster_care_leavers" checked={formData.attribute_foster_care_leavers} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">児童養護施設退所者</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_uij_turn" checked={formData.attribute_uij_turn} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">UIJターン転入者</span></label>
+              <label className="flex items-center"><input type="checkbox" name="attribute_support_worker" checked={formData.attribute_support_worker} onChange={handleChange} className="mr-2" /><span className="text-sm text-gray-800">要配慮者への生活支援者</span></label>
+            </div>
+          )}
         </div>
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div><label className="block text-sm font-medium text-gray-700 mb-1">お名前</label><div className="flex items-center"><input type="text" name="name" value={formData.name} onChange={handleChange} className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white" placeholder="匿名の場合は空欄" /><span className="ml-2 text-gray-600">様</span></div></div>
         <div><label className="block text-sm font-medium text-gray-700 mb-1">フリガナ</label><input type="text" name="furigana" value={formData.furigana} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-800 bg-white" /></div>

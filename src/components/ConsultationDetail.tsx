@@ -8,7 +8,7 @@ import { createUser } from '@/app/actions/users'
 import { deleteConsultation } from '@/app/actions/consultations'
 import { Database } from '@/types/database'
 import { calculateAge } from '@/utils/date'
-import { getAgeGroupLabel } from '@/utils/age-utils' // ★追加：共通ロジックをインポート
+import { getAgeGroupLabel } from '@/utils/age-utils'
 
 // age_group カラムを含めるため、Row 型を明示
 type Consultation = Database['public']['Tables']['consultations']['Row'] & {
@@ -333,20 +333,45 @@ const ConsultationDetail: React.FC<ConsultationDetailProps> = ({ consultation })
             {consultation.consultation_route_other && <InfoTag color="blue">その他{consultation.consultation_route_other_text && `: ${consultation.consultation_route_other_text}`}</InfoTag>}
           </div>
         </DetailItem>
+
         <DetailItem label="属性" fullWidth>
           <div className="flex flex-wrap gap-2">
+            {/* 第1階層 */}
             {consultation.attribute_elderly && <InfoTag color="green">高齢</InfoTag>}
-            {consultation.attribute_disability && <InfoTag color="green">障がい {[consultation.attribute_disability_mental && '精神', consultation.attribute_disability_physical && '身体', consultation.attribute_disability_intellectual && '知的'].filter(Boolean).join('・')}</InfoTag>}
-            {consultation.attribute_childcare && <InfoTag color="green">子育て</InfoTag>}
-            {consultation.attribute_single_parent && <InfoTag color="green">ひとり親</InfoTag>}
-            {consultation.attribute_dv && <InfoTag color="green">DV</InfoTag>}
-            {consultation.attribute_foreigner && <InfoTag color="green">外国人</InfoTag>}
-            {consultation.attribute_poverty && <InfoTag color="green">生活困窮</InfoTag>}
-            {consultation.attribute_low_income && <InfoTag color="green">低所得者</InfoTag>}
-            {consultation.attribute_lgbt && <InfoTag color="green">LGBT</InfoTag>}
             {consultation.attribute_welfare && <InfoTag color="green">生保</InfoTag>}
+            {consultation.attribute_single_parent && <InfoTag color="green">ひとり親（母子・父子）</InfoTag>}
+            {consultation.attribute_disability && (
+              <InfoTag color="green">
+                障がい {[
+                  consultation.attribute_disability_mental && '精神', 
+                  consultation.attribute_disability_physical && '身体', 
+                  consultation.attribute_disability_intellectual && '知的'
+                ].filter(Boolean).join('・')}
+              </InfoTag>
+            )}
+
+            {/* 第2階層 */}
+            {consultation.attribute_poverty && <InfoTag color="green">生活困窮</InfoTag>}
+            {consultation.attribute_low_income && <InfoTag color="green">低額所得者</InfoTag>}
+            {consultation.attribute_childcare && <InfoTag color="green">子育て世帯（一般）</InfoTag>}
+            {consultation.attribute_foreigner && <InfoTag color="green">外国人</InfoTag>}
+            {consultation.attribute_dv && <InfoTag color="green">DV</InfoTag>}
+            {consultation.attribute_rehabilitation_support && <InfoTag color="green">更生保護対象者</InfoTag>}
+            {consultation.attribute_lgbt && <InfoTag color="green">LGBT</InfoTag>}
+            {consultation.attribute_no_guarantor && <InfoTag color="green">保証人なし</InfoTag>}
+
+            {/* 第3階層 */}
+            {consultation.attribute_disaster_victim_3yr && <InfoTag color="gray">被災者（3年内）</InfoTag>}
+            {consultation.attribute_major_disaster_victim && <InfoTag color="gray">大規模災害被災者</InfoTag>}
+            {consultation.attribute_crime_victim && <InfoTag color="gray">犯罪被害者</InfoTag>}
+            {consultation.attribute_child_abuse_victim && <InfoTag color="gray">児童虐待被害者</InfoTag>}
+            {consultation.attribute_newlywed_household && <InfoTag color="gray">新婚世帯</InfoTag>}
+            {consultation.attribute_foster_care_leavers && <InfoTag color="gray">児童養護施設退所者</InfoTag>}
+            {consultation.attribute_uij_turn && <InfoTag color="gray">UIJターン転入者</InfoTag>}
+            {consultation.attribute_support_worker && <InfoTag color="gray">要配慮者への生活支援者</InfoTag>}
           </div>
         </DetailItem>
+
         <DetailItem label="世帯構成" fullWidth>
           <div className="flex flex-wrap gap-2">
             {consultation.household_single && <InfoTag color="purple">独居</InfoTag>}
