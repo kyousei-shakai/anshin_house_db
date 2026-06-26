@@ -5,7 +5,7 @@ import React, { useState, useEffect, forwardRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Database } from '@/types/database'
 import { createConsultation, updateConsultation } from '@/app/actions/consultations'
-import { getStaffForSelection } from '@/app/actions/staff'
+import { getStaffForSelection } from '@/app/actions/staff' // 最新の防弾Actionを使用
 import { ConsultationFormData } from './types'
 import Section1_BasicInfo from './Section1_BasicInfo'
 import Section2_PhysicalStatus from './Section2_PhysicalStatus'
@@ -20,7 +20,8 @@ import { getAgeGroupLabel } from '@/utils/age-utils'
 type Consultation = Database['public']['Tables']['consultations']['Row']
 type ConsultationInsert = Database['public']['Tables']['consultations']['Insert']
 type ConsultationUpdate = Database['public']['Tables']['consultations']['Update']
-type Staff = { id: string; name: string | null }
+// スタッフ型に role を追加して同期
+type Staff = { id: string; name: string | null; role?: string | null }
 
 // propsの型定義
 interface ConsultationFormProps {
@@ -37,7 +38,9 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
 
     useEffect(() => {
       const fetchStaff = async () => {
-        const result = await getStaffForSelection();
+        // 【防弾設計】編集モード時は、現在紐付いているスタッフIDを渡すことで、
+        // そのスタッフが無効化されていてもプルダウンの選択肢から消えないように制御します。
+        const result = await getStaffForSelection(initialData?.staff_id);
 
         if (result.success && result.data) {
           if (result.data.length === 0) {
@@ -51,7 +54,7 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
         }
       };
       fetchStaff();
-    }, []);
+    }, [initialData?.staff_id]); // 依存配列に含めることで初期データの変更に追従
 
     const initializeFormData = (data: Consultation | undefined): ConsultationFormData => {
       if (!data) {
@@ -60,13 +63,13 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
           staff_id: '',
           consultation_route_self: false,
           consultation_route_family: false,
-          consultation_route_family_text: '', // ★ 変更点
+          consultation_route_family_text: '',
           consultation_route_care_manager: false,
-          consultation_route_care_manager_text: '', // ★ 変更点
+          consultation_route_care_manager_text: '',
           consultation_route_elderly_center: false,
-          consultation_route_elderly_center_text: '', // ★ 変更点
+          consultation_route_elderly_center_text: '',
           consultation_route_disability_center: false,
-          consultation_route_disability_center_text: '', // ★ 変更点
+          consultation_route_disability_center_text: '',
           consultation_route_government: false,
           consultation_route_government_other: '',
           consultation_route_other: false,
@@ -84,6 +87,19 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
           attribute_low_income: false,
           attribute_lgbt: false,
           attribute_welfare: false,
+
+          // 属性項目の初期値（全10項目を完全維持）
+          attribute_rehabilitation_support: false,
+          attribute_no_guarantor: false,
+          attribute_disaster_victim_3yr: false,
+          attribute_major_disaster_victim: false,
+          attribute_crime_victim: false,
+          attribute_child_abuse_victim: false,
+          attribute_newlywed_household: false,
+          attribute_foster_care_leavers: false,
+          attribute_uij_turn: false,
+          attribute_support_worker: false,
+
           name: '',
           furigana: '',
           gender: '',
@@ -102,7 +118,7 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
           birth_year: '',
           birth_month: '',
           birth_day: '',
-          age_group: '', // ★追加：新規作成時の初期値
+          age_group: '', 
           physical_condition: '',
           mental_disability_certificate: false,
           mental_disability_level: '',
@@ -196,13 +212,13 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
         staff_id: data.staff_id || '',
         consultation_route_self: data.consultation_route_self || false,
         consultation_route_family: data.consultation_route_family || false,
-        consultation_route_family_text: data.consultation_route_family_text || '', // ★ 変更点
+        consultation_route_family_text: data.consultation_route_family_text || '',
         consultation_route_care_manager: data.consultation_route_care_manager || false,
-        consultation_route_care_manager_text: data.consultation_route_care_manager_text || '', // ★ 変更点
+        consultation_route_care_manager_text: data.consultation_route_care_manager_text || '',
         consultation_route_elderly_center: data.consultation_route_elderly_center || false,
-        consultation_route_elderly_center_text: data.consultation_route_elderly_center_text || '', // ★ 変更点
+        consultation_route_elderly_center_text: data.consultation_route_elderly_center_text || '',
         consultation_route_disability_center: data.consultation_route_disability_center || false,
-        consultation_route_disability_center_text: data.consultation_route_disability_center_text || '', // ★ 変更点
+        consultation_route_disability_center_text: data.consultation_route_disability_center_text || '',
         consultation_route_government: data.consultation_route_government || false,
         consultation_route_government_other: data.consultation_route_government_other || '',
         consultation_route_other: data.consultation_route_other || false,
@@ -220,6 +236,19 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
         attribute_low_income: data.attribute_low_income || false,
         attribute_lgbt: data.attribute_lgbt || false,
         attribute_welfare: data.attribute_welfare || false,
+
+        // DBの既存データを復元（全10項目を完全維持）
+        attribute_rehabilitation_support: data.attribute_rehabilitation_support || false,
+        attribute_no_guarantor: data.attribute_no_guarantor || false,
+        attribute_disaster_victim_3yr: data.attribute_disaster_victim_3yr || false,
+        attribute_major_disaster_victim: data.attribute_major_disaster_victim || false,
+        attribute_crime_victim: data.attribute_crime_victim || false,
+        attribute_child_abuse_victim: data.attribute_child_abuse_victim || false,
+        attribute_newlywed_household: data.attribute_newlywed_household || false,
+        attribute_foster_care_leavers: data.attribute_foster_care_leavers || false,
+        attribute_uij_turn: data.attribute_uij_turn || false,
+        attribute_support_worker: data.attribute_support_worker || false,
+
         name: data.name || '',
         furigana: data.furigana || '',
         gender: data.gender as 'male' | 'female' | 'other' | '' || '',
@@ -238,7 +267,7 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
         birth_year: data.birth_year || '',
         birth_month: data.birth_month || '',
         birth_day: data.birth_day || '',
-        age_group: data.age_group || '', // ★追加：既存データの復元
+        age_group: data.age_group || '',
         physical_condition: data.physical_condition as ConsultationFormData['physical_condition'] || '',
         mental_disability_certificate: data.mental_disability_certificate || false,
         mental_disability_level: data.mental_disability_level || '',
@@ -337,13 +366,9 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
         setLoading(true);
         setError(null);
 
-        // ★最高峰のデータ整合性確保：保存直前に「年代」を確定させる
-        // 生年月日（年・月・日）が入力されていれば自動計算値を優先、なければ手動入力値を採用
         const autoAgeGroup = getAgeGroupLabel(formData.birth_year, formData.birth_month, formData.birth_day);
         const finalAgeGroup = autoAgeGroup || formData.age_group || null;
 
-        // DB送信用のデータ整形
-        // 型定義に age_group を含めるため、一時的に型を拡張して定義
         const dataToSubmit: Omit<ConsultationUpdate, 'staff_name'> & { 
           staff_id?: string | null,
           age_group?: string | null 
@@ -376,6 +401,19 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
           attribute_low_income: formData.attribute_low_income,
           attribute_lgbt: formData.attribute_lgbt,
           attribute_welfare: formData.attribute_welfare,
+
+          // 送信データへの新設属性の統合（全10項目を完全維持）
+          attribute_rehabilitation_support: formData.attribute_rehabilitation_support,
+          attribute_no_guarantor: formData.attribute_no_guarantor,
+          attribute_disaster_victim_3yr: formData.attribute_disaster_victim_3yr,
+          attribute_major_disaster_victim: formData.attribute_major_disaster_victim,
+          attribute_crime_victim: formData.attribute_crime_victim,
+          attribute_child_abuse_victim: formData.attribute_child_abuse_victim,
+          attribute_newlywed_household: formData.attribute_newlywed_household,
+          attribute_foster_care_leavers: formData.attribute_foster_care_leavers,
+          attribute_uij_turn: formData.attribute_uij_turn,
+          attribute_support_worker: formData.attribute_support_worker,
+
           name: formData.name || null,
           furigana: formData.furigana || null,
           gender: formData.gender || null,
@@ -395,7 +433,6 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
           birth_month: formData.birth_month ? Number(formData.birth_month) : null,
           birth_day: formData.birth_day ? Number(formData.birth_day) : null,
           
-          // ★年代情報をセット
           age_group: finalAgeGroup,
 
           physical_condition: formData.physical_condition || null,

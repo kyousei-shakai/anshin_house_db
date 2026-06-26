@@ -4,17 +4,18 @@ export type ConsultationFormData = {
   staff_id: string
   consultation_route_self: boolean
   consultation_route_family: boolean
-  consultation_route_family_text: string // ★ 追加
+  consultation_route_family_text: string 
   consultation_route_care_manager: boolean
-  consultation_route_care_manager_text: string // ★ 追加
+  consultation_route_care_manager_text: string 
   consultation_route_elderly_center: boolean
-  consultation_route_elderly_center_text: string // ★ 追加
+  consultation_route_elderly_center_text: string 
   consultation_route_disability_center: boolean
-  consultation_route_disability_center_text: string // ★ 追加
+  consultation_route_disability_center_text: string 
   consultation_route_government: boolean
   consultation_route_government_other: string
   consultation_route_other: boolean
   consultation_route_other_text: string
+
   attribute_elderly: boolean
   attribute_disability: boolean
   attribute_disability_mental: boolean
@@ -28,6 +29,21 @@ export type ConsultationFormData = {
   attribute_low_income: boolean
   attribute_lgbt: boolean
   attribute_welfare: boolean
+
+ // ▼▼▼ 【新規追加】マイグレーションと完全に一致する10項目 ▼▼▼
+  attribute_rehabilitation_support: boolean
+  attribute_no_guarantor: boolean
+  attribute_disaster_victim_3yr: boolean
+  attribute_major_disaster_victim: boolean
+  attribute_crime_victim: boolean
+  attribute_child_abuse_victim: boolean
+  attribute_newlywed_household: boolean
+  attribute_foster_care_leavers: boolean
+  attribute_uij_turn: boolean
+  attribute_support_worker: boolean
+  // ▲▲▲ 追加終了 ▲▲▲
+
+
   name: string
   furigana: string
   gender: 'male' | 'female' | 'other' | ''
