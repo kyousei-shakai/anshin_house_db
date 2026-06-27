@@ -82,7 +82,7 @@ const DataManagement: React.FC<DataManagementProps> = ({
     const filteredUsers = getFilteredData(users, 'created_at')
     const timestamp = new Date().toISOString().slice(0, 10)
     const monthSuffix = exportMonth ? `_${exportMonth}` : ''
-    const filename = `users${monthSuffix}_${timestamp}.${format === 'excel' ? 'xlsx' : 'csv'}`
+    const filename = `利用者様データ${monthSuffix}_${timestamp}.${format === 'excel' ? 'xlsx' : 'csv'}`
     if (format === 'excel') {
       exportUsersToExcel(filteredUsers, filename)
     } else {
@@ -94,7 +94,7 @@ const DataManagement: React.FC<DataManagementProps> = ({
     const filteredConsultations = getFilteredData(consultations, 'consultation_date')
     const timestamp = new Date().toISOString().slice(0, 10)
     const monthSuffix = exportMonth ? `_${exportMonth}` : ''
-    const filename = `consultations${monthSuffix}_${timestamp}.${format === 'excel' ? 'xlsx' : 'csv'}`
+    const filename = `相談記録${monthSuffix}_${timestamp}.${format === 'excel' ? 'xlsx' : 'csv'}`
 
     if (format === 'excel') {
       exportConsultationsToExcel(filteredConsultations, filename)
@@ -130,7 +130,7 @@ const DataManagement: React.FC<DataManagementProps> = ({
     const filteredSupportPlans = getFilteredData(supportPlans, 'creation_date')
     const timestamp = new Date().toISOString().slice(0, 10)
     const monthSuffix = exportMonth ? `_${exportMonth}` : ''
-    const filename = `support_plans${monthSuffix}_${timestamp}.${format === 'excel' ? 'xlsx' : 'csv'}`
+    const filename = `支援計画${monthSuffix}_${timestamp}.${format === 'excel' ? 'xlsx' : 'csv'}`
     if (format === 'excel') {
       exportSupportPlansToExcel(filteredSupportPlans, filename)
     } else {
