@@ -41,7 +41,8 @@ export default async function UserDetailPage() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto">
+      {/* ★ 修正: 黄金のコンテナ・ルールを適用。px-4 sm:px-6 lg:px-8 で一覧ページと整列を統一 */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <nav className="flex" aria-label="Breadcrumb">
             <ol className="inline-flex items-center space-x-1 md:space-x-3">
@@ -65,7 +66,10 @@ export default async function UserDetailPage() {
                   <svg className="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
                     <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 9 4-4-4-4"/>
                   </svg>
-                  <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">{user.name}</span>
+                  <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">
+                    {user.name}
+                    {user.furigana && <span className="ml-2 text-xs font-normal">({user.furigana})</span>}
+                  </span>
                 </div>
               </li>
             </ol>
