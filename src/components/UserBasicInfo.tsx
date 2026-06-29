@@ -50,116 +50,89 @@ const UserBasicInfo: React.FC<UserBasicInfoProps> = ({ user }) => {
   const age = calculateAge(user.birth_date);
 
   return (
-    <div className="space-y-6">
-      {/* 基本情報セクション */}
-      <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-        <h2 className="text-lg font-semibold leading-7 text-gray-900">基本情報</h2>
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-5">
-          <InfoItem label="UID" className="col-span-2 md:col-span-1"><span className="font-mono">{user.uid}</span></InfoItem>
+      <div className="space-y-10 pb-20">
+      
+      {/* セクション1: 基本情報 */}
+      <section>
+        <h2 className="text-base font-bold text-gray-900 border-l-4 border-gray-900 pl-3 mb-4">基本情報</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8">
+          <InfoItem label="UID"><span className="font-mono text-xs">{user.uid}</span></InfoItem>
           <InfoItem label="氏名">{user.name}</InfoItem>
-          <InfoItem label="生年月日">{formatDate(user.birth_date)}</InfoItem>
+          <InfoItem label="フリガナ">{user.furigana}</InfoItem>
           <InfoItem label="性別">
-            {user.gender === 'male' ? '男性' :
-              user.gender === 'female' ? '女性' :
-                user.gender === 'other' ? 'その他' : '-'}
+            {user.gender === 'male' ? '男性' : user.gender === 'female' ? '女性' : user.gender === 'other' ? 'その他' : '-'}
           </InfoItem>
-          {/* ★★★ user.age を計算した age に置き換え ★★★ */}
+          <InfoItem label="生年月日">{formatDate(user.birth_date)}</InfoItem>
           <InfoItem label="年齢">{age != null ? `${age}歳` : '-'}</InfoItem>
+          <InfoItem label="登録日">{formatDate(user.registered_at)}</InfoItem>
+          <InfoItem label="最終更新">{formatDate(user.updated_at)}</InfoItem>
         </div>
-      </div>
+      </section>
 
-      {/* 物件情報セクション */}
-      <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold leading-7 text-gray-900">物件情報</h2>
-          <button
-            onClick={handleCopyAddress}
-            className="rounded bg-white px-2 py-1 text-xs font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 disabled:opacity-50"
-            disabled={!fullAddress}
-          >
-            コピー
-          </button>
+      {/* セクション2: 物件・費用情報 */}
+      <section>
+        <div className="flex items-center justify-between border-l-4 border-gray-900 pl-3 mb-4">
+          <h2 className="text-base font-bold text-gray-900">物件・費用情報</h2>
+          <button onClick={handleCopyAddress} disabled={!fullAddress} className="text-xs font-bold text-blue-600 border border-blue-200 px-3 py-1 rounded hover:bg-blue-50">住所をコピー</button>
         </div>
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-5">
-          <InfoItem label="物件住所・部屋番号" className="col-span-2 md:col-span-3">{fullAddress}</InfoItem>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-x-8">
+          <InfoItem label="物件住所・部屋番号" className="md:col-span-3">{fullAddress}</InfoItem>
           <InfoItem label="仲介">{user.intermediary}</InfoItem>
-        </div>
-      </div>
-
-      {/* 費用情報セクション */}
-      <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-        <h2 className="text-lg font-semibold leading-7 text-gray-900">費用情報</h2>
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-5">
-          <InfoItem label="敷金">{user.deposit != null ? user.deposit.toLocaleString() : '-'}</InfoItem>
-          <InfoItem label="礼金">{user.key_money != null ? user.key_money.toLocaleString() : '-'}</InfoItem>
-          <InfoItem label="家賃" className="font-bold">{formatCurrency(user.rent)}</InfoItem>
-          <InfoItem label="火災保険">{formatCurrency(user.fire_insurance)}</InfoItem>
+          <InfoItem label="家賃">{formatCurrency(user.rent)}</InfoItem>
           <InfoItem label="共益費">{formatCurrency(user.common_fee)}</InfoItem>
+          <InfoItem label="家賃差額">{formatCurrency(user.rent_difference)}</InfoItem>
+          <InfoItem label="火災保険">{formatCurrency(user.fire_insurance)}</InfoItem>
+          <InfoItem label="敷金">{user.deposit != null ? `${user.deposit.toLocaleString()}円` : '-'}</InfoItem>
+          <InfoItem label="礼金">{user.key_money != null ? `${user.key_money.toLocaleString()}円` : '-'}</InfoItem>
           <InfoItem label="大家家賃">{formatCurrency(user.landlord_rent)}</InfoItem>
           <InfoItem label="大家共益費">{formatCurrency(user.landlord_common_fee)}</InfoItem>
-          <InfoItem label="家賃差額">{formatCurrency(user.rent_difference)}</InfoItem>
         </div>
-      </div>
+      </section>
 
-      {/* 入居情報セクション */}
-      <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-        <h2 className="text-lg font-semibold leading-7 text-gray-900">入居情報</h2>
-        <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-5">
+      {/* セクション3: 入居・連絡先 */}
+      <section>
+        <h2 className="text-base font-bold text-gray-900 border-l-4 border-gray-900 pl-3 mb-4">入居・連絡先</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8">
           <InfoItem label="入居日">{formatDate(user.move_in_date)}</InfoItem>
           <InfoItem label="次回更新年月日">{formatDate(user.next_renewal_date)}</InfoItem>
           <InfoItem label="更新回数">{user.renewal_count != null ? `${user.renewal_count}回` : '-'}</InfoItem>
-        </div>
-      </div>
-
-      {/* 連絡先情報セクション */}
-      <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-        <h2 className="text-lg font-semibold leading-7 text-gray-900">連絡先情報</h2>
-        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
+          <div className="border-b border-gray-100 hidden md:block" />
           <InfoItem label="入居者連絡先">{user.resident_contact}</InfoItem>
           <InfoItem label="LINE利用可否">{formatBoolean(user.line_available)}</InfoItem>
-          {/* 視認性向上のため、緊急連絡先情報を整理して表示 */}
-          <InfoItem label="緊急連絡先氏名">{user.emergency_contact_name}</InfoItem>
+        </div>
+      </section>
 
-          {/* ラベルをフォームと合わせて「緊急連絡先電話番号」に変更（データは emergency_contact を使用） */}
-          <InfoItem label="緊急連絡先電話番号">{user.emergency_contact}</InfoItem>
-
-          {/* ★ 追加: 緊急連絡先住所。住所は長くなる可能性があるため、col-span-2 で横幅を確保 */}
-          <InfoItem label="緊急連絡先住所" className="col-span-2">
-            {user.emergency_contact_address}
-          </InfoItem>
-
+      {/* セクション4: 緊急連絡先 */}
+      <section>
+        <h2 className="text-base font-bold text-gray-900 border-l-4 border-gray-900 pl-3 mb-4">緊急連絡先</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8">
+          <InfoItem label="氏名">{user.emergency_contact_name}</InfoItem>
           <InfoItem label="続柄">{user.relationship}</InfoItem>
+          <InfoItem label="電話番号" className="md:col-span-2">{user.emergency_contact}</InfoItem>
+          <InfoItem label="緊急連絡先住所" className="md:col-span-4">{user.emergency_contact_address}</InfoItem>
         </div>
-      </div>
+      </section>
 
-      {/* サポート情報セクション */}
-      <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-        <h2 className="text-lg font-semibold leading-7 text-gray-900">サポート情報</h2>
-        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
+      {/* セクション5: サポート情報 */}
+      <section>
+        <h2 className="text-base font-bold text-gray-900 border-l-4 border-gray-900 pl-3 mb-4">サポート状況</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8">
           <InfoItem label="見守りシステム">{user.monitoring_system}</InfoItem>
-          <InfoItem label="支援機関/医療機関">{user.support_medical_institution}</InfoItem>
+          <InfoItem label="支援・医療機関">{user.support_medical_institution}</InfoItem>
           <InfoItem label="代理納付該当">{formatBoolean(user.proxy_payment_eligible)}</InfoItem>
-          <InfoItem label="生活保護受給者">{formatBoolean(user.welfare_recipient)}</InfoItem>
-          <InfoItem label="死後事務委任">{formatBoolean(user.posthumous_affairs)}</InfoItem>
+          <InfoItem label="生活保護受給">{formatBoolean(user.welfare_recipient)}</InfoItem>
+          <InfoItem label="死後事務委任" className="col-span-2">{formatBoolean(user.posthumous_affairs)}</InfoItem>
         </div>
-      </div>
+      </section>
 
-      {/* 備考セクション */}
-      {user.notes && (
-        <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-          <h2 className="text-lg font-semibold leading-7 text-gray-900">備考</h2>
-          <div className="mt-2 text-base text-gray-900 whitespace-pre-wrap">{user.notes}</div>
+      {/* セクション6: 備考 */}
+      <section>
+        <h2 className="text-base font-bold text-gray-900 border-l-4 border-gray-900 pl-3 mb-4">備考</h2>
+        <div className="bg-gray-50 p-4 rounded border border-gray-200 min-h-[100px] text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+          {user.notes || '特記事項なし'}
         </div>
-      )}
+      </section>
 
-      {/* システム情報セクション */}
-      <div className="bg-gray-50/70 rounded-lg p-4 sm:p-6">
-        <h2 className="text-lg font-semibold leading-7 text-gray-900">システム情報</h2>
-        <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
-          <InfoItem label="登録日時">{formatDate(user.registered_at)}</InfoItem>
-          <InfoItem label="最終更新日時">{formatDate(user.updated_at)}</InfoItem>
-        </div>
-      </div>
     </div>
   )
 }

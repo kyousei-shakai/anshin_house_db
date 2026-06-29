@@ -82,6 +82,8 @@ export async function createUser(
         // フォーム側が空の場合のみ、相談データの値を補完する
         finalUserData = {
           ...finalUserData,
+          // ★ 追加：フリガナの自動引き継ぎ
+          furigana: userData.furigana || consultation.furigana,
           // 緊急連絡先住所（今回の新規項目）
           emergency_contact_address: userData.emergency_contact_address || consultation.emergency_contact_address,
           // 緊急連絡先電話番号（携帯優先、なければ固定）

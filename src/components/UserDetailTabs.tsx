@@ -73,17 +73,35 @@ const UserDetailTabs: React.FC<UserDetailTabsProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-      {/* ヘッダー */}
-      <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/50">
+    <div className="bg-white -mx-4 sm:mx-0 border-y sm:border border-gray-200 sm:rounded-lg shadow-sm overflow-hidden">
+      
+      {/* ヘッダー：パディングを標準(px-4 sm:px-6)に調整 */}
+      <div className="px-4 sm:px-6 py-5 border-b border-gray-100 bg-gray-50/50">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">{user.name}</h1>
-            <p className="text-[11px] text-gray-500 font-mono mt-0.5 uppercase tracking-widest">ID: {user.uid}</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-1">
+              {/* ステータスバッジ：一目で現在の状態を識別 */}
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ring-1 ring-inset ${
+                user.status === '利用中' ? 'bg-green-50 text-green-700 ring-green-600/20' : 
+                user.status === '逝去' ? 'bg-gray-100 text-gray-600 ring-gray-500/20' : 
+                'bg-orange-50 text-orange-700 ring-orange-600/20'
+              }`}>
+                {user.status}
+              </span>
+              <p className="text-[10px] text-gray-400 font-mono uppercase tracking-widest">ID: {user.uid}</p>
+            </div>
+            {user.furigana && (
+              <p className="text-xs text-gray-500 font-medium mb-0.5 ml-0.5">{user.furigana}</p>
+            )}
+            <h1 className="text-2xl font-bold text-gray-900 truncate">{user.name}</h1>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href={`/users/${user.uid}/edit`} className="bg-white border border-gray-300 text-gray-700 px-4 py-1.5 rounded text-xs font-bold hover:bg-gray-50 transition-all shadow-sm">編集</Link>
-            <button onClick={handleDelete} disabled={isDeleting} type="button" className="text-gray-400 hover:text-red-600 text-xs font-medium px-2 py-1 transition-colors">削除</button>
+          <div className="flex items-center gap-3 shrink-0">
+            <Link href={`/users/${user.uid}/edit`} className="inline-flex items-center justify-center bg-white border border-gray-300 text-gray-700 px-5 py-2 rounded-md text-sm font-bold hover:bg-gray-50 transition-all shadow-sm">
+              編集する
+            </Link>
+            <button onClick={handleDelete} disabled={isDeleting} type="button" className="text-gray-400 hover:text-red-600 text-xs font-medium px-2 py-1 transition-colors">
+              削除
+            </button>
           </div>
         </div>
       </div>

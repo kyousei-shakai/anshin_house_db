@@ -118,7 +118,7 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
           birth_year: '',
           birth_month: '',
           birth_day: '',
-          age_group: '', 
+          age_group: '',
           physical_condition: '',
           mental_disability_certificate: false,
           mental_disability_level: '',
@@ -198,7 +198,7 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
           consultation_result: ''
         };
       }
-      
+
       const getStatus = (independent: boolean | null, partial: boolean | null, full: boolean | null, other: boolean | null) => {
         if (independent) return 'independent';
         if (partial) return 'partial_assist';
@@ -206,7 +206,7 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
         if (other) return 'other';
         return '';
       };
-      
+
       return {
         consultation_date: data.consultation_date ? data.consultation_date.split('T')[0] : '',
         staff_id: data.staff_id || '',
@@ -359,7 +359,7 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
     const handleRadioChange = (name: keyof ConsultationFormData, value: string) => {
       setFormData(prev => ({ ...prev, [name]: value }));
     };
-    
+
     const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       try {
@@ -369,9 +369,9 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
         const autoAgeGroup = getAgeGroupLabel(formData.birth_year, formData.birth_month, formData.birth_day);
         const finalAgeGroup = autoAgeGroup || formData.age_group || null;
 
-        const dataToSubmit: Omit<ConsultationUpdate, 'staff_name'> & { 
+        const dataToSubmit: Omit<ConsultationUpdate, 'staff_name'> & {
           staff_id?: string | null,
-          age_group?: string | null 
+          age_group?: string | null
         } = {
           consultation_date: formData.consultation_date,
           staff_id: formData.staff_id || null,
@@ -432,7 +432,7 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
           birth_year: formData.birth_year ? Number(formData.birth_year) : null,
           birth_month: formData.birth_month ? Number(formData.birth_month) : null,
           birth_day: formData.birth_day ? Number(formData.birth_day) : null,
-          
+
           age_group: finalAgeGroup,
 
           physical_condition: formData.physical_condition || null,
@@ -549,6 +549,14 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
       }
     };
 
+    // 【新規追加】Enterキーによる誤送信防止ロジック
+    // テキストエリア以外でのEnterキー押下を無効化し、改行が必要な場所（相談内容等）は許可します。
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+      if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+        e.preventDefault();
+      }
+    };
+
     const calculateAge = () => {
       if (formData.birth_year && formData.birth_month && formData.birth_day) {
         const birthDate = new Date(Number(formData.birth_year), Number(formData.birth_month) - 1, Number(formData.birth_day));
@@ -562,9 +570,9 @@ const ConsultationForm = forwardRef<HTMLFormElement, ConsultationFormProps>(
       }
       return null;
     };
-    
+
     return (
-      <form onSubmit={handleSubmit} ref={ref} className="space-y-10">
+      <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} ref={ref} className="space-y-10">
         {error && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
             <div className="text-red-500 text-sm">{error}</div>

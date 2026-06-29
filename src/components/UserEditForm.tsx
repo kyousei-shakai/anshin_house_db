@@ -23,6 +23,7 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
 
   const [formData, setFormData] = useState({
     name: '',
+    furigana: '',
     birth_date: '',
     gender: '' as 'male' | 'female' | 'other' | '',
     property_address: '',
@@ -62,6 +63,7 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
     if (editMode && user) {
       setFormData({
         name: user.name || '',
+        furigana: user.furigana || '',
         birth_date: user.birth_date?.split('T')[0] || '',
         gender: user.gender as 'male' | 'female' | 'other' | '' || '',
         property_address: user.property_address || '',
@@ -118,30 +120,41 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
     setError(null)
 
     try {
+      // 数値入力用の正規化ヘルパー（全角を半角にし、parseFloatを実行）
+      const parseSafeFloat = (value: string) => {
+        if (!value) return null;
+        // 全角数字を半角に置換
+        const normalized = value.replace(/[０-９]/g, (s) =>
+          String.fromCharCode(s.charCodeAt(0) - 0xFEE0)
+        );
+        const parsed = parseFloat(normalized);
+        return isNaN(parsed) ? null : parsed;
+      };
       const userData = {
         name: formData.name.trim(),
+        furigana: formData.furigana.trim() || null,
         birth_date: formData.birth_date || null,
         gender: formData.gender || null,
         property_address: formData.property_address.trim() || null,
         property_name: formData.property_name.trim() || null,
         room_number: formData.room_number.trim() || null,
         intermediary: formData.intermediary.trim() || null,
-        deposit: formData.deposit ? parseFloat(formData.deposit) : null,
-        key_money: formData.key_money ? parseFloat(formData.key_money) : null,
-        rent: formData.rent ? parseFloat(formData.rent) : null,
-        fire_insurance: formData.fire_insurance ? parseFloat(formData.fire_insurance) : null,
-        common_fee: formData.common_fee ? parseFloat(formData.common_fee) : null,
-        landlord_rent: formData.landlord_rent ? parseFloat(formData.landlord_rent) : null,
-        landlord_common_fee: formData.landlord_common_fee ? parseFloat(formData.landlord_common_fee) : null,
-        rent_difference: formData.rent_difference ? parseFloat(formData.rent_difference) : null,
+        deposit: parseSafeFloat(formData.deposit),
+        key_money: parseSafeFloat(formData.key_money),
+        rent: parseSafeFloat(formData.rent),
+        fire_insurance: parseSafeFloat(formData.fire_insurance),
+        common_fee: parseSafeFloat(formData.common_fee),
+        landlord_rent: parseSafeFloat(formData.landlord_rent),
+        landlord_common_fee: parseSafeFloat(formData.landlord_common_fee),
+        rent_difference: parseSafeFloat(formData.rent_difference),
         move_in_date: formData.move_in_date || null,
         next_renewal_date: formData.next_renewal_date || null,
-        renewal_count: formData.renewal_count ? parseInt(formData.renewal_count, 10) : null,
+        renewal_count: formData.renewal_count ? parseInt(formData.renewal_count.toString().replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)), 10) : null,
         resident_contact: formData.resident_contact.trim() || null,
         line_available: formData.line_available,
         emergency_contact: formData.emergency_contact.trim() || null,
         emergency_contact_name: formData.emergency_contact_name.trim() || null,
-        emergency_contact_address: formData.emergency_contact_address.trim() || null, // 追加
+        emergency_contact_address: formData.emergency_contact_address.trim() || null,
         relationship: formData.relationship.trim() || null,
         monitoring_system: formData.monitoring_system.trim() || null,
         support_medical_institution: formData.support_medical_institution.trim() || null,
@@ -150,9 +163,8 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
         welfare_recipient: formData.welfare_recipient,
         posthumous_affairs: formData.posthumous_affairs,
         registered_at: formData.registered_at || undefined,
-        // ▼▼▼ ステータス情報の送信データ追加 ▼▼▼
         status: formData.status,
-        end_date: formData.end_date || null, // 空文字の場合はnullを送信
+        end_date: formData.end_date || null,
       }
 
       if (editMode && user) {
@@ -186,6 +198,14 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
       [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value
     }))
   }
+
+  // 【新規追加】Enterキーによる誤送信防止
+  // 基本情報の入力中にEnterを押しても保存されないようにし、備考（textarea）での改行のみを許可します。
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+      e.preventDefault();
+    }
+  };
   return (
     <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
       <div className="mb-6">
@@ -203,7 +223,7 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="space-y-8">
 
         {/* ▼▼▼ ステータス管理セクション（目立つように上部に配置） ▼▼▼ */}
         <div className="bg-blue-50 border border-blue-100 rounded-lg p-6">
@@ -266,6 +286,10 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
               <input type="text" name="name" value={formData.name} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">フリガナ <span className="text-red-500">*</span></label>
+              <input type="text" name="furigana" value={formData.furigana} onChange={handleChange} required className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">生年月日</label>
               <input type="date" name="birth_date" value={formData.birth_date} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
@@ -296,14 +320,38 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
         <div className="bg-gray-50 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">費用情報</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">敷金（円）</label><input type="number" name="deposit" value={formData.deposit} onChange={handleChange} min="0" className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">礼金（円）</label><input type="number" name="key_money" value={formData.key_money} onChange={handleChange} min="0" className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">家賃（円）</label><input type="number" name="rent" value={formData.rent} onChange={handleChange} min="0" className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">火災保険（円）</label><input type="number" name="fire_insurance" value={formData.fire_insurance} onChange={handleChange} min="0" className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">共益費（円）</label><input type="number" name="common_fee" value={formData.common_fee} onChange={handleChange} min="0" className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">大家家賃（円）</label><input type="number" name="landlord_rent" value={formData.landlord_rent} onChange={handleChange} min="0" className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">大家共益費（円）</label><input type="number" name="landlord_common_fee" value={formData.landlord_common_fee} onChange={handleChange} min="0" className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-            <div><label className="block text-sm font-medium text-gray-700 mb-1">家賃差額（円）</label><input type="number" name="rent_difference" value={formData.rent_difference} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">敷金（円）</label>
+              <input type="text" inputMode="numeric" name="deposit" value={formData.deposit} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">礼金（円）</label>
+              <input type="text" inputMode="numeric" name="key_money" value={formData.key_money} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">家賃（円）</label>
+              <input type="text" inputMode="numeric" name="rent" value={formData.rent} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">火災保険（円）</label>
+              <input type="text" inputMode="numeric" name="fire_insurance" value={formData.fire_insurance} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">共益費（円）</label>
+              <input type="text" inputMode="numeric" name="common_fee" value={formData.common_fee} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">大家家賃（円）</label>
+              <input type="text" inputMode="numeric" name="landlord_rent" value={formData.landlord_rent} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">大家共益費（円）</label>
+              <input type="text" inputMode="numeric" name="landlord_common_fee" value={formData.landlord_common_fee} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">家賃差額（円）</label>
+              <input type="text" inputMode="numeric" name="rent_difference" value={formData.rent_difference} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
           </div>
         </div>
 
@@ -325,16 +373,16 @@ const UserEditForm: React.FC<UserEditFormProps> = ({ user, editMode }) => {
             <div className="pt-7"><label className="flex items-center"><input type="checkbox" name="line_available" checked={formData.line_available} onChange={handleChange} className="mr-2" /><span className="text-sm font-medium text-gray-700">LINE利用可能</span></label></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">緊急連絡先氏名</label><input type="text" name="emergency_contact_name" value={formData.emergency_contact_name} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
             <div><label className="block text-sm font-medium text-gray-700 mb-1">緊急連絡先 Tel</label><input type="tel" name="emergency_contact" value={formData.emergency_contact} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" /></div>
-           {/* 緊急連絡先住所: 2列分使用して入力しやすくする */}
+            {/* 緊急連絡先住所: 2列分使用して入力しやすくする */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">緊急連絡先住所</label>
-              <input 
-                type="text" 
-                name="emergency_contact_address" 
-                value={formData.emergency_contact_address} 
-                onChange={handleChange} 
+              <input
+                type="text"
+                name="emergency_contact_address"
+                value={formData.emergency_contact_address}
+                onChange={handleChange}
                 placeholder="市区町村、番地、建物名など"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             {/* ▲▲▲ 追加ここまで ▲▲▲ */}

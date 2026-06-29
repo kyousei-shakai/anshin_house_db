@@ -170,6 +170,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
     try {
       const userData: Omit<UserInsert, 'uid'> = {
         name: consultation.name || '匿名利用者',
+        furigana: consultation.furigana || null, 
         birth_date: consultation.birth_year && consultation.birth_month && consultation.birth_day
           ? `${consultation.birth_year}-${String(consultation.birth_month).padStart(2, '0')}-${String(consultation.birth_day).padStart(2, '0')}`
           : undefined,

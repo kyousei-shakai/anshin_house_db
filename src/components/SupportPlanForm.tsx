@@ -300,7 +300,7 @@ const SupportPlanForm: React.FC<SupportPlanFormProps> = ({ editMode = false, sup
         ...prev,
         user_id: userId,
         name: selectedUser.name,
-        furigana: selectedUser.name, // データ構造にfuriganaがないため、暫定でnameを入れる
+        furigana: selectedUser.furigana || '', 
         birth_date: selectedUser.birth_date ? selectedUser.birth_date.split('T')[0] : '',
         residence: selectedUser.property_address || '',
         phone_mobile: selectedUser.resident_contact || ''
@@ -428,8 +428,17 @@ const calculatedAge = useMemo(() => {
       setLoading(false);
     }
   }
-  return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+
+  // 【新規追加】Enterキーによる誤送信防止
+    // 項目数が多いため、意図しない保存を完全に防ぎます。textarea（目標、ニーズ等）のみ改行を許可します。
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+      if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+        e.preventDefault();
+      }
+    };
+
+    return (
+    <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="space-y-8">
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
           <div className="text-red-500 text-sm">{error}</div>

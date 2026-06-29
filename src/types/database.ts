@@ -1072,6 +1072,7 @@ export type Database = {
           emergency_contact_name: string | null
           end_date: string | null
           fire_insurance: number | null
+          furigana: string | null
           gender: string | null
           id: string
           intermediary: string | null
@@ -1111,6 +1112,7 @@ export type Database = {
           emergency_contact_name?: string | null
           end_date?: string | null
           fire_insurance?: number | null
+          furigana?: string | null
           gender?: string | null
           id?: string
           intermediary?: string | null
@@ -1150,6 +1152,7 @@ export type Database = {
           emergency_contact_name?: string | null
           end_date?: string | null
           fire_insurance?: number | null
+          furigana?: string | null
           gender?: string | null
           id?: string
           intermediary?: string | null
