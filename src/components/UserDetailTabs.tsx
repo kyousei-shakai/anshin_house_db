@@ -32,9 +32,9 @@ interface UserDetailTabsProps {
   supportRecordTab: React.ReactNode
 }
 
-const UserDetailTabs: React.FC<UserDetailTabsProps> = ({ 
-  user, 
-  consultations, 
+const UserDetailTabs: React.FC<UserDetailTabsProps> = ({
+  user,
+  consultations,
   supportPlans,
   supportRecordTab
 }) => {
@@ -74,18 +74,17 @@ const UserDetailTabs: React.FC<UserDetailTabsProps> = ({
 
   return (
     <div className="bg-white -mx-4 sm:mx-0 border-y sm:border border-gray-200 sm:rounded-lg shadow-sm overflow-hidden">
-      
+
       {/* ヘッダー：パディングを標準(px-4 sm:px-6)に調整 */}
       <div className="px-4 sm:px-6 py-5 border-b border-gray-100 bg-gray-50/50">
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 mb-1">
               {/* ステータスバッジ：一目で現在の状態を識別 */}
-              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ring-1 ring-inset ${
-                user.status === '利用中' ? 'bg-green-50 text-green-700 ring-green-600/20' : 
-                user.status === '逝去' ? 'bg-gray-100 text-gray-600 ring-gray-500/20' : 
-                'bg-orange-50 text-orange-700 ring-orange-600/20'
-              }`}>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ring-1 ring-inset ${user.status === '利用中' ? 'bg-green-50 text-green-700 ring-green-600/20' :
+                  user.status === '逝去' ? 'bg-gray-100 text-gray-600 ring-gray-500/20' :
+                    'bg-orange-50 text-orange-700 ring-orange-600/20'
+                }`}>
                 {user.status}
               </span>
               <p className="text-[10px] text-gray-400 font-mono uppercase tracking-widest">ID: {user.uid}</p>
@@ -106,27 +105,34 @@ const UserDetailTabs: React.FC<UserDetailTabsProps> = ({
         </div>
       </div>
 
-      {/* タブナビゲーション */}
-      <div className="border-b border-gray-200 px-6 bg-white">
-        <nav className="flex space-x-10" aria-label="Tabs">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`py-4 border-b-2 font-bold text-sm whitespace-nowrap transition-all ${
-                activeTab === tab.id
-                  ? 'border-gray-900 text-gray-900'
-                  : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
+     {/* タブナビゲーション：相対位置の器を作成 */}
+      <div className="relative border-b border-gray-200 bg-white">
+        
+        <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-12 bg-gradient-to-l from-white via-white/80 to-transparent sm:hidden" />
+
+        {/* 実際のスクロール層 */}
+        <div className="px-4 sm:px-6 overflow-x-auto custom-scrollbar">
+          <nav className="flex space-x-4 sm:space-x-10" aria-label="Tabs">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                /* py-3 に凝縮し、高さを最適化 */
+                className={`py-3 border-b-2 font-bold text-sm whitespace-nowrap transition-all flex-shrink-0 ${
+                  activeTab === tab.id
+                    ? 'border-gray-900 text-gray-900'
+                    : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
       </div>
 
       {/* タブコンテンツ */}
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         {activeTab === 'basic' && <UserBasicInfo user={user} />}
         {activeTab === 'support-records' && supportRecordTab}
         {activeTab === 'consultations' && <UserConsultationHistory consultations={consultations} />}
