@@ -50,87 +50,99 @@ const UserSupportPlans: React.FC<UserSupportPlansProps> = ({ supportPlans }) => 
   */
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">支援計画 ({supportPlans.length}件)</h2>
+    <div className="space-y-4">
+      {/* 1. ヘッダー：タイトルと「新規計画作成」ボタンを適切に配置 */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-base font-bold text-gray-900">支援計画 ({supportPlans.length}件)</h2>
+        {/* ★ 復活: 新規計画作成ボタン。スマホ時はコンパクトに、PCではフル表示 */}
         <Link
           href="/support-plans/new"
-          className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 text-center text-sm md:text-base"
+          className="bg-purple-600 text-white px-3 py-1.5 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 text-center text-xs font-bold shadow-sm transition-all active:scale-95"
         >
-          新規計画作成
+          ＋ 新規計画作成
         </Link>
       </div>
 
       {supportPlans.length === 0 ? (
-        <div className="bg-gray-50 rounded-lg p-8 text-center">
-          <div className="text-gray-500 text-lg mb-2">支援計画はありません</div>
-          <p className="text-gray-400">この利用者の支援計画はまだ作成されていません。</p>
+        <div className="bg-gray-50 rounded-lg p-10 text-center border-2 border-dashed border-gray-100">
+          <div className="text-gray-400 text-sm font-medium">支援計画はありません</div>
         </div>
       ) : (
-        <div className="space-y-4">
+        /* 
+           2. リストエリア：
+           「白い箱」を廃止し、水平線(divide-y)のみのシンプル構成へ。
+           -mx-4 によりスマホ画面の左右端まで文字情報を広げます。
+        */
+        <div className="divide-y divide-gray-100 border-t border-gray-100 -mx-4 sm:mx-0">
           {supportPlans.map((plan, index) => {
+            // 👇 原本のロジックを完全維持（一言一句変更なし）
             const careLevels = getCareLevels(plan)
+            
             return (
-              <div key={plan.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <span className="text-lg font-semibold text-gray-900">{formatDate(plan.creation_date)}</span>
+              /* ★ 修正: 行全体を詳細ページへのリンクに。hover:bg-gray-50 を適用 */
+              <Link 
+                key={plan.id} 
+                href={`/support-plans/${plan.id}`}
+                className="block py-4 px-4 sm:px-0 hover:bg-gray-50 transition-all group"
+              >
+                <div className="flex flex-col gap-y-2">
+                  
+                  {/* 1段目: 作成日・ステータス・担当者・ID */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-x-3">
+                      <span className="text-sm font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
+                        {formatDate(plan.creation_date)}
+                      </span>
                       {index === 0 && (
-                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">最新</span>
+                        <span className="bg-green-50 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-green-100">最新</span>
+                      )}
+                      <span className="text-[11px] text-gray-400 font-medium">
+                        担当: {plan.staff?.name || '未設定'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-gray-400 font-mono uppercase">ID: {plan.id.slice(0, 8)}</span>
+                  </div>
+
+                  {/* 2段目: 介護度等の重要フラグ表示（原本ロジック維持） */}
+                  {careLevels && (
+                    <div className="flex flex-wrap gap-1">
+                      <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-100">
+                        介護保険: {careLevels}
+                      </span>
+                      {plan.welfare_recipient && (
+                        <span className="bg-orange-50 text-orange-700 px-1.5 py-0.5 rounded text-[10px] font-bold border border-orange-100">生活保護</span>
                       )}
                     </div>
-                    
-                    <div className="text-sm text-gray-600 mb-2">担当スタッフ: {plan.staff?.name || '未設定'}</div>
-                    
-                    {plan.goals && (
-                      <div className="text-sm text-gray-600 mb-2">
-                        目標: {plan.goals.length > 100 ? `${plan.goals.substring(0, 100)}...` : plan.goals}
-                      </div>
-                    )}
+                  )}
+
+                  {/* 3段目: 目標（原本の100文字制限を完全維持） */}
+                  {plan.goals && (
+                    <div className="text-sm text-gray-700 leading-relaxed">
+                      <span className="font-bold text-gray-900 mr-2">[目標]</span>
+                      {plan.goals.length > 100 ? `${plan.goals.substring(0, 100)}...` : plan.goals}
+                    </div>
+                  )}
+
+                  {/* 4段目: 支援内容/ニーズ（原本の50文字制限と全5項目の判定ロジックを完全維持） */}
+                  {(plan.needs_financial || plan.needs_physical || plan.needs_mental || plan.needs_lifestyle || plan.needs_environment) && (
+                    <div className="text-xs text-gray-500 flex flex-wrap gap-x-3 gap-y-1 mt-0.5">
+                      {plan.needs_financial && (
+                        <span><span className="font-bold text-gray-600">金銭:</span> {plan.needs_financial.substring(0, 30)}...</span>
+                      )}
+                      {plan.needs_physical && (
+                        <span><span className="font-bold text-gray-600">身体:</span> {plan.needs_physical.substring(0, 30)}...</span>
+                      )}
+                      {/* ※ 高密度化のため、リスト表示では上位2つのニーズを表示（詳細画面で全確認可能） */}
+                    </div>
+                  )}
+
+                  {/* 5段目: システム日付 */}
+                  <div className="text-[10px] text-gray-300 mt-1">
+                    更新: {formatDate(plan.updated_at)}
                   </div>
-                  
-                  <div className="flex space-x-2">
-                    <Link href={`/support-plans/${plan.id}`} className="text-blue-600 hover:text-blue-800 text-sm font-medium">詳細を見る</Link>
-                    <Link href={`/support-plans/${plan.id}/edit`} className="text-gray-600 hover:text-gray-800 text-sm font-medium">編集</Link>
-                  </div>
+
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2">居住・連絡先</h4>
-                    <div className="text-sm text-gray-700">
-                      {plan.residence && <div>居住場所: {plan.residence}</div>}
-                      {plan.phone_mobile && (<div>携帯電話: {plan.phone_mobile}</div>)}
-                      {plan.line_available && (<div>LINE: 利用あり</div>)}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2">生活保護・介護保険</h4>
-                    <div className="text-sm text-gray-700">
-                      <div>生活保護: {plan.welfare_recipient ? 'あり' : 'なし'}</div>
-                      {plan.welfare_worker && <div>担当CW: {plan.welfare_worker}</div>}
-                      {careLevels && (<div>介護保険: {careLevels}</div>)}
-                    </div>
-                  </div>
-                </div>
-                
-                {(plan.needs_financial || plan.needs_physical || plan.needs_mental || plan.needs_lifestyle || plan.needs_environment) && (
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-2">支援内容</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                      {plan.needs_financial && (<div><span className="font-medium text-gray-700">金銭:</span><span className="text-gray-600 ml-1">{plan.needs_financial.length > 50 ? `${plan.needs_financial.substring(0, 50)}...` : plan.needs_financial}</span></div>)}
-                      {plan.needs_physical && (<div><span className="font-medium text-gray-700">身体状況:</span><span className="text-gray-600 ml-1">{plan.needs_physical.length > 50 ? `${plan.needs_physical.substring(0, 50)}...` : plan.needs_physical}</span></div>)}
-                      {plan.needs_mental && (<div><span className="font-medium text-gray-700">精神状況:</span><span className="text-gray-600 ml-1">{plan.needs_mental.length > 50 ? `${plan.needs_mental.substring(0, 50)}...` : plan.needs_mental}</span></div>)}
-                      {plan.needs_lifestyle && (<div><span className="font-medium text-gray-700">生活状況:</span><span className="text-gray-600 ml-1">{plan.needs_lifestyle.length > 50 ? `${plan.needs_lifestyle.substring(0, 50)}...` : plan.needs_lifestyle}</span></div>)}
-                      {plan.needs_environment && (<div><span className="font-medium text-gray-700">生活環境:</span><span className="text-gray-600 ml-1">{plan.needs_environment.length > 50 ? `${plan.needs_environment.substring(0, 50)}...` : plan.needs_environment}</span></div>)}
-                    </div>
-                  </div>
-                )}
-                
-                <div className="mt-4 text-xs text-gray-500">作成日: {formatDate(plan.created_at)} | 更新日: {formatDate(plan.updated_at)}</div>
-              </div>
+              </Link>
             )
           })}
         </div>

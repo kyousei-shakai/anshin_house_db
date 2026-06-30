@@ -67,7 +67,7 @@ export default function SupportTaskFormOnly({ userId, categories, staffs, curren
   `
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* モード明示 */}
       <div className="bg-teal-50 p-3 rounded-lg border border-teal-200">
         <p className="text-xs font-black text-teal-800 text-center uppercase tracking-widest">予定（次回予約）の登録</p>
@@ -147,7 +147,7 @@ export default function SupportTaskFormOnly({ userId, categories, staffs, curren
         <button 
           type="submit" 
           disabled={isPending} 
-          className={`bg-gray-900 text-white py-4 px-12 rounded-lg text-base font-bold hover:bg-black shadow-xl transition-all ${isPending ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'active:scale-95'}`}
+          className={`bg-gray-900 text-white py-3 px-10 rounded-lg text-sm font-bold hover:bg-black shadow-lg transition-all ${isPending ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'active:scale-95'}`}
         >
           {isPending ? '保存処理中...' : '予定を保存する'}
         </button>
