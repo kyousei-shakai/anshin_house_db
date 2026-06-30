@@ -47,6 +47,7 @@ next-env.d.ts
 .env.keys
 .env.local
 .env.*.local
+.env.project-*
 # Supabase
 .branches
 .temp

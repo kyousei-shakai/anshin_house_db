@@ -6,7 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "switch:local": "cp .env.local.dev .env.local",
+    "switch:a": "cp .env.project-a .env.local && supabase link --project-ref hvmuwweipoiubtamiygv",
+    "switch:b": "cp .env.project-b .env.local && supabase link --project-ref xnyjtcpwpmafbufsmezx",
+    "db:who": "cat supabase/.temp/project-ref",
+    "db:push": "supabase db push",
+    "types:update": "supabase gen types typescript --linked > src/types/database.ts"
+    
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -47,4 +54,5 @@
     "tw-animate-css": "^1.3.7",
     "typescript": "5.5.4"
   }
+  
 }

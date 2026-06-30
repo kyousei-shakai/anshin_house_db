@@ -14,12 +14,12 @@ import { Users, MessageSquareText, FileHeart, ChevronRight } from 'lucide-react'
 
 const AnalyticsDashboard = dynamic(
   () => import('@/components/AnalyticsDashboard'),
-  { 
-    ssr: false, 
-    loading: () => 
+  {
+    ssr: false,
+    loading: () =>
       <div className="mt-12">
         <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-gray-800">データ分析ダッシュボード</h2>
+          <h2 className="text-xl font-bold text-gray-800">データ分析ダッシュボード</h2>
         </div>
         <div className="w-full h-96 bg-gray-100 rounded-lg flex items-center justify-center">
           <p className="text-gray-500">分析データを読み込み中...</p>
@@ -60,9 +60,9 @@ interface HomeClientProps {
 }
 
 // ★ 引数部分で categories と staffs をしっかりと受け取ります
-export default function HomeClient({ 
-  stats, 
-  initialAnalyticsData, 
+export default function HomeClient({
+  stats,
+  initialAnalyticsData,
   careDashboardData,
   upcomingTasks,
   teamHistory,
@@ -76,7 +76,7 @@ export default function HomeClient({
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 sm:pt-8 sm:pb-16">
 
       {/* アクションボタンエリア：余白 mb-10 pt-2 は維持しつつ、ボタン内パディングを調整 */}
-      <div className="mb-10 pt-2"> 
+      <div className="mb-10 pt-2">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <Link href="/consultations/new" className="group bg-blue-700 text-white rounded-md shadow p-4 sm:p-5 flex items-center hover:bg-blue-800 transition-colors">
             <div className="p-2 bg-blue-800 rounded mr-4"><PlusCircleIcon /></div>
@@ -96,14 +96,14 @@ export default function HomeClient({
       </div>
 
       {/* ★ ここで CareDashboard に正しく変数を渡します (既存維持) */}
-      <CareDashboard 
-        dashboardData={careDashboardData} 
-        upcomingTasks={upcomingTasks} 
+      <CareDashboard
+        dashboardData={careDashboardData}
+        upcomingTasks={upcomingTasks}
         teamHistory={teamHistory}
         categories={categories}
         staffs={staffs}
       />
-      
+
       {/* 状況カード (既存ロジック・スタイルを完全維持) */}
       <div className="mb-12 mt-12">
         <h2 className="text-lg font-bold text-gray-800 mb-4 border-l-4 border-gray-500 pl-3">
@@ -160,8 +160,8 @@ export default function HomeClient({
           </Link>
         </div>
       </div>
-      
-      <AnalyticsDashboard 
+
+      <AnalyticsDashboard
         consultations={initialAnalyticsData.consultations}
         users={initialAnalyticsData.users}
       />
@@ -172,31 +172,58 @@ export default function HomeClient({
         <div className="bg-white rounded-md shadow-sm border border-gray-200">
           <div className="border-b border-gray-200 bg-gray-50">
             <nav className="-mb-px flex space-x-6 px-6" aria-label="Tabs">
+              
+              <button onClick={() => setActiveTab('future')} className={`${activeTab === 'future' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors`}>
+                個人情報保護への取り組み
+              </button>
               <button onClick={() => setActiveTab('notifications')} className={`${activeTab === 'notifications' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors`}>
                 お知らせ
               </button>
-              <button onClick={() => setActiveTab('future')} className={`${activeTab === 'future' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors`}>
-                今後の機能について
-              </button>
+
             </nav>
           </div>
           <div className="p-6">
+            
+            {activeTab === 'future' && (
+              <div className="space-y-5 animate-in fade-in duration-300">
+                <p className="text-xs text-gray-800 leading-relaxed">
+                  本システムは、お客様の情報を守るために、以下の世界標準のセキュリティ体制を構築・運用しています。
+                </p>
+
+                <ul className="space-y-3">
+                  <li className="text-xs text-gray-600 flex items-start">
+                    <span className="text-blue-600 mr-2">●</span>
+                    <span>通信の完全暗号化：<br></br>システムにアクセスする際のすべての通信は、最新のTLS（Transport Layer Security）プロトコルにより暗号化されています。これにより、インターネット上でのデータの盗聴や改ざんを物理的に遮断しています。</span>
+                  </li>
+                  <li className="text-xs text-gray-600 flex items-start">
+                    <span className="text-blue-600 mr-2">●</span>
+                    <span>サーバーサイドでのデータ暗号化：<br></br>データベース（Supabase/PostgreSQL）に保存されるすべての情報は、ストレージレベルでAES-256暗号化アルゴリズムを用いて保護されています。物理的なディスクレベルでの暗号化により、万が一の事態においても不正なデータ読み取りを防止します。</span>
+                  </li>
+                  <li className="text-xs text-gray-600 flex items-start">
+                    <span className="text-blue-600 mr-2">●</span>
+                    <span>マネジメント型バックアップと可用性：<br></br>データの損失リスクに備え、データベースの**自動スナップショット（日次バックアップ）**を運用しています。インフラ基盤には世界最高水準の信頼性を持つクラウドプラットフォームを採用し、高い可用性と耐障害性を確保しています。</span>
+                  </li>
+                  <li className="text-xs text-gray-600 flex items-start">
+                    <span className="text-blue-600 mr-2">●</span>
+                    <span>アプリケーションの堅牢性：<br></br>開発言語としてTypeScriptを全面的に採用し、ソースコードレベルでの型安全性を徹底しています。これにより、Webアプリケーション特有の脆弱性の原因となりやすいデータ型エラーや、不正なスクリプト注入（インジェクション攻撃）のリスクを設計段階から最小化しています。</span>
+                  </li>
+                </ul>
+
+                <p className="text-xs text-gray-400 pt-2">
+                  ※インフラ基盤として、国際的なセキュリティ認証（SOC2、ISO 27001）を取得したVercelおよびSupabaseを採用しています。
+                </p>
+              </div>
+            )}
+
             {activeTab === 'notifications' && (
               <div className="space-y-4">
-                  <div className="flex items-start">
-                    <div className="text-sm text-gray-500 w-24 shrink-0">2026/06/10</div>
-                    <div className="text-sm text-gray-800 font-bold text-blue-600">【新機能】生活支援記録とケア状況ダッシュボードが追加されました！</div>
-                  </div>
+                <div className="flex items-start">
+                  <div className="text-sm text-gray-500 w-24 shrink-0">2026/06/10</div>
+                  <div className="text-sm text-gray-800 text-blue-600">【新機能】生活支援記録とケア状況ダッシュボードが追加されました</div>
+                </div>
               </div>
             )}
-            {activeTab === 'future' && (
-              <div>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    このシステムは、スタッフの皆様の声を反映して作成していきます。<br />
-                    「ここがやりにくい、こんな機能があったら便利」といったご意見もお待ちしております。
-                  </p>
-              </div>
-            )}
+
           </div>
         </div>
       </div>
