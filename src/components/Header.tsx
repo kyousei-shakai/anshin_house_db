@@ -127,11 +127,13 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
                             {link.label}
                           </Link>
                         ))}
+                        {/* 一時的にマニュアルを非表示
                         <Separator className="my-2" />
                         <Link href={MANUAL_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-3 py-3 text-gray-600 hover:bg-gray-100 rounded-md">
                           <BookOpen className="h-5 w-5 text-indigo-600" />
                           <span>マニュアル</span>
                         </Link>
+                        */}
                       </div>
                     </SheetContent>
                   </Sheet>
@@ -204,16 +206,16 @@ const Header = ({ onMenuClick }: HeaderProps): JSX.Element => {
               )}
             </div>
 
-            {/* ★ 改善：マニュアルの前の境界線 */}
+            {/* 一時的に境界線とマニュアルボタンを非表示
             <div className="h-8 w-px bg-slate-300 mx-4" aria-hidden="true" />
 
-            {/* 3. マニュアル */}
             <Button asChild variant="ghost" className="h-9 px-3 text-sm font-medium text-gray-600 hover:bg-gray-100">
               <Link href={MANUAL_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-indigo-600" />
                 <span>マニュアル</span>
               </Link>
             </Button>
+            */}
           </div>
 
           {/* モバイル版の右側余白調整 */}
