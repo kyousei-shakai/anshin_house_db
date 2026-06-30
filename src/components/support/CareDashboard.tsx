@@ -131,7 +131,7 @@ export default function CareDashboard({
         </button>
         <button onClick={() => setFilterMode('urgent')} className={`flex items-center gap-3 py-2.5 px-4 rounded-xl border-2 transition-all ${filterMode === 'urgent' ? 'border-red-600 bg-red-50/50 shadow-inner' : 'border-gray-200 bg-white hover:border-red-200 shadow-sm'}`}>
           <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
-          <div className="text-left text-sm font-bold text-gray-500 uppercase leading-tight"><p>未完了タスク/要フォロー</p><p className="text-xl font-black text-red-600">{stats.urgent}</p></div>
+          <div className="text-left text-sm font-bold text-gray-500 uppercase leading-tight"><p>未完了/要フォロー</p><p className="text-xl font-black text-red-600">{stats.urgent}</p></div>
         </button>
         <button onClick={() => setFilterMode('recent')} className={`flex items-center gap-3 py-2.5 px-4 rounded-xl border-2 transition-all ${filterMode === 'recent' ? 'border-emerald-600 bg-emerald-50/50 shadow-inner' : 'border-gray-200 bg-white hover:border-emerald-300 shadow-sm'}`}>
           <History className="w-5 h-5 text-emerald-600 shrink-0" />

@@ -121,7 +121,7 @@ const TimelineView: React.FC<TimelineViewProps> = ({ initialEvents, consultation
     <Fragment>
       <div id="timeline" className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-lg overflow-hidden">
         <div className="px-4 py-4 sm:px-6 bg-gray-50 border-b border-gray-200">
-          <h2 className="text-base font-semibold leading-6 text-gray-800">支援タイムライン</h2>
+          <h2 className="text-base font-semibold leading-6 text-gray-800">進捗タイムライン</h2>
         </div>
         <div className="border-t border-gray-200">
           <ul role="list" className="divide-y divide-gray-200">
