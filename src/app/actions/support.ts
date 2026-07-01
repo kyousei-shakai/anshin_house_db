@@ -265,10 +265,19 @@ export async function createSupportTaskOnly(args: {
   }
 }
 
-/** 次回予定を完了にし実績コピー */
+/** 
+ * 次回予定を完了にし、実績としてコピーする
+ * 
+ * 【重要ロジック：DB内 RPC 'complete_support_task' を実行】
+ * 1. 原子性の担保: 予定の完了(UPDATE)と実績の作成(INSERT)を1トランザクションで完結。
+ * 2. 整合性の継承: 予定日時(scheduled_at)を実績日時(support_at)にそのままコピー。
+ * 3. データの同期: 予定に紐付く副次カテゴリー(sub_categories)を一括で実績側へコピー。
+ * 4. 二重送信防止: status='open' の行のみを処理対象とし、冪等性を確保。
+ */
 export async function completeSupportTask(task: SupportTaskWithStaff) {
   const supabase = await createClient()
   try {
+    // DB内部の原子化ロジックを呼び出し。詳細は SQL マイグレーションファイルを参照。20260701000000_fix_support_complete_task_logic.sql
     const { error } = await supabase.rpc('complete_support_task', { p_task_id: task.id })
     if (error) throw error
     revalidatePath(`/users/${task.user_id}`)
