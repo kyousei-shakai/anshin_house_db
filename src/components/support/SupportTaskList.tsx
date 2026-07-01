@@ -5,7 +5,8 @@ import React, { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { type SupportTaskWithStaff, type SupportCategory } from '@/types/support'
 import { type Staff } from '@/types/staff'
-import { completeSupportTask, cancelSupportTask, updateSupportTask } from '@/app/actions/support'
+// ★ 修正：deleteSupportTask をインポートに追加
+import { completeSupportTask, cancelSupportTask, updateSupportTask, deleteSupportTask } from '@/app/actions/support'
 import { Clock } from 'lucide-react'
 
 type Props = {
@@ -81,6 +82,16 @@ export default function SupportTaskList({ userId, tasks, staffs, categories }: P
     startTransition(async () => {
       const result = await cancelSupportTask(taskId, userId)
       if (result.success) router.refresh()
+    })
+  }
+
+  // ★ 追加：削除ハンドラ
+  const handleDelete = async (taskId: string) => {
+    if (!confirm('この予定を完全に削除しますか？\n削除すると一覧から消え、元に戻せません。')) return
+    startTransition(async () => {
+      const result = await deleteSupportTask(taskId, userId)
+      if (result.success) router.refresh()
+      else alert(result.error)
     })
   }
 
@@ -187,6 +198,8 @@ export default function SupportTaskList({ userId, tasks, staffs, categories }: P
                     </div>
                   </div>
                   <div className="flex flex-row items-center gap-4 shrink-0 self-end md:self-center">
+                    {/* ★ 追加：削除ボタン */}
+                    <button onClick={() => handleDelete(task.id)} disabled={isPending} className="text-xs font-bold text-gray-400 hover:text-red-600 transition-colors px-2 py-1">削除</button>
                     <button onClick={() => handleCancel(task.id)} disabled={isPending} className="text-xs font-bold text-gray-400 hover:text-red-600 transition-colors px-2 py-1">取消</button>
                     <button onClick={() => handleComplete(task)} disabled={isPending} className="bg-white border-2 border-blue-600 text-blue-600 px-5 py-2 rounded text-sm font-black hover:bg-blue-600 hover:text-white transition-all shadow-sm active:scale-95 disabled:opacity-50">完了にして記録</button>
                   </div>

@@ -3,8 +3,6 @@
 # 居住支援管理マスター - 保守管理ドキュメント
 
 最終更新: 2026年6月13日
-プロジェクト参照ID: `hvmuwweipoiubtamiygv`
-
 ---
 
 ## 目次
@@ -107,8 +105,6 @@ NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# 外部連携（オプション）
-NEXT_PUBLIC_DAILY_LOG_APP_URL=https://your-daily-log-app-url
 ```
 
 ### ローカル開発環境
@@ -239,9 +235,7 @@ anshin-house-db/
 Supabaseから自動生成されるデータベース型定義。**手動で編集しないこと**。
 
 生成方法:
-```bash
-npx supabase@latest gen types typescript --local > src/types/database.ts
-```
+複数環境（マルチテナント）運用管理マニュアル（OPERATIONS.md ）を参照してください
 
 #### `src/types/consultation.ts`
 相談関連のカスタム型定義。Supabase JOINクエリやRPCの型推論問題を解決するために作成。
@@ -375,4 +369,3 @@ RPC (Version 8) への刷新:関数: get_consultations_with_next_action
    - `staff` テーブルのレコードは「ID単位での個人」を象徴する。
    - 人物の入れ替え時に「既存レコードの名前を別人に書き換える」ことは**厳禁**。必ず旧担当を `is_active = false` とし、新担当を新規登録すること。これを守らない場合、過去の全相談記録の担当者名が遡って書き換わる「証跡破壊」が発生する。
 ---
-**プロジェクト参照ID**: `hvmuwweipoiubtamiygv`

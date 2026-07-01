@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "switch:local": "cp .env.local.dev .env.local",
+    "switch:local": "cp .env.local.dev .env.local && rm -f supabase/.temp/project-ref",
     "switch:a": "cp .env.project-a .env.local && supabase link --project-ref hvmuwweipoiubtamiygv",
     "switch:b": "cp .env.project-b .env.local && supabase link --project-ref xnyjtcpwpmafbufsmezx",
     "db:who": "cat supabase/.temp/project-ref",

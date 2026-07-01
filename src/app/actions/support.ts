@@ -1,4 +1,4 @@
-//src/app/actions/support.ts
+// src/app/actions/support.ts
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
@@ -15,7 +15,7 @@ import {
 } from '@/types/support'
 
 // ==================================================================
-// 1. 取得系（Read）のアクション
+// 1. 取得系（Read）のアクション (一言一句維持)
 // ==================================================================
 
 /** 支援カテゴリ一覧取得 */
@@ -160,7 +160,7 @@ export async function getUserRecentHistory(userId: string) {
 
 
 // ==================================================================
-// 2. 登録・更新系（Write）のアクション
+// 2. 登録・更新・削除系（Write）のアクション
 // ==================================================================
 
 /** 生活支援記録と次回予定を同時に保存（複数カテゴリ・原子性対応版） */
@@ -196,6 +196,23 @@ export async function createSupportLogWithTask(args: CreateSupportLogWithTaskArg
   }
 }
 
+/** 生活支援記録（実績）の削除 ★新規追加★ */
+export async function deleteSupportLog(logId: string, userId: string) {
+  const supabase = await createClient()
+  try {
+    // 中間テーブルは ON DELETE CASCADE により自動削除されます
+    const { error } = await supabase.from('daily_support_logs').delete().eq('id', logId)
+    if (error) throw error
+    
+    revalidatePath(`/users/${userId}`)
+    revalidatePath('/')
+    return { success: true }
+  } catch (e) {
+    console.error('deleteSupportLog Error:', e)
+    return { success: false, error: '支援記録の削除に失敗しました。' }
+  }
+}
+
 /** 次回予定のみを単独で登録する（複数カテゴリ対応版） */
 export async function createSupportTaskOnly(args: {
   user_id: string
@@ -228,7 +245,7 @@ export async function createSupportTaskOnly(args: {
 
     if (taskError) throw taskError
 
-    // 2. 副次カテゴリの作成（名称スナップショット取得・保存）
+    // 2. 副次カテゴリの作成
     if (args.sub_category_ids && args.sub_category_ids.length > 0) {
       const { data: catNames } = await supabase.from('support_categories').select('id, name').in('id', args.sub_category_ids)
       const subEntries = args.sub_category_ids.map(subId => ({
@@ -248,11 +265,10 @@ export async function createSupportTaskOnly(args: {
   }
 }
 
-/** 次回予定を完了にし実績コピー（副次カテゴリ一括コピー対応版） */
+/** 次回予定を完了にし実績コピー */
 export async function completeSupportTask(task: SupportTaskWithStaff) {
   const supabase = await createClient()
   try {
-    // 高度化された RPC を呼び出し（DB内部で副次カテゴリもコピーされます）
     const { error } = await supabase.rpc('complete_support_task', { p_task_id: task.id })
     if (error) throw error
     revalidatePath(`/users/${task.user_id}`)
@@ -264,7 +280,7 @@ export async function completeSupportTask(task: SupportTaskWithStaff) {
   }
 }
 
-/** 次回予定の内容を編集（副次カテゴリ同期ロジック搭載版） */
+/** 次回予定の内容を編集 */
 export async function updateSupportTask(
   taskId: string, 
   userId: string, 
@@ -317,7 +333,7 @@ export async function updateSupportTask(
   }
 }
 
-/** 次回予定のキャンセル */
+/** 次回予定のキャンセル（物理削除ではなく、論理的なステータス変更） */
 export async function cancelSupportTask(taskId: string, userId: string) {
   const supabase = await createClient()
   try {
@@ -331,8 +347,25 @@ export async function cancelSupportTask(taskId: string, userId: string) {
   }
 }
 
+/** 次回予定の物理削除 ★新規追加★ */
+export async function deleteSupportTask(taskId: string, userId: string) {
+  const supabase = await createClient()
+  try {
+    // 中間テーブルは ON DELETE CASCADE により自動削除されます
+    const { error } = await supabase.from('support_tasks').delete().eq('id', taskId)
+    if (error) throw error
+    
+    revalidatePath(`/users/${userId}`)
+    revalidatePath('/')
+    return { success: true }
+  } catch (e) {
+    console.error('deleteSupportTask Error:', e)
+    return { success: false, error: '予定の削除に失敗しました。' }
+  }
+}
+
 // ==================================================================
-// 3. マスタ管理（Category Management）
+// 3. マスタ管理 (一言一句維持)
 // ==================================================================
 
 /** 支援カテゴリの新規登録 */
