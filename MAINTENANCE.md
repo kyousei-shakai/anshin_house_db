@@ -310,10 +310,6 @@ TypeScriptのダウングレード(5.5.4)と依存関係の固定。
 ## 【2026年6月23日】個別相談票エクスポート機能の高度化と防弾設計の導入
 従来のExcel出力は、あらかじめ用意された全選択肢に対して「チェック（✔）」を入れる「アナログ帳票模倣型」。**「選択された項目のみを日本語ラベルとして連結し、一つの文章として出力する」**データ駆動型の設計へ転換。
 
-### 【2026年6月29日】利用者データ連携における「フリガナ」不整合の解消とUI/UXの刷新
-- **物理構造の正規化**: `users`テーブルに `furigana`カラムをマイグレーション（`20260629000000_add_furigana_to_users.sql`）により追加。既存データへのバックフィルも実施。
-- **データ連携の再配線**: `ConsultationList` の登録アクションおよび `users.ts` の `createUser` アクションを修正し、相談時のフリガナを利用者マスタへ100%引き継ぐロジックを確立。
-
 *   **関連ファイル:** `src/utils/consultation-aggregator.ts`
 ### 運用の「防弾設計（セーフティ）」
 
@@ -330,13 +326,25 @@ TypeScriptのダウングレード(5.5.4)と依存関係の固定。
 物理スキーマの拡張: consultations テーブルに10項目の boolean カラムを追加。
 RPC (Version 8) への刷新:関数: get_consultations_with_next_action
 変更内容: 戻り値（RETURNS TABLE）に新設10カラムを追加。本システムでは、物理テーブルのカラム追加とRPCの戻り値定義の同期が必須であることを改めて定義。
-型安全性の連鎖: supabase gen types による database.ts の更新に加え、手動定義の ConsultationFormData（types.ts）および Consultation（custom.ts）を完全同期。
 
 ### 【2026年6月26日】スタッフ管理機能の実装と参照整合性の強化
 現場スタッフが担当者情報を自由に追加・編集・無効化できるマスタ管理機能を実装。
 - **物理防御（三重防御）**: 全5テーブル（相談、イベント、計画、ログ、タスク）の `staff_id` 等に対する外部参照制約を動的に特定し、`ON DELETE RESTRICT` へ一括再定義。物理削除による証跡喪失をDBレベルで封鎖。
 - **キャッシュ不整合の根絶**: Server Action 内部で `unstable_noStore()` による常時最新フェッチと、`revalidatePath('/', 'layout')` による広域パージを実装。マスタ変更を全画面に即時同期。
 - **履歴保護ロジック**: 相談編集モード時、担当スタッフが無効化（論理削除）されていても、その記録の証跡としてプルダウンに表示し続ける「editMode連動フィルタリング」を導入。
+
+### 【2026年6月29日】利用者データ連携における「フリガナ」不整合の解消とUI/UXの刷新
+- **物理構造の正規化**: `users`テーブルに `furigana`カラムをマイグレーション（`20260629000000_add_furigana_to_users.sql`）により追加。既存データへのバックフィルも実施。
+- **データ連携の再配線**: `ConsultationList` の登録アクションおよび `users.ts` の `createUser` アクションを修正し、相談時のフリガナを利用者マスタへ100%引き継ぐロジックを確立。
+
+### 【2026年7月1日】予定完了処理の高度化（RPC移譲による整合性強化）
+- **仕様変更**: 予定完了時の実績日時に、ボタン押下時(`now()`)ではなく予定日時(`scheduled_at`)を自動継承するよう変更。
+- **技術決定**: 原子性（Atomicity）と整合性を守るため、ロジックをDB内の `complete_support_task` 関数に集約。
+- **処理内容**:
+  1. `support_tasks` のステータスを `completed` へ更新。
+  2. `daily_support_logs` へ、予定日時・内容・主カテゴリをコピーして新規挿入。
+  3. `support_task_sub_categories` から `daily_support_log_sub_categories` へ副次項目をバルクコピー。
+- **留意点**: 重要なビジネスロジックがSQL側に存在するため、AI解析や手動修正時は `supabase/migrations` の当該SQLを必ず参照すること。
 ---
 
 ## トラブルシューティング
@@ -347,10 +355,6 @@ RPC (Version 8) への刷新:関数: get_consultations_with_next_action
 ### 11. RPC不整合と `undefined` 表示 (2026/06)
 - **原因**: RPCの戻り値列と `src/types/support.ts` の定義がズレると発生。
 - **解決**: `UpcomingTaskRow` 等の型定義と SQL 戻り値を常に同期させる。
-
-### 12. 完了処理でのデータ漏れ
-- **原因**: 予定の副次カテゴリーが実績にコピーされない（初期実装ミス）。
-- **解決**: `complete_support_task` RPC内部で `INSERT SELECT` による一括コピーを実装。
 
 ---
 
